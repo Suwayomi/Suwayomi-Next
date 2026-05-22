@@ -264,16 +264,16 @@ export default function BrowsePage() {
             }
         >
             <Tabs defaultValue="sources" className="h-full flex flex-col gap-6">
-                <TabsList className="w-fit bg-muted/20 p-1 rounded-full border border-border/40">
+                <TabsList className="w-full bg-muted/20 p-1 rounded border border-border/40">
                     <TabsTrigger
                         value="sources"
-                        className="rounded-full px-6 gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                        className="rounded px-6 gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
                     >
                         <Globe className="size-4" /> Sources
                     </TabsTrigger>
                     <TabsTrigger
                         value="extensions"
-                        className="rounded-full px-6 gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                        className="rounded px-6 gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
                     >
                         <Puzzle className="size-4" /> Extensions
                     </TabsTrigger>

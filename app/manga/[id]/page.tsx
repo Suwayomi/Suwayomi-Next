@@ -770,7 +770,7 @@ export default function MangaDetailPage() {
 
 function MangaDetailSkeleton() {
     return (
-        <PageLayout title="Loading...">
+        <PageLayout title="">
             <div className="flex flex-col gap-10">
                 <div className="flex flex-col md:flex-row gap-8">
                     <Skeleton className="w-full md:w-64 lg:w-72 aspect-[3/4] rounded-2xl shadow-xl" />

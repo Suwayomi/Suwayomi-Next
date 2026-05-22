@@ -1,5 +1,5 @@
-import { PageLayout } from "@/components/page-layout";
+import { redirect } from "next/navigation";
 
 export default function SettingsPage() {
-  return <PageLayout title="Settings" />;
+  redirect("/settings/Appearance");
 }

@@ -6,27 +6,15 @@ import { client } from "@/lib/client";
 import { getImageUrl, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  Settings, 
-  Rows,
+import {
+  ChevronRight,
+  Settings,
   X,
-  Clock,
-  ArrowBigLeft,
-  ArrowBigRight,
-  Columns,
   History,
-  Monitor,
-  Smartphone,
-  Maximize,
-  Gauge,
-  Layers,
   ChevronLast,
   ChevronFirst
 } from "lucide-react";
-import { 
+import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -34,6 +22,9 @@ import {
   SheetTrigger,
   SheetDescription
 } from "@/components/ui/sheet";
+
+import { useReaderSettings } from "@/hooks/use-reader-settings";
+import { ReaderConfig } from "@/components/settings/reader-config";
 
 export default function ReaderPage() {
   const params = useParams();
@@ -45,12 +36,24 @@ export default function ReaderPage() {
   const [mangaData, setMangaData] = React.useState<any>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [showControls, setShowControls] = React.useState(true);
-  const [readingMode, setReadingMode] = React.useState<"long-strip" | "single-page">("long-strip");
-  const [currentPage, setCurrentPage] = React.useState(0);
-  const [fitMode, setFitMode] = React.useState<"width" | "height" | "original">("width");
-  const [background, setBackground] = React.useState<"black" | "zinc">("black");
 
+  const {
+    readingMode,
+    readingDirection,
+    tapZone,
+    invertTapZone,
+    scaleType,
+    hudType,
+    hudOrientation,
+    pageGap,
+    background
+  } = useReaderSettings();
+
+  const [currentPage, setCurrentPage] = React.useState(0);
   const containerRef = React.useRef<HTMLDivElement>(null);
+
+  const isScrollMode = readingMode === "continuous-vertical" || readingMode === "webtoon" || readingMode === "continuous-horizontal";
+  const [isNavigating, setIsNavigating] = React.useState(false);
 
   React.useEffect(() => {
     async function fetchData() {
@@ -59,25 +62,14 @@ export default function ReaderPage() {
           client.mutation({
             fetchChapterPages: {
               __args: { input: { chapterId } },
-              chapter: {
-                id: true,
-                name: true,
-                pageCount: true,
-                chapterNumber: true,
-              },
+              chapter: { id: true, name: true, pageCount: true, chapterNumber: true },
               pages: true,
             }
           }),
           client.query({
             manga: {
               __args: { id: mangaId },
-              chapters: {
-                nodes: {
-                  id: true,
-                  sourceOrder: true,
-                  chapterNumber: true,
-                }
-              }
+              chapters: { nodes: { id: true, sourceOrder: true, chapterNumber: true } }
             }
           })
         ]);
@@ -93,30 +85,98 @@ export default function ReaderPage() {
   }, [chapterId, mangaId]);
 
   React.useEffect(() => {
+    if (hudType === "static") {
+      setShowControls(true);
+      return;
+    }
     let timer: NodeJS.Timeout;
     if (showControls) {
-      timer = setTimeout(() => setShowControls(false), 2000);
+      timer = setTimeout(() => setShowControls(false), 3000);
     }
     return () => clearTimeout(timer);
-  }, [showControls]);
+  }, [showControls, hudType]);
 
-  React.useEffect(() => {
-    if (readingMode === "single-page" && containerRef.current) {
+  const pages = data?.fetchChapterPages?.pages || [];
+  const chapter = data?.fetchChapterPages?.chapter;
+
+  const navigateToPage = (target: number) => {
+    const next = Math.max(0, Math.min(pages.length - 1, target));
+    setCurrentPage(next);
+
+    if (!containerRef.current) return;
+
+    if (readingMode === "single-page" || readingMode === "double-page") {
       containerRef.current.scrollTo(0, 0);
-    }
-  }, [currentPage, readingMode]);
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    const y = e.clientY;
-    const height = window.innerHeight;
-    if (y < height * 0.15 || y > height * 0.85) {
-      if (!showControls) setShowControls(true);
+    } else {
+      const element = document.getElementById(`page-${next}`);
+      if (element) {
+        setIsNavigating(true);
+        element.scrollIntoView({
+          behavior: "smooth",
+          block: readingMode === "continuous-horizontal" ? "nearest" : "start",
+          inline: readingMode === "continuous-horizontal" ? "start" : "nearest"
+        });
+        setTimeout(() => setIsNavigating(false), 800);
+      }
     }
   };
 
-  const toggleControls = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setShowControls(!showControls);
+  React.useEffect(() => {
+    if (isNavigating || !isScrollMode) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const index = parseInt(entry.target.id.split("-")[1]);
+            setCurrentPage(index);
+          }
+        });
+      },
+      { root: containerRef.current, threshold: 0.3 }
+    );
+
+    const elements = document.querySelectorAll('[id^="page-"]');
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [isNavigating, isScrollMode, pages.length]);
+
+  const [loadedPages, setLoadedPages] = React.useState<Record<number, boolean>>({});
+  const handleImageLoad = (index: number) => {
+    setLoadedPages(prev => ({ ...prev, [index]: true }));
+  };
+
+  const handleTap = (e: React.MouseEvent) => {
+    if (tapZone === "disabled") return;
+
+    const x = e.clientX;
+    const y = e.clientY;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    if (x > width * 0.3 && x < width * 0.7 && y > height * 0.3 && y < height * 0.7) {
+      if (hudType === "floating") setShowControls(!showControls);
+      return;
+    }
+
+    let isNext = x > width * 0.5;
+    if (tapZone === "edge") {
+      if (x < width * 0.2) isNext = false;
+      else if (x > width * 0.8) isNext = true;
+      else return;
+    } else if (tapZone === "kindle") {
+      isNext = x > width * 0.2;
+    } else if (tapZone === "l-shape") {
+      isNext = x > width * 0.3 || y > height * 0.7;
+    } else if (tapZone === "right-left") {
+      isNext = x > width * 0.5;
+    }
+
+    if (invertTapZone === "horizontal" || invertTapZone === "both") isNext = !isNext;
+    const directionalNext = readingDirection === "rtl" ? !isNext : isNext;
+
+    if (directionalNext) navigateToPage(currentPage + (readingMode === "double-page" ? 2 : 1));
+    else navigateToPage(currentPage - (readingMode === "double-page" ? 2 : 1));
   };
 
   const chapters = React.useMemo(() => {
@@ -132,19 +192,6 @@ export default function ReaderPage() {
     setIsLoading(true);
   };
 
-  const markAsRead = async () => {
-    try {
-      await client.mutation({
-        updateChapter: {
-          __args: { input: { id: chapterId, patch: { isRead: true } } },
-          chapter: { id: true }
-        }
-      });
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-black flex flex-col items-center justify-center gap-4">
@@ -156,230 +203,192 @@ export default function ReaderPage() {
     );
   }
 
-  const pages = data?.fetchChapterPages?.pages || [];
-  const chapter = data?.fetchChapterPages?.chapter;
+  const isVerticalHud = hudOrientation === "vertical";
+  const isFloating = hudType === "floating";
 
   return (
-    <div 
+    <div
       className={cn(
-        "fixed inset-0 z-[100] flex flex-col overflow-hidden transition-colors duration-500 font-sans",
+        "fixed inset-0 z-[100] flex transition-colors duration-500 font-sans overflow-hidden",
+        isVerticalHud ? "flex-col" : "flex-row",
         background === "black" ? "bg-black" : "bg-zinc-950"
       )}
-      onMouseMove={handleMouseMove}
-      onClick={toggleControls}
+      onMouseMove={() => hudType === "floating" && !showControls && setShowControls(true)}
     >
-      {/* Top Controls Overlay */}
-      <div 
+      {/* Top/Left HUD Section */}
+      <div
         className={cn(
-          "fixed top-4 inset-x-4 z-[120] transition-all duration-200 transform pointer-events-none",
-          !showControls && "-translate-y-12 opacity-0"
+          "z-[120] transition-all duration-300 transform",
+          isVerticalHud
+            ? "fixed top-0 inset-x-0"
+            : "fixed left-0 inset-y-0 w-fit flex items-center justify-center",
+          !showControls && (isVerticalHud ? "-translate-y-full opacity-0" : "-translate-x-full opacity-0")
         )}
       >
-        <div 
-          className="max-w-5xl mx-auto bg-zinc-900/90 backdrop-blur-xl border border-white/10 px-4 py-2 rounded-2xl flex items-center justify-between shadow-2xl pointer-events-auto"
-          onClick={(e) => e.stopPropagation()}
+        <div
+          className={cn(
+            "bg-zinc-900/90 backdrop-blur-xl border-white/10 flex shadow-2xl",
+            isVerticalHud
+              ? cn("flex-row items-center justify-between", isFloating ? "mx-4 mt-4 px-4 py-2 rounded-2xl border" : "w-full px-6 py-4 border-b")
+              : cn("flex-col items-center justify-between py-8 px-2", isFloating ? "my-4 ml-4 rounded-2xl border" : "h-full border-r")
+          )}
         >
-          <div className="flex items-center gap-4 min-w-0">
-            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-xl" onClick={() => router.back()}>
+          <div className={cn("flex gap-4 min-w-0", isVerticalHud ? "flex-row items-center" : "flex-col items-center")}>
+            <Button variant="ghost" size="icon" className="text-white hover:bg-white/10 rounded-xl shrink-0" onClick={() => router.back()}>
               <X className="size-5" />
             </Button>
-            <div className="flex flex-col min-w-0 pr-4 border-r border-white/5">
-              <h1 className="text-xs font-bold text-white truncate max-w-[120px] md:max-w-md">
-                {chapter?.name || `Chapter ${chapter?.chapterNumber}`}
+            <div className={cn("flex flex-col min-w-0", !isVerticalHud && "items-center text-center")}>
+              <h1 className={cn("text-xs font-bold text-white truncate", isVerticalHud ? "max-w-[120px] md:max-w-md" : "max-w-[60px] leading-tight")}>
+                {`CH ${chapter?.chapterNumber}`}
               </h1>
               <span className="text-[10px] text-white/40 font-bold uppercase tracking-tighter">
-                {(currentPage + 1)} / {pages.length}
+                {currentPage + 1}/{pages.length}
               </span>
             </div>
-            
-            {/* Quick Nav */}
-            <div className="flex items-center gap-1">
-              <Button 
-                variant="ghost" 
-                size="icon-xs" 
-                className="text-white/40 hover:text-white disabled:opacity-20"
-                disabled={!prevChapter}
-                onClick={() => prevChapter && navigateToChapter(prevChapter.id)}
-              >
+
+            <div className={cn("flex gap-1", isVerticalHud ? "flex-row items-center border-l border-white/5 pl-4" : "flex-col border-t border-white/5 pt-4")}>
+              <Button variant="ghost" size="icon-xs" className="text-white/40 hover:text-white" disabled={!prevChapter} onClick={() => prevChapter && navigateToChapter(prevChapter.id)}>
                 <ChevronFirst className="size-4" />
               </Button>
-              <Button 
-                variant="ghost" 
-                size="icon-xs" 
-                className="text-white/40 hover:text-white disabled:opacity-20"
-                disabled={!nextChapter}
-                onClick={() => nextChapter && navigateToChapter(nextChapter.id)}
-              >
+              <Button variant="ghost" size="icon-xs" className="text-white/40 hover:text-white" disabled={!nextChapter} onClick={() => nextChapter && navigateToChapter(nextChapter.id)}>
                 <ChevronLast className="size-4" />
               </Button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className={cn("flex gap-2", isVerticalHud ? "flex-row items-center" : "flex-col items-center")}>
             <Sheet>
-              <SheetTrigger render={
-                <button 
-                  type="button" 
-                  className="size-9 rounded-xl flex items-center justify-center text-white hover:bg-white/10 transition-all outline-none"
-                >
-                  <Settings className="size-5" />
-                </button>
-              } />
-              <SheetContent side="right" className="bg-zinc-950/95 border-zinc-800 text-white p-6 w-full sm:max-w-md shadow-2xl backdrop-blur-2xl">
-                <SheetHeader className="p-0 mb-8">
-                  <SheetTitle className="text-2xl font-black tracking-tight text-white">Reader Settings</SheetTitle>
-                  <SheetDescription className="text-zinc-500">Fine-tune your visual experience</SheetDescription>
-                </SheetHeader>
-                
-                <div className="flex flex-col gap-10">
-                  <div className="flex flex-col gap-4">
-                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                      <Monitor className="size-3" /> Reading Mode
-                    </h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button onClick={() => setReadingMode("long-strip")} className={cn("flex items-center gap-3 p-3 rounded-xl border transition-all", readingMode === "long-strip" ? "bg-primary/20 border-primary text-primary" : "bg-zinc-900 border-zinc-800 text-zinc-500")}>
-                        <Rows className="size-4" />
-                        <span className="text-xs font-bold">Long Strip</span>
-                      </button>
-                      <button onClick={() => setReadingMode("single-page")} className={cn("flex items-center gap-3 p-3 rounded-xl border transition-all", readingMode === "single-page" ? "bg-primary/20 border-primary text-primary" : "bg-zinc-900 border-zinc-800 text-zinc-500")}>
-                        <Columns className="size-4" />
-                        <span className="text-xs font-bold">Single Page</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-4">
-                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                      <Maximize className="size-3" /> Image Scaling
-                    </h3>
-                    <div className="flex flex-col gap-2">
-                      {[{ id: "width", label: "Fit to Width", icon: Smartphone }, { id: "height", label: "Fit to Height", icon: Monitor }, { id: "original", label: "Original Size", icon: Gauge }].map((mode) => (
-                        <button key={mode.id} onClick={() => setFitMode(mode.id as any)} className={cn("flex items-center gap-3 p-3 rounded-xl border transition-all", fitMode === mode.id ? "bg-white/10 border-white/20 text-white" : "border-transparent text-zinc-500")}>
-                          <mode.icon className="size-4" />
-                          <span className="text-xs font-bold">{mode.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col gap-4">
-                    <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                      <Layers className="size-3" /> Backdrop
-                    </h3>
-                    <div className="flex gap-2">
-                      <button onClick={() => setBackground("black")} className={cn("flex-1 p-3 rounded-xl border flex items-center gap-2 transition-all", background === "black" ? "border-primary bg-primary/10" : "border-zinc-800")}>
-                        <div className="size-2 rounded-full bg-black border border-white/20" />
-                        <span className="text-[10px] font-bold uppercase">Amoled</span>
-                      </button>
-                      <button onClick={() => setBackground("zinc")} className={cn("flex-1 p-3 rounded-xl border flex items-center gap-2 transition-all", background === "zinc" ? "border-primary bg-primary/10" : "border-zinc-800")}>
-                        <div className="size-2 rounded-full bg-zinc-900 border border-white/20" />
-                        <span className="text-[10px] font-bold uppercase">Obsidian</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              <SheetTrigger render={<button className="size-9 rounded-xl flex items-center justify-center text-white hover:bg-white/10 transition-all outline-none"><Settings className="size-5" /></button>} />
+              <SheetContent side="right" className="bg-zinc-950/95 border-zinc-800 text-white p-6 w-full sm:max-w-md shadow-2xl backdrop-blur-2xl overflow-y-auto">
+                <ReaderConfig />
               </SheetContent>
             </Sheet>
-
-            <Button variant="secondary" size="sm" className="bg-white text-black hover:bg-zinc-200 rounded-xl font-bold h-9 gap-2 px-4 shadow-lg text-[11px]" onClick={markAsRead}>
-               <History className="size-4" /> Record
+            <Button variant="secondary" size="sm" className="bg-white text-black rounded-xl font-bold gap-2 px-4 h-9 shadow-lg text-[11px]" onClick={() => {
+              client.mutation({ updateChapter: { __args: { input: { id: chapterId, patch: { isRead: true } } }, chapter: { id: true } } });
+            }}>
+              {isVerticalHud ? "Mark as read" : <History className="size-4" />}
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Reader Content */}
-      <div 
+      {/* Reader Content Overlay */}
+      <div
         ref={containerRef}
         className={cn(
-          "flex-1 overflow-auto scrollbar-hide",
-          readingMode === "long-strip" 
-            ? "flex flex-col items-center" 
-            : "flex flex-col relative select-none"
+          "flex-1 overflow-auto scrollbar-hide w-full h-full",
+          readingMode === "continuous-horizontal" && "flex flex-row items-start overflow-y-hidden overflow-x-auto"
         )}
-        onClick={(e) => {
-          if (readingMode === "single-page") {
-            const x = e.clientX;
-            const width = window.innerWidth;
-            if (x < width * 0.3) { e.preventDefault(); e.stopPropagation(); setCurrentPage(p => Math.max(0, p - 1)); }
-            else if (x > width * 0.7) { e.preventDefault(); e.stopPropagation(); setCurrentPage(p => Math.min(pages.length - 1, p + 1)); }
-          }
+        style={{
+          paddingTop: !isFloating && isVerticalHud && showControls ? (hudOrientation === "vertical" ? "72px" : "0") : 0,
+          paddingLeft: !isFloating && !isVerticalHud && showControls ? "48px" : 0,
+          paddingRight: !isFloating && !isVerticalHud && showControls ? "48px" : 0,
+          paddingBottom: !isFloating && isVerticalHud && showControls ? "80px" : 0,
         }}
+        onClick={handleTap}
       >
-        {readingMode === "long-strip" ? (
-          <div className="flex flex-col items-center w-full min-h-screen">
-            {pages.map((page: string, index: number) => (
-              <div key={index} className="flex justify-center w-full">
+        {isScrollMode ? (
+          <div className={cn(
+            "flex w-full min-h-full",
+            readingMode === "continuous-horizontal" ? "flex-row min-w-max items-start h-full" : "flex flex-col items-center h-auto"
+          )} style={{ gap: `${pageGap}px` }}>
+            {pages.map((_: string, index: number) => (
+              <div key={index} id={`page-${index}`} className={cn("flex flex-col items-center justify-center relative", readingMode === "continuous-horizontal" ? "h-auto w-auto" : "w-full")}>
+                {!loadedPages[index] && (
+                  <div className={cn(
+                    "animate-pulse bg-zinc-900 border border-white/5 rounded-xl flex items-center justify-center",
+                    scaleType === "fit-width" && (readingMode === "continuous-horizontal" ? "w-[90vw] h-[60vh]" : "w-full md:w-[85%] lg:w-[70%] h-[80vh]"),
+                    scaleType === "fit-height" && "h-screen w-[50vw]",
+                    scaleType === "fit-screen" && "h-screen w-full",
+                    scaleType === "original" && "w-96 h-96"
+                  )}>
+                    <div className="size-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                  </div>
+                )}
                 <img
-                  src={getImageUrl(page)!}
+                  src={getImageUrl(pages[index])!}
                   alt={`Page ${index + 1}`}
+                  onLoad={() => handleImageLoad(index)}
                   className={cn(
-                    "transition-all duration-300",
-                    fitMode === "width" && "w-full md:w-[85%] lg:w-[70%] h-auto",
-                    fitMode === "height" && "h-screen w-auto max-w-none",
-                    fitMode === "original" && "max-w-none"
+                    "transition-all duration-700",
+                    !loadedPages[index] ? "opacity-0 scale-95" : "opacity-100 scale-100",
+                    scaleType === "fit-width" && (readingMode === "continuous-horizontal" ? "w-[90vw] h-auto" : "w-full md:w-[85%] lg:w-[70%] h-auto"),
+                    scaleType === "fit-height" && "h-screen w-auto max-w-none",
+                    scaleType === "fit-screen" && "max-w-full max-h-screen w-auto h-auto object-contain",
+                    scaleType === "original" && "max-w-none h-auto w-auto"
                   )}
                 />
               </div>
             ))}
-            <div className="py-32 flex flex-col items-center gap-8 bg-gradient-to-b from-transparent to-black/20 w-full">
-              <Button 
-                size="lg" 
-                className="rounded-2xl px-16 gap-3 h-16 bg-white text-black hover:bg-zinc-200 shadow-2xl transition-all hover:scale-105 active:scale-95 font-bold text-lg disabled:opacity-50"
-                disabled={!nextChapter}
-                onClick={(e) => { e.stopPropagation(); nextChapter && navigateToChapter(nextChapter.id); }}
-              >
-                {nextChapter ? `Read ${nextChapter.chapterNumber}` : "End of Records"} <ChevronRight className="size-6" />
+            <div className={cn("flex flex-col items-center justify-center p-32", readingMode === "continuous-horizontal" ? "h-screen w-[400px]" : "w-full")}>
+              <Button size="lg" className="rounded-2xl px-16 h-16 bg-white text-black font-bold text-lg" disabled={!nextChapter} onClick={() => nextChapter && navigateToChapter(nextChapter.id)}>
+                Next Chapter <ChevronRight className="ml-2" />
               </Button>
             </div>
           </div>
         ) : (
-          <div className={cn(
-            "flex-1 flex justify-center",
-            fitMode === "height" ? "items-center overflow-hidden h-full p-4" : "items-start min-h-full"
-          )}>
-            <img
-              src={getImageUrl(pages[currentPage])!}
-              alt={`Page ${currentPage + 1}`}
-              className={cn(
-                "transition-all duration-500 rounded-sm shadow-2xl",
-                fitMode === "width" && "w-full md:w-[85%] lg:w-[70%] h-auto",
-                fitMode === "height" && "h-full w-auto object-contain",
-                fitMode === "original" && "max-w-none"
+          <div className="flex-1 flex items-center justify-center w-full min-h-full p-4 overflow-hidden">
+            <div className={cn(
+              "flex items-center justify-center gap-4 min-h-full w-full",
+              readingDirection === "rtl" ? "flex-row-reverse" : "flex-row"
+            )}>
+              <div className="relative flex items-center justify-center">
+                {!loadedPages[currentPage] && (
+                  <div className="animate-pulse bg-zinc-900 border border-white/5 rounded-xl flex items-center justify-center min-h-[80vh] min-w-[50vw]">
+                    <div className="size-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                  </div>
+                )}
+                <img src={getImageUrl(pages[currentPage])!} alt={`P ${currentPage + 1}`} onLoad={() => handleImageLoad(currentPage)} className={cn("transition-all duration-700 rounded-sm shadow-2xl object-contain", !loadedPages[currentPage] ? "opacity-0 scale-95 h-0" : "opacity-100 scale-100", scaleType === "fit-width" && "w-full md:w-[80%] h-auto", scaleType === "fit-height" && "h-full w-auto", scaleType === "fit-screen" && "max-w-full max-h-full w-auto h-auto", scaleType === "original" && "max-w-none h-auto w-auto")} />
+              </div>
+              {readingMode === "double-page" && currentPage + 1 < pages.length && (
+                <div className="relative flex items-center justify-center">
+                  {!loadedPages[currentPage + 1] && (
+                    <div className="animate-pulse bg-zinc-900 border border-white/5 rounded-xl flex items-center justify-center min-h-[80vh] min-w-[50vw]"> <div className="size-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" /> </div>
+                  )}
+                  <img src={getImageUrl(pages[currentPage + 1])!} alt={`P ${currentPage + 2}`} onLoad={() => handleImageLoad(currentPage + 1)} className={cn("transition-all duration-700 rounded-sm shadow-2xl object-contain", !loadedPages[currentPage + 1] ? "opacity-0 scale-95 h-0" : "opacity-100 scale-100", scaleType === "fit-width" && "w-full md:w-[80%] h-auto", scaleType === "fit-height" && "h-full w-auto", scaleType === "fit-screen" && "max-w-full max-h-full w-auto h-auto", scaleType === "original" && "max-w-none h-auto w-auto")} />
+                </div>
               )}
-            />
+            </div>
           </div>
         )}
       </div>
 
-      {/* Bottom Progress Overlay */}
-      <div 
+      {/* Bottom/Right HUD Section */}
+      <div
         className={cn(
-          "fixed bottom-6 inset-x-6 z-[120] transition-all duration-200 transform pointer-events-none",
-          !showControls && "translate-y-12 opacity-0"
+          "z-[120] transition-all duration-300 transform",
+          isVerticalHud
+            ? "fixed bottom-0 inset-x-0"
+            : "fixed right-0 inset-y-0 w-fit overflow-hidden flex items-center justify-center",
+          !showControls && (isVerticalHud ? "translate-y-full opacity-0" : "translate-x-full opacity-0"),
+          isFloating && !isVerticalHud && "inset-y-10"
         )}
       >
-        <div 
-          className="max-w-2xl mx-auto bg-zinc-900/90 backdrop-blur-xl border border-white/10 px-6 py-4 rounded-3xl shadow-2xl pointer-events-auto"
-          onClick={(e) => e.stopPropagation()}
+        <div
+          className={cn(
+            "bg-zinc-900/90 backdrop-blur-xl border-white/10 flex shadow-2xl",
+            isVerticalHud
+              ? cn("flex-row items-center", isFloating ? "max-w-full mx-6 mb-6 px-6 py-4 rounded-3xl border" : "w-full px-8 py-6 border-t")
+              : cn("flex-col items-center py-8 px-2 h-full", isFloating ? "my-6 mr-6 rounded-3xl border" : "h-full border-l")
+          )}
         >
-          <div className="flex items-center gap-6">
-            <span className="text-[10px] text-white/30 font-black w-8 text-right underline decoration-white/10 underline-offset-4">{currentPage + 1}</span>
-            <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden relative group">
-              <div
-                className="absolute inset-y-0 left-0 bg-white transition-all duration-300 shadow-[0_0_15px_rgba(255,255,255,0.4)]"
-                style={{ width: `${((currentPage + 1) / pages.length) * 100}%` }}
-              />
+          <div className={cn("flex flex-1 items-center gap-6 w-full", !isVerticalHud && "flex-col h-full gap-2")}>
+            <span className={cn("text-[10px] text-white/30 font-black", isVerticalHud ? "w-8 text-right" : "h-8 flex items-end")}>{currentPage + 1}</span>
+            <div className={cn("flex-1 flex items-center relative group", isVerticalHud ? "flex-row h-3 gap-[2px] px-1 min-w-[100px]" : "flex-col w-3 h-full gap-[2px] py-1 min-h-[100px]")}>
+              {pages.map((_: string, i: number) => (
+                <div key={i} className={cn("rounded-full transition-all duration-300", isVerticalHud ? "flex-1 h-2" : "w-2 flex-1", i <= currentPage ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.4)]" : "bg-white/10 group-hover:bg-white/20")} />
+              ))}
               <input
                 type="range"
                 min={0}
                 max={pages.length - 1}
                 value={currentPage}
-                onChange={(e) => setCurrentPage(parseInt(e.target.value))}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                onChange={(e) => navigateToPage(parseInt(e.target.value))}
+                className={cn("absolute inset-0 opacity-0 cursor-pointer z-10", !isVerticalHud && "appearance-slider-vertical w-full h-full")}
+                style={!isVerticalHud ? { writingMode: 'bt-lr' } as any : {}}
               />
             </div>
-            <span className="text-[10px] text-white/30 font-black w-8">{pages.length}</span>
+            <span className={cn("text-[10px] text-white/30 font-black", isVerticalHud ? "w-8" : "h-8 flex items-start mt-2")}>{pages.length}</span>
           </div>
         </div>
       </div>

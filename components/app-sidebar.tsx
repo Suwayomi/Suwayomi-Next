@@ -86,8 +86,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenu>
                     <SidebarMenuItem>
                         <SidebarMenuButton size="lg" render={<div></div>}>
-                            <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                                <img src={"suwayomi-logo.png"} />
+                            <div className="flex size-10 items-center justify-center rounded-full overflow-hidden bg-primary text-primary-foreground">
+                                <img
+                                    src={"/logo.svg"}
+                                    className="h-full w-full object-contain scale-150"
+                                />
                             </div>
                             <div className="grid flex-1 text-left text-sm leading-tight">
                                 <span className="truncate font-semibold text-foreground">
@@ -123,24 +126,20 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 </SidebarGroup>
             </SidebarContent>
             <SidebarFooter>
-                <SidebarGroup>
-                    <SidebarGroupContent>
-                        <SidebarMenu>
-                            {data.navSecondary.map((item) => (
-                                <SidebarMenuItem key={item.title}>
-                                    <SidebarMenuButton
-                                        render={<Link href={item.url} />}
-                                        tooltip={item.title}
-                                        isActive={pathname === item.url}
-                                    >
-                                        <item.icon className="size-4" />
-                                        <span>{item.title}</span>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
-                        </SidebarMenu>
-                    </SidebarGroupContent>
-                </SidebarGroup>
+                <SidebarMenu>
+                    {data.navSecondary.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                            <SidebarMenuButton
+                                render={<Link href={item.url} />}
+                                tooltip={item.title}
+                                isActive={pathname === item.url}
+                            >
+                                <item.icon className="size-4" />
+                                <span>{item.title}</span>
+                            </SidebarMenuButton>
+                        </SidebarMenuItem>
+                    ))}
+                </SidebarMenu>
             </SidebarFooter>
             <SidebarRail />
         </Sidebar>

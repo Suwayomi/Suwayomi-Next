@@ -6,6 +6,8 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeInitializer } from "@/components/theme-initializer";
+import { ReaderSettingsProvider } from "@/hooks/use-reader-settings";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-heading" });
@@ -36,14 +38,17 @@ export default function RootLayout({
         className="h-full font-sans selection:bg-primary/30 selection:text-primary "
         style={{ backgroundColor: "#0e0e0e" }}
       >
-        <TooltipProvider>
-          <SidebarProvider className="relative h-full overflow-hidden">
-            <AppSidebar />
-            <SidebarInset className="flex flex-col min-w-0">
-              <main className="flex-1 overflow-auto">{children}</main>
-            </SidebarInset>
-          </SidebarProvider>
-        </TooltipProvider>
+    <ReaderSettingsProvider>
+      <ThemeInitializer />
+      <TooltipProvider>
+        <SidebarProvider className="relative h-full overflow-hidden">
+          <AppSidebar />
+          <SidebarInset className="flex flex-col min-w-0">
+            <main className="flex-1 overflow-auto">{children}</main>
+          </SidebarInset>
+        </SidebarProvider>
+      </TooltipProvider>
+    </ReaderSettingsProvider>
         <Toaster closeButton position="bottom-right" richColors />
       </body>
     </html>
