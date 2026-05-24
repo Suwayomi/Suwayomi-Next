@@ -1,4 +1,4 @@
-# Suwayomi-PiperPaper
+# Suwayomi-Next
 
 A modern, responsive web client for [Suwayomi-Server](https://github.com/Suwayomi/Suwayomi-Server) built with Next.js. 
 

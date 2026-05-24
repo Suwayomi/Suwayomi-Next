@@ -1,6 +1,6 @@
 "use client";
 import { CATEGORY_MAPPING, Category } from "@/lib/settings-config";
-import * as React from "react";
+import UnderConstruction from "../UnderConstruction";
 
 interface Props {
     category: Category;
@@ -20,6 +20,7 @@ export function CategoryContent({ category, settings }: Props) {
 
     return (
         <div className="max-w-4xl space-y-6 pb-12">
+            <UnderConstruction />
             <div className="grid gap-4">
                 {fields.map((field) => {
                     const value = settings[field];

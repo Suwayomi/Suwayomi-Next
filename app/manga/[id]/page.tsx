@@ -40,6 +40,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { QueryResult } from "@/src/generated";
+import Link from "next/link";
 
 type MangaDetail = QueryResult<{
     manga: {
@@ -81,6 +82,7 @@ type MangaDetail = QueryResult<{
             id: true;
             name: true;
         };
+        realUrl: true;
     };
 }>;
 
@@ -142,6 +144,7 @@ export default function MangaDetailPage() {
                         id: true,
                         name: true,
                     },
+                    realUrl: true,
                 },
             });
             setData(result);
@@ -292,7 +295,7 @@ export default function MangaDetailPage() {
         <PageLayout title="Manga Details">
             <div className="flex flex-col gap-10 pb-24">
                 {/* Hero Section */}
-                <div className="flex flex-col gap-8">
+                <div className="grid md:grid-cols-2 gap-8">
                     <div className="flex flex-col md:flex-row gap-8 items-start">
                         {/* Cover Image */}
                         <div className="w-full md:w-64 lg:w-72 shrink-0">
@@ -406,23 +409,23 @@ export default function MangaDetailPage() {
                                         Add to Library
                                     </Button>
                                 )}
-                                <Button
-                                    size="lg"
-                                    variant="outline"
-                                    className="h-12 px-6 gap-2 border border-border/40 rounded-full font-bold"
+                                <Link
+                                    href={manga.realUrl!}
+                                    target="_blank"
+                                    passHref
                                 >
-                                    <ExternalLink className="size-4" />
-                                    Source
-                                </Button>
+                                    <Button
+                                        size="lg"
+                                        variant="outline"
+                                        className="h-12 px-6 gap-2 border border-border/40 rounded-full font-bold"
+                                    >
+                                        <ExternalLink className="size-4" />
+                                        Source
+                                    </Button>
+                                </Link>
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <Separator className="bg-border/30" />
-
-                {/* Content Section */}
-                <div className="flex flex-col gap-12">
                     {/* Synopsis */}
                     <div className="flex flex-col gap-4 max-w-4xl">
                         <div className="flex items-center gap-2 text-foreground font-bold">
@@ -431,13 +434,16 @@ export default function MangaDetailPage() {
                                 Synopsis
                             </h2>
                         </div>
-                        <div
-                            className={cn(
-                                "text-muted-foreground leading-relaxed transition-all text-sm md:text-base whitespace-pre-wrap",
-                                !isDescriptionExpanded && "line-clamp-4",
-                            )}
-                        >
-                            {manga.description || "No description available."}
+                        <div className="overflow-hidden overflow-y-auto max-h-90">
+                            <div
+                                className={cn(
+                                    "text-muted-foreground leading-relaxed transition-all text-sm md:text-base whitespace-pre-wrap",
+                                    !isDescriptionExpanded && "line-clamp-4",
+                                )}
+                            >
+                                {manga.description ||
+                                    "No description available."}
+                            </div>
                         </div>
                         {manga.description &&
                             manga.description.length > 200 && (
@@ -465,7 +471,12 @@ export default function MangaDetailPage() {
                                 </Button>
                             )}
                     </div>
+                </div>
 
+                <Separator className="bg-border/30" />
+
+                {/* Content Section */}
+                <div className="flex flex-col gap-12">
                     {/* Chapters */}
                     <div className="flex flex-col gap-6">
                         <div className="flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-30 py-4 -mx-4 px-4">
@@ -772,27 +783,29 @@ function MangaDetailSkeleton() {
     return (
         <PageLayout title="">
             <div className="flex flex-col gap-10">
-                <div className="flex flex-col md:flex-row gap-8">
-                    <Skeleton className="w-full md:w-64 lg:w-72 aspect-[3/4] rounded-2xl shadow-xl" />
-                    <div className="flex flex-col flex-1 gap-6 pt-4">
-                        <div className="space-y-4">
-                            <Skeleton className="h-12 w-3/4" />
-                            <Skeleton className="h-6 w-1/4" />
-                        </div>
-                        <Skeleton className="h-16 w-1/2 rounded-2xl" />
-                        <div className="flex gap-2">
-                            <Skeleton className="h-6 w-20 rounded-full" />
-                            <Skeleton className="h-6 w-20 rounded-full" />
-                        </div>
-                        <div className="flex gap-4 mt-4">
-                            <Skeleton className="h-12 w-48 rounded-full" />
-                            <Skeleton className="h-12 w-48 rounded-full" />
+                <div className="grid md:grid-cols-2">
+                    <div className="flex flex-col md:flex-row gap-8">
+                        <Skeleton className="w-full md:w-64 lg:w-72 aspect-[3/4] rounded-2xl shadow-xl" />
+                        <div className="flex flex-col flex-1 gap-6 pt-4">
+                            <div className="space-y-4">
+                                <Skeleton className="h-12 w-3/4" />
+                                <Skeleton className="h-6 w-1/4" />
+                            </div>
+                            <Skeleton className="h-16 w-1/2 rounded-2xl" />
+                            <div className="flex gap-2">
+                                <Skeleton className="h-6 w-20 rounded-full" />
+                                <Skeleton className="h-6 w-20 rounded-full" />
+                            </div>
+                            <div className="flex gap-4 mt-4">
+                                <Skeleton className="h-12 w-48 rounded-full" />
+                                <Skeleton className="h-12 w-48 rounded-full" />
+                            </div>
                         </div>
                     </div>
+                    <Skeleton className="h-24 w-full rounded-xl" />
                 </div>
                 <Separator className="opacity-50" />
                 <div className="space-y-4">
-                    <Skeleton className="h-24 w-full rounded-xl" />
                     <div className="space-y-2 pt-8">
                         {[...Array(6)].map((_, i) => (
                             <Skeleton

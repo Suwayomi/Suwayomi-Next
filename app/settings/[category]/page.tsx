@@ -13,31 +13,64 @@ interface Props {
     }>;
 }
 
-const FALLBACK_COMPONENT = dynamic(() => import("@/components/settings/category-content").then(m => ({ default: m.CategoryContent })), { ssr: false });
+const FALLBACK_COMPONENT = dynamic(
+    () =>
+        import("@/components/settings/category-content").then((m) => ({
+            default: m.CategoryContent,
+        })),
+    { ssr: false },
+);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CATEGORY_COMPONENTS: Record<string, any> = {
-    Appearance: dynamic(() => import("@/components/settings/Appearance"), { ssr: false }),
-    Reader: dynamic(() => import("@/components/settings/Reader"), { ssr: false }),
-    Library: dynamic(() => import("@/components/settings/Library"), { ssr: false }),
-    Downloads: dynamic(() => import("@/components/settings/Downloads"), { ssr: false }),
-    Images: dynamic(() => import("@/components/settings/Images"), { ssr: false }),
-    Tracking: dynamic(() => import("@/components/settings/Tracking"), { ssr: false }),
-    Backup: dynamic(() => import("@/components/settings/Backup"), { ssr: false }),
-    Browse: dynamic(() => import("@/components/settings/Browse"), { ssr: false }),
-    History: dynamic(() => import("@/components/settings/History"), { ssr: false }),
-    Device: dynamic(() => import("@/components/settings/Device"), { ssr: false }),
-    PiperPaper: dynamic(() => import("@/components/settings/PiperPaper"), { ssr: false }),
-    Server: dynamic(() => import("@/components/settings/Server"), { ssr: false }),
+    Appearance: dynamic(() => import("@/components/settings/Appearance"), {
+        ssr: false,
+    }),
+    Reader: dynamic(() => import("@/components/settings/Reader"), {
+        ssr: false,
+    }),
+    Library: dynamic(() => import("@/components/settings/Library"), {
+        ssr: false,
+    }),
+    Downloads: dynamic(() => import("@/components/settings/Downloads"), {
+        ssr: false,
+    }),
+    Images: dynamic(() => import("@/components/settings/Images"), {
+        ssr: false,
+    }),
+    Tracking: dynamic(() => import("@/components/settings/Tracking"), {
+        ssr: false,
+    }),
+    Backup: dynamic(() => import("@/components/settings/Backup"), {
+        ssr: false,
+    }),
+    Browse: dynamic(() => import("@/components/settings/Browse"), {
+        ssr: false,
+    }),
+    History: dynamic(() => import("@/components/settings/History"), {
+        ssr: false,
+    }),
+    Device: dynamic(() => import("@/components/settings/Device"), {
+        ssr: false,
+    }),
+    Client: dynamic(() => import("@/components/settings/PiperPaper"), {
+        ssr: false,
+    }),
+    Server: dynamic(() => import("@/components/settings/Server"), {
+        ssr: false,
+    }),
 };
 
 export default function CategorySettingsPage({ params }: Props) {
     const { category } = use(params) as { category: Category };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const [settings, setSettings] = React.useState<Record<string, any> | null>(null);
+    const [settings, setSettings] = React.useState<Record<string, any> | null>(
+        null,
+    );
     const [loading, setLoading] = React.useState(true);
 
-    const CategoryComponent = CATEGORY_COMPONENTS[category] || FALLBACK_COMPONENT;
+    const CategoryComponent =
+        CATEGORY_COMPONENTS[category] || FALLBACK_COMPONENT;
 
     React.useEffect(() => {
         let isMounted = true;

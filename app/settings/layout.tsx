@@ -14,7 +14,7 @@ export default function SettingsLayout({
     const pathname = usePathname();
 
     return (
-        <PageLayout title="Settings">
+        <PageLayout title="">
             <div className="flex flex-col gap-6 h-full">
                 <div className="flex items-center gap-4 border-b border-border/40 pb-4 overflow-x-auto no-scrollbar">
                     <Tabs defaultValue={CATEGORIES[0]}>

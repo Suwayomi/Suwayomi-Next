@@ -1,3 +1,4 @@
+import { cn } from "@/lib/utils";
 import * as React from "react";
 
 interface Props {
@@ -9,7 +10,12 @@ interface Props {
 
 export function PageLayout({ title, description, actions, children }: Props) {
     return (
-        <div className="flex flex-1 flex-col gap-6 px-8 py-4 h-full">
+        <div
+            className={cn(
+                "flex flex-1 flex-col px-8 py-4 h-full",
+                (title || actions) && "gap-6",
+            )}
+        >
             <div className="flex items-center justify-between">
                 {title && (
                     <h1 className="text-3xl font-bold tracking-tight text-foreground">

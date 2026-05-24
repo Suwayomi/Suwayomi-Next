@@ -4,10 +4,8 @@ import * as React from "react";
 import { PageLayout } from "@/components/page-layout";
 import { LibraryActions } from "@/components/library-actions";
 import { client } from "@/lib/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { QueryResult } from "@/src/generated";
 import { toast } from "sonner";
 import {
     Library,
@@ -15,10 +13,8 @@ import {
     Check,
     Download,
     BookOpen,
-    FolderInput,
     Trash2,
     X,
-    History,
 } from "lucide-react";
 import { getImageUrl, cn } from "@/lib/utils";
 import {
@@ -287,7 +283,7 @@ export default function LibraryPage() {
                         <div className="flex flex-col gap-4">
                             <div className="flex items-center justify-between">
                                 <h2 className="text-xl font-semibold tracking-tight text-foreground/90 font-heading">
-                                    All Manga
+                                    All Books
                                 </h2>
                                 <span className="text-xs text-muted-foreground font-medium">
                                     {filteredMangas.length} items
@@ -458,7 +454,7 @@ function MangaCard({
     const router = useRouter();
 
     const handleClick = (e: React.MouseEvent) => {
-        if (isSelectionMode) {
+        if (isSelectionMode || e.ctrlKey) {
             onToggle();
         } else {
             router.push(`/manga/${manga.id}`);
@@ -473,8 +469,7 @@ function MangaCard({
             <div
                 className={cn(
                     "relative aspect-[3/4] overflow-hidden rounded-lg border border-border/50 bg-muted/30 shadow-sm transition-all group-hover:shadow-md cursor-pointer",
-                    isSelected &&
-                        "ring-4 ring-primary ring-offset-2 ring-offset-background",
+                    isSelected && "border-4 border-primary",
                 )}
             >
                 {manga.thumbnailUrl ? (
