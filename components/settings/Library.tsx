@@ -43,7 +43,7 @@ export default function LibrarySettings({ settings }: { settings: any }) {
         <div className="space-y-5">
             <SettingsSection
                 icon={
-                    <FolderPenIcon className="size-5 text-muted-foreground" />
+                    <FolderPenIcon className="size-5 text-zinc-500 dark:text-muted-foreground" />
                 }
                 title="Categories"
                 isUnderConstruction
@@ -160,39 +160,40 @@ function CategoryConfig() {
     return (
         <SettingsAccordion
             headerLeft={
-                <>
-                    <div className="flex flex-col">
-                        <span className="text-sm font-medium text-zinc-200 transition-colors group-hover:text-zinc-100">
-                            Categories
-                            <span className="ml-1.5 text-xs font-normal text-zinc-500 bg-zinc-900 px-1.5 py-0.5 rounded-md border border-zinc-800">
-                                {count}
-                            </span>
+                <div className="flex flex-col">
+                    <span className="text-sm font-medium text-zinc-800 dark:text-zinc-200 transition-colors group-hover:text-zinc-900 dark:group-hover:text-zinc-100">
+                        Categories
+                        <span className="ml-1.5 text-xs font-normal text-zinc-500 dark:text-zinc-500 bg-zinc-200 dark:bg-zinc-900 px-1.5 py-0.5 rounded-md border border-zinc-300 dark:border-zinc-800">
+                            {count}
                         </span>
-                    </div>
-                </>
+                    </span>
+                </div>
             }
             headerRight={
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger
                         onClick={(e) => e.stopPropagation()}
-                        className="p-1.5 rounded-md hover:bg-emerald-500/10 cursor-pointer text-emerald-500 transition-colors"
+                        className="p-1.5 rounded-md hover:bg-emerald-500/10 cursor-pointer text-emerald-600 dark:text-emerald-500 transition-colors"
                         title="Create category"
                     >
                         <PlusIcon className="size-3.5" />
                     </DialogTrigger>
                     <DialogContent
-                        className="sm:max-w-[425px] bg-zinc-950 border-zinc-800 text-zinc-100"
+                        className="sm:max-w-[425px] bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <DialogHeader>
                             <DialogTitle>Create Category</DialogTitle>
-                            <DialogDescription className="text-zinc-400">
+                            <DialogDescription className="text-zinc-500 dark:text-zinc-400">
                                 Add a new category to organize your library.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-4 py-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="name" className="text-zinc-300">
+                                <Label
+                                    htmlFor="name"
+                                    className="text-zinc-700 dark:text-zinc-300"
+                                >
                                     Name
                                 </Label>
                                 <Input
@@ -202,7 +203,7 @@ function CategoryConfig() {
                                         setNewCategoryName(e.target.value)
                                     }
                                     placeholder="e.g. Action, Sci-Fi..."
-                                    className="bg-zinc-900 border-zinc-800 focus:ring-emerald-500"
+                                    className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 focus:ring-emerald-500"
                                     onKeyDown={(e) =>
                                         e.key === "Enter" &&
                                         handleCreateCategory()
@@ -215,7 +216,7 @@ function CategoryConfig() {
                             <Button
                                 variant="ghost"
                                 onClick={() => setIsDialogOpen(false)}
-                                className="text-zinc-400 hover:text-zinc-100"
+                                className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                             >
                                 Cancel
                             </Button>
@@ -275,28 +276,28 @@ function CategoryRow({
     };
 
     return (
-        <div className="flex items-center justify-between gap-3 p-2 pl-3 rounded-lg bg-zinc-900/40 border border-zinc-800/50 hover:bg-zinc-900/80 hover:border-zinc-700 group/row transition-all">
-            {/* Category Name Display */}
-            <span className="text-sm font-medium text-zinc-300">
+        <div className="flex items-center justify-between gap-3 p-2 pl-3 rounded-lg bg-zinc-200/40 dark:bg-zinc-900/40 border border-zinc-300/50 dark:border-zinc-800/50 hover:bg-zinc-200/80 dark:hover:bg-zinc-900/80 hover:border-zinc-400 dark:hover:border-zinc-700 group/row transition-all">
+            <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 {category.name}
             </span>
 
             <div className="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                {/* Rename Dialog */}
                 <Dialog
                     open={isEditDialogOpen}
                     onOpenChange={setIsEditDialogOpen}
                 >
                     <DialogTrigger
-                        className="p-1.5 rounded-md hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors"
+                        className="p-1.5 rounded-md hover:bg-zinc-300 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
                         title="Rename category"
                     >
                         <FolderPenIcon className="size-3.5" />
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px] bg-zinc-950 border-zinc-800 text-zinc-100">
+                    <DialogContent className="sm:max-w-[425px] bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100">
                         <DialogHeader>
-                            <DialogTitle>Rename Category</DialogTitle>
-                            <DialogDescription className="text-zinc-400">
+                            <DialogTitle className="text-zinc-900 dark:text-zinc-100">
+                                Rename Category
+                            </DialogTitle>
+                            <DialogDescription className="text-zinc-500 dark:text-zinc-400">
                                 Enter a new name for "{category.name}".
                             </DialogDescription>
                         </DialogHeader>
@@ -304,7 +305,7 @@ function CategoryRow({
                             <div className="grid gap-2">
                                 <Label
                                     htmlFor="rename"
-                                    className="text-zinc-300"
+                                    className="text-zinc-700 dark:text-zinc-300"
                                 >
                                     New Name
                                 </Label>
@@ -314,7 +315,7 @@ function CategoryRow({
                                     onChange={(e) =>
                                         setEditName(e.target.value)
                                     }
-                                    className="bg-zinc-900 border-zinc-800 focus:ring-emerald-500"
+                                    className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 focus:ring-emerald-500"
                                     autoFocus
                                     onKeyDown={(e) =>
                                         e.key === "Enter" && handleSave()
@@ -326,7 +327,7 @@ function CategoryRow({
                             <Button
                                 variant="ghost"
                                 onClick={() => setIsEditDialogOpen(false)}
-                                className="text-zinc-400 hover:text-zinc-100"
+                                className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
                             >
                                 Cancel
                             </Button>
@@ -344,26 +345,25 @@ function CategoryRow({
                     </DialogContent>
                 </Dialog>
 
-                {/* Delete Alert Dialog */}
                 <AlertDialog>
                     <AlertDialogTrigger
-                        className="p-1.5 cursor-pointer rounded-md hover:bg-red-500/10 text-zinc-500 hover:text-red-400 transition-colors"
+                        className="p-1.5 cursor-pointer rounded-md hover:bg-red-500/10 text-zinc-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
                         title="Delete category"
                     >
                         <Trash2Icon className="size-3.5" />
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-zinc-950 border-zinc-800 text-zinc-100">
+                    <AlertDialogContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100">
                         <AlertDialogHeader>
                             <AlertDialogTitle>
                                 Are you absolutely sure?
                             </AlertDialogTitle>
-                            <AlertDialogDescription className="text-zinc-400">
+                            <AlertDialogDescription className="text-zinc-500 dark:text-zinc-400">
                                 This will permanently delete the{" "}
                                 <strong>{category.name}</strong> category.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel className="bg-zinc-900 border-zinc-800 text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100">
+                            <AlertDialogCancel className="bg-zinc-100 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-100">
                                 Cancel
                             </AlertDialogCancel>
                             <AlertDialogAction

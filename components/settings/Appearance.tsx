@@ -2,6 +2,7 @@
 import * as React from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Switch } from "../ui/switch";
 
 const ACCENTS = [
     { name: "Default Blue", value: "oklch(0.53 0.23 250)" },
@@ -20,6 +21,9 @@ export default function AppearanceSettings({
 }: {
     settings?: Record<string, unknown>;
 }) {
+    const [isDark, setIsDark] = React.useState(
+        localStorage.getItem("piper-theme") === "dark",
+    );
     const [currentAccent, setCurrentAccent] = React.useState<string | null>(
         () => {
             if (typeof window !== "undefined") {
@@ -51,10 +55,32 @@ export default function AppearanceSettings({
 
     return (
         <div className="max-w-4xl space-y-8 pb-12">
+            <section className="flex items-center justify-between">
+                <div className="space-y-1">
+                    <h2 className="text-xl font-semibold tracking-tight">
+                        Dark Mode
+                    </h2>
+                    <p className="text-sm text-muted-foreground">
+                        Enable Dark mode
+                    </p>
+                </div>
+                <Switch
+                    id="theme-change-switch"
+                    checked={isDark}
+                    onCheckedChange={(e) => {
+                        document.documentElement.classList.toggle("dark", e);
+                        localStorage.setItem(
+                            "piper-theme",
+                            e ? "dark" : "light",
+                        );
+                        setIsDark(e);
+                    }}
+                />
+            </section>
             <section className="space-y-4">
                 <div className="space-y-1">
                     <h2 className="text-xl font-semibold tracking-tight">
-                        Themes
+                        Accent Color
                     </h2>
                     <p className="text-sm text-muted-foreground">
                         Customize the primary accent color of the interface.

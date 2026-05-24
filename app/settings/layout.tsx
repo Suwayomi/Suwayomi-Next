@@ -35,7 +35,7 @@ export default function SettingsLayout({
                                         <TabsTrigger
                                             value={category}
                                             data-active={isActive}
-                                            className="gap-2 px-1 py-3 text-sm transition-colors border-b-2 border-transparent data-active:border-primary data-active:text-primary rounded-none shadow-none"
+                                            className="gap-2 px-1 py-3 text-sm transition-colors border-b-2 border-transparent  rounded-none shadow-none"
                                         >
                                             <Icon className="size-4" />
                                             {category}

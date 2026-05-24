@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeInitializer } from "@/components/theme-initializer";
 import { ReaderSettingsProvider } from "@/hooks/use-reader-settings";
+import Head from "next/head";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-heading" });
@@ -26,20 +27,21 @@ export default function RootLayout({
         <html
             lang="en"
             className={cn(
-                "dark",
                 "h-full",
                 "antialiased",
                 inter.variable,
                 outfit.variable,
             )}
-            style={{ colorScheme: "dark" }}
+            suppressHydrationWarning
         >
+            <head>
+                <ThemeInitializer />
+            </head>
             <body
                 className="h-full font-sans selection:bg-primary/30 selection:text-primary "
                 style={{ backgroundColor: "#0e0e0e" }}
             >
                 <ReaderSettingsProvider>
-                    <ThemeInitializer />
                     <TooltipProvider>
                         <SidebarProvider className="relative h-full overflow-hidden">
                             <AppSidebar />

@@ -27,9 +27,9 @@ Before running this client, ensure you have a running instance of Suwayomi-Serve
 
 * [x] Connect to Suwayomi API and fetch library
 * [x] Implement global search across extensions
-* [ ] Reader interface (Webtoon and Single Page modes)
+* [x] Reader interface (Webtoon and Single Page modes)
 * [x] Category management
-* [ ] Trackers integration (AniList, MyAnimeList, etc.)
+* [ ] search across all your sources
 * ...
 
 ## 🤝 Contributing

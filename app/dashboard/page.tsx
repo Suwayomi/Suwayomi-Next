@@ -131,7 +131,7 @@ export default function DashboardPage() {
 
                 {/* Hero: Continue Reading */}
                 {continueReading && !isLoading ? (
-                    <div className="group relative h-80 flex w-fit overflow-hidden rounded-3xl border border-white/5 bg-zinc-900 shadow-2xl transition-all hover:border-primary/30 cursor-pointer">
+                    <div className="group relative h-80 flex w-fit overflow-hidden rounded-3xl border border-black/5 dark:border-white/5 bg-white dark:bg-zinc-900 shadow-2xl transition-all hover:border-primary/30 cursor-pointer">
                         <img
                             src={
                                 getImageUrl(continueReading.manga.thumbnailUrl)!
@@ -139,14 +139,13 @@ export default function DashboardPage() {
                             alt={continueReading.manga.title}
                             className="w-fit bg-red-400 h-full object-cover"
                         />
-                        {/* <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" /> */}
 
-                        <div className=" bottom-0 left-0 p-8 md:p-12 flex flex-col gap-4 w-full md:w-2/3">
+                        <div className="bottom-0 left-0 p-8 md:p-12 flex flex-col gap-4 w-full md:w-2/3">
                             <div className="flex items-center gap-3">
-                                <span className="bg-primary/20 text-primary px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20 backdrop-blur-md">
+                                <span className="bg-primary/10 dark:bg-primary/20 text-primary px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/20 backdrop-blur-md">
                                     Keep Reading
                                 </span>
-                                <span className="flex items-center gap-1.5 text-white/40 text-xs font-bold">
+                                <span className="flex items-center gap-1.5 text-zinc-500 dark:text-white/40 text-xs font-bold">
                                     <Clock className="size-3" />
                                     Last read{" "}
                                     {new Date(
@@ -154,14 +153,16 @@ export default function DashboardPage() {
                                     ).toLocaleDateString()}
                                 </span>
                             </div>
+
                             <div className="space-y-1">
-                                <h2 className="text-3xl md:text-5xl truncate font-black text-white leading-tight drop-shadow-sm font-heading">
+                                <h2 className="text-3xl md:text-5xl truncate font-black text-zinc-900 dark:text-white leading-tight drop-shadow-sm font-heading">
                                     {continueReading.manga.title}
                                 </h2>
-                                <p className="text-lg md:text-xl text-white/70 font-medium line-clamp-1">
+                                <p className="text-lg md:text-xl text-zinc-600 dark:text-white/70 font-medium line-clamp-1">
                                     {continueReading.name}
                                 </p>
                             </div>
+
                             <div className="flex items-center gap-4 mt-2">
                                 <Button
                                     size="lg"
@@ -175,9 +176,10 @@ export default function DashboardPage() {
                                     <Play className="size-5 fill-current" />{" "}
                                     Resume Now
                                 </Button>
+
                                 <Button
                                     variant="ghost"
-                                    className="rounded-2xl h-12 text-white hover:bg-white/10 font-bold bg-white/5 backdrop-blur-md"
+                                    className="rounded-2xl h-12 text-zinc-900 dark:text-white hover:bg-black/5 dark:hover:bg-white/10 font-bold bg-black/5 dark:bg-white/5 backdrop-blur-md"
                                     onClick={() =>
                                         router.push(
                                             `/manga/${continueReading.manga.id}`,

@@ -251,7 +251,7 @@ export default function BrowsePage() {
             title="Discovery"
             actions={
                 <div className="relative w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground shadow-sm" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground " />
                     <Input
                         placeholder="Search packages..."
                         className="pl-10 h-10 rounded-full bg-muted/20 border-muted-foreground/10 focus:bg-background transition-colors"
@@ -267,13 +267,13 @@ export default function BrowsePage() {
                 <TabsList className="w-full bg-muted/20 p-1 rounded border border-border/40">
                     <TabsTrigger
                         value="sources"
-                        className="rounded px-6 gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                        className="rounded px-6 gap-2 cursor-pointer data-[state=active]:bg-background data-[state=active]:shadow-sm"
                     >
                         <Globe className="size-4" /> Sources
                     </TabsTrigger>
                     <TabsTrigger
                         value="extensions"
-                        className="rounded px-6 gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                        className="rounded px-6 gap-2 cursor-pointer data-[state=active]:bg-background data-[state=active]:shadow-sm"
                     >
                         <Puzzle className="size-4" /> Extensions
                     </TabsTrigger>

@@ -32,6 +32,7 @@ interface SettingRowProps {
     onUpdate: (key: string, value: any) => Promise<void>;
     custom?: React.ReactNode;
 }
+
 export function SettingRow({
     label,
     value,
@@ -64,15 +65,15 @@ export function SettingRow({
     };
 
     return (
-        <div className="group flex items-center justify-between p-4 rounded-2xl bg-zinc-900/50 border border-white/5 hover:border-primary/20 transition-all">
+        <div className="group flex items-center justify-between p-4 rounded-2xl bg-zinc-100/50 dark:bg-zinc-900/50 border border-black/5 dark:border-white/5 hover:border-primary/20 transition-all">
             <div className="flex items-center gap-3">
                 {icon && (
-                    <div className="size-8 rounded-xl bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-primary transition-colors">
+                    <div className="size-8 rounded-xl bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-500 dark:text-zinc-400 group-hover:text-primary transition-colors">
                         {icon}
                     </div>
                 )}
                 <div className="flex flex-col">
-                    <span className="text-xs font-bold text-zinc-200">
+                    <span className="text-xs font-bold text-zinc-800 dark:text-zinc-200">
                         {label}
                     </span>
                     {isUnderConstruction && <UnderConstruction />}
@@ -107,7 +108,7 @@ export function SettingRow({
                             className={cn(
                                 "flex items-center gap-2 px-3 py-1.5 rounded-xl text-[11px] font-mono transition-all",
                                 type === "disabled"
-                                    ? "bg-zinc-800/50 text-zinc-500 cursor-not-allowed"
+                                    ? "bg-zinc-200/50 dark:bg-zinc-800/50 text-zinc-400 dark:text-zinc-500 cursor-not-allowed"
                                     : "bg-primary/10 text-primary hover:bg-primary/20 cursor-pointer",
                             )}
                         >
@@ -122,12 +123,12 @@ export function SettingRow({
                         </button>
 
                         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                            <DialogContent className="sm:max-w-[425px] bg-zinc-950 border-zinc-900">
+                            <DialogContent className="sm:max-w-[425px] bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-900">
                                 <DialogHeader>
-                                    <DialogTitle className="text-white">
+                                    <DialogTitle className="text-zinc-900 dark:text-white">
                                         Update {label}
                                     </DialogTitle>
-                                    <DialogDescription className="text-zinc-400">
+                                    <DialogDescription className="text-zinc-500 dark:text-zinc-400">
                                         Make changes to your server settings
                                         here.
                                     </DialogDescription>
@@ -140,10 +141,10 @@ export function SettingRow({
                                                 setEditValue(val)
                                             }
                                         >
-                                            <SelectTrigger className="w-full bg-zinc-900 border-zinc-800 text-white">
+                                            <SelectTrigger className="w-full bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white">
                                                 <SelectValue placeholder="Select option" />
                                             </SelectTrigger>
-                                            <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+                                            <SelectContent className="bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white">
                                                 {options?.map((opt) => (
                                                     <SelectItem
                                                         key={opt.value}
@@ -162,7 +163,7 @@ export function SettingRow({
                                             onChange={(e) =>
                                                 setEditValue(e.target.value)
                                             }
-                                            className="bg-zinc-900 border-zinc-800 text-white"
+                                            className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-white"
                                             autoFocus
                                         />
                                     )}
@@ -171,7 +172,7 @@ export function SettingRow({
                                     <Button
                                         variant="ghost"
                                         onClick={() => setIsOpen(false)}
-                                        className="text-zinc-400 hover:text-white"
+                                        className="text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
                                     >
                                         Cancel
                                     </Button>
@@ -180,9 +181,9 @@ export function SettingRow({
                                         disabled={isUpdating}
                                         className="bg-primary text-primary-foreground font-bold"
                                     >
-                                        {isUpdating ? (
+                                        {isUpdating && (
                                             <Loader2 className="size-4 animate-spin mr-2" />
-                                        ) : null}
+                                        )}
                                         Save Changes
                                     </Button>
                                 </DialogFooter>
@@ -208,7 +209,7 @@ export function SettingsSection({
 }) {
     return (
         <div className="flex flex-col gap-4">
-            <h3 className="text-sm  uppercase tracking-[0.2em] text-zinc-500 flex items-center gap-2 pl-1">
+            <h3 className="text-sm uppercase tracking-[0.2em] text-zinc-500 flex items-center gap-2 pl-1">
                 {icon} {title} {isUnderConstruction && <UnderConstruction />}
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -230,8 +231,7 @@ export function SettingsAccordion({
     const [open, setOpen] = React.useState<boolean>(false);
 
     return (
-        <div className="group flex flex-col p-2 rounded-xl bg-zinc-950/40 border border-zinc-800 hover:border-zinc-700 transition-all duration-200">
-            {/* Header Accordion Trigger */}
+        <div className="group flex flex-col p-2 rounded-xl bg-zinc-100/40 dark:bg-zinc-950/40 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200">
             <div
                 className="flex cursor-pointer items-center p-2 justify-between w-full text-left outline-none focus-visible:ring-1 focus-visible:ring-primary rounded-sm"
                 onClick={() => setOpen((p) => !p)}
@@ -242,13 +242,13 @@ export function SettingsAccordion({
                     <ChevronDownIcon
                         className={cn(
                             "size-4 text-zinc-500 transition-transform duration-200 ease-in-out",
-                            open && "transform rotate-180 text-zinc-200",
+                            open &&
+                                "transform rotate-180 text-zinc-900 dark:text-zinc-200",
                         )}
                     />
                 </div>
             </div>
 
-            {/* Expandable content area */}
             <div
                 className={cn(
                     "grid transition-all duration-200 ease-in-out",
@@ -257,7 +257,7 @@ export function SettingsAccordion({
                         : "grid-rows-[0fr] opacity-0 pointer-events-none",
                 )}
             >
-                {children}
+                <div className="overflow-hidden">{children}</div>
             </div>
         </div>
     );
