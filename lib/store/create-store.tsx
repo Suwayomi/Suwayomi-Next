@@ -1,20 +1,11 @@
 "use client";
-// ---------------------------------------------------------------------------
-// Generic Store Factory
-// ---------------------------------------------------------------------------
-// Supports optional SSR initial data via the `initialData` prop on the
-// generated AppStoreProvider. When provided:
-//   - The store starts pre-populated (no loading flash)
-//   - A silent background refresh runs on mount to keep data fresh
-// When not provided, the store fetches each slice on mount as usual.
-// ---------------------------------------------------------------------------
 
 import * as React from "react";
 
-// ─── Public types ────────────────────────────────────────────────────────────
-
 export type SliceDef<T = unknown> = {
     fetch: () => Promise<T>;
+    pollingInterval?: number;
+    shouldPoll?: (data: T | null) => boolean;
 };
 
 export type SliceState<T = unknown> = {
@@ -24,12 +15,9 @@ export type SliceState<T = unknown> = {
     refresh: () => Promise<void>;
 };
 
-/** The SSR initial data shape — partial, any subset of slices can be pre-filled. */
 export type InitialData<S extends AnySlices> = Partial<{
     [K in keyof S]: Awaited<ReturnType<S[K]["fetch"]>>;
 }>;
-
-// ─── Internal ────────────────────────────────────────────────────────────────
 
 type AnySlices = Record<string, SliceDef<any>>;
 
@@ -52,12 +40,20 @@ function reducer(state: RawState, action: Action): RawState {
         case "START":
             return {
                 ...state,
-                [action.key]: { ...state[action.key], loading: true, error: null },
+                [action.key]: {
+                    ...state[action.key],
+                    loading: true,
+                    error: null,
+                },
             };
         case "OK":
             return {
                 ...state,
-                [action.key]: { data: action.data, loading: false, error: null },
+                [action.key]: {
+                    data: action.data,
+                    loading: false,
+                    error: null,
+                },
             };
         case "ERR":
             return {
@@ -73,8 +69,6 @@ function reducer(state: RawState, action: Action): RawState {
     }
 }
 
-// ─── Factory ─────────────────────────────────────────────────────────────────
-
 export function createStore<S extends AnySlices>(slices: S) {
     type Store = StoreShape<S>;
 
@@ -85,12 +79,8 @@ export function createStore<S extends AnySlices>(slices: S) {
         initialData,
     }: {
         children: React.ReactNode;
-        /** SSR-fetched data from a server component (e.g. app/layout.tsx).
-         *  Pre-populates slices so there is no loading state on first render. */
         initialData?: InitialData<S>;
     }) {
-        // Lazy initializer — runs once on mount.
-        // Slices with SSR data start as loaded; others start as loading.
         const [raw, dispatch] = React.useReducer(
             reducer,
             undefined,
@@ -112,13 +102,14 @@ export function createStore<S extends AnySlices>(slices: S) {
                 ),
         );
 
+        const rawRef = React.useRef(raw);
+        rawRef.current = raw;
+
         const dispatchRef = React.useRef(dispatch);
         dispatchRef.current = dispatch;
 
-        // Stable ref to initial data used only in the mount effect
         const initialDataRef = React.useRef(initialData);
 
-        // Stable refresh functions — one per slice
         const refreshFns = React.useMemo(
             () =>
                 Object.fromEntries(
@@ -148,6 +139,8 @@ export function createStore<S extends AnySlices>(slices: S) {
                 | Record<string, unknown>
                 | undefined;
 
+            const activeIntervals: number[] = [];
+
             Object.keys(slices).forEach((key) => {
                 const wasSSRd = ssrData?.[key] !== undefined;
 
@@ -166,10 +159,35 @@ export function createStore<S extends AnySlices>(slices: S) {
                             }),
                         );
                 } else {
-                    // Full load with loading state
                     refreshFns[key]();
                 }
+                const interval = slices[key].pollingInterval;
+                if (interval) {
+                    const id = window.setInterval(async () => {
+                        try {
+                            // Check if polling is needed right now
+                            const currentData = rawRef.current[key]?.data;
+                            if (
+                                slices[key].shouldPoll &&
+                                !slices[key].shouldPoll(currentData as any)
+                            ) {
+                                return;
+                            }
+
+                            const data = await slices[key].fetch();
+                            dispatchRef.current({ type: "OK", key, data });
+                        } catch (err) {
+                            // Silently fail polling errors to avoid UI thrashing
+                            console.error(`Store polling error [${key}]:`, err);
+                        }
+                    }, interval);
+                    activeIntervals.push(id);
+                }
             });
+
+            return () => {
+                activeIntervals.forEach((id) => window.clearInterval(id));
+            };
         }, [refreshFns]);
 
         const store = React.useMemo(
@@ -184,7 +202,9 @@ export function createStore<S extends AnySlices>(slices: S) {
         );
 
         return (
-            <StoreContext.Provider value={store}>{children}</StoreContext.Provider>
+            <StoreContext.Provider value={store}>
+                {children}
+            </StoreContext.Provider>
         );
     }
 

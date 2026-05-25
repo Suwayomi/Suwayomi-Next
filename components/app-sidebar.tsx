@@ -30,6 +30,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAppStore } from "@/hooks/use-app-store";
 import { selectUpdateCount } from "@/lib/store/slices/extensions";
+import { selectActiveDownloadCount } from "@/lib/store/slices/downloads";
 
 // ─── Nav config ──────────────────────────────────────────────────────────────
 // Items with a `getBadge` function receive a live badge from the global store.
@@ -66,7 +67,12 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         items: [
             { title: "History", url: "/history", icon: History },
             { title: "Updates", url: "/updates", icon: RefreshCcw },
-            { title: "Downloads", url: "/downloads", icon: Download },
+            { 
+                title: "Downloads", 
+                url: "/downloads", 
+                icon: Download,
+                getBadge: (store) => selectActiveDownloadCount(store.downloads.data),
+            },
         ],
     },
 ];

@@ -14,6 +14,8 @@ import {
     BookOpen,
     Trash2,
     X,
+    Star,
+    StarOff,
 } from "lucide-react";
 import { getImageUrl, cn } from "@/lib/utils";
 import {
@@ -28,17 +30,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { LibraryManga } from "./page";
+import { LibraryManga, useAppStore } from "@/lib/store";
+import {
+    applyMangaFilter,
+    defaultMangaFilter,
+} from "@/components/manga-filter";
 
-interface LibraryClientProps {
-    initialMangas: LibraryManga[];
-}
+interface LibraryClientProps {}
 
-export default function LibraryClient({ initialMangas }: LibraryClientProps) {
-    const router = useRouter();
-
+export default function LibraryClient({}: LibraryClientProps) {
+    let { library } = useAppStore();
     // Seed your local state with the preloaded server data
-    const [mangas, setMangas] = React.useState<LibraryManga[]>(initialMangas);
+    const [mangas, setMangas] = React.useState<LibraryManga[]>(
+        library.data || [],
+    );
+    const [filter, setFilter] = React.useState(defaultMangaFilter);
     const [searchQuery, setSearchQuery] = React.useState("");
     const [selectedCategory, setSelectedCategory] =
         React.useState<string>("all");
@@ -68,6 +74,10 @@ export default function LibraryClient({ initialMangas }: LibraryClientProps) {
                         categories: {
                             nodes: { id: true, name: true },
                         },
+                        meta: {
+                            key: true,
+                            value: true,
+                        },
                     },
                 },
             });
@@ -77,25 +87,23 @@ export default function LibraryClient({ initialMangas }: LibraryClientProps) {
         }
     }, []);
 
-    // Sync state whenever server gives us new underlying values
-    React.useEffect(() => {
-        setMangas(initialMangas);
-    }, [initialMangas]);
-
     // Derive categories from manga data
     const categories = React.useMemo(() => {
         const cats = new Set<string>();
-        mangas.forEach((manga) => {
-            manga.categories.nodes.forEach((cat) => cats.add(cat.name));
+        (mangas || []).forEach((manga) => {
+            manga.categories?.nodes?.forEach((cat: any) => cats.add(cat.name));
         });
         return Array.from(cats).sort();
     }, [mangas]);
 
     const filteredMangas = React.useMemo(() => {
-        return mangas.filter((m) =>
-            m.title.toLowerCase().includes(searchQuery.toLowerCase()),
+        return applyMangaFilter(
+            filter,
+            mangas.filter((m) =>
+                m.title.toLowerCase().includes(searchQuery.toLowerCase()),
+            ),
         );
-    }, [mangas, searchQuery]);
+    }, [mangas, searchQuery, filter]);
 
     // Group mangas by category for rendering
     const groupedMangas = React.useMemo(() => {
@@ -231,6 +239,50 @@ export default function LibraryClient({ initialMangas }: LibraryClientProps) {
         });
     };
 
+    const toggleVip = async (mangaId: number) => {
+        const manga = mangas.find((m) => m.id === mangaId);
+        if (!manga) return;
+
+        const isVip = manga.meta?.some(
+            (m: any) => m.key === "next:is-favorite" && m.value === "true",
+        );
+
+        try {
+            if (isVip) {
+                await client.mutation({
+                    deleteMangaMeta: {
+                        __args: {
+                            input: {
+                                key: "next:is-favorite",
+                                mangaId: mangaId,
+                            },
+                        },
+                        clientMutationId: true,
+                    },
+                });
+            } else {
+                await client.mutation({
+                    setMangaMeta: {
+                        __args: {
+                            input: {
+                                meta: {
+                                    key: "next:is-favorite",
+                                    mangaId: mangaId,
+                                    value: "true",
+                                },
+                            },
+                        },
+                        meta: { key: true },
+                    },
+                });
+            }
+            syncWithServer();
+        } catch (error) {
+            console.error("Failed to toggle Favorite status:", error);
+            toast.error("Failed to update Favorite status");
+        }
+    };
+
     const actions = (
         <LibraryActions
             categories={categories}
@@ -238,6 +290,8 @@ export default function LibraryClient({ initialMangas }: LibraryClientProps) {
             onCategoryChange={setSelectedCategory}
             onSelectAll={handleSelectAll}
             onConfigure={() => console.log("Configure")}
+            filter={filter}
+            setFilter={setFilter}
         />
     );
 
@@ -274,6 +328,7 @@ export default function LibraryClient({ initialMangas }: LibraryClientProps) {
                                         onRemove={() =>
                                             removeFromLibrary([manga.id])
                                         }
+                                        onVipToggle={() => toggleVip(manga.id)}
                                     />
                                 ))}
                             </div>
@@ -307,6 +362,7 @@ export default function LibraryClient({ initialMangas }: LibraryClientProps) {
                                         onRemove={() =>
                                             removeFromLibrary([manga.id])
                                         }
+                                        onVipToggle={() => toggleVip(manga.id)}
                                     />
                                 ))}
                             </div>
@@ -408,6 +464,7 @@ function MangaCard({
     onMarkRead,
     onDownload,
     onRemove,
+    onVipToggle,
 }: {
     manga: any;
     isSelected: boolean;
@@ -416,8 +473,12 @@ function MangaCard({
     onMarkRead: () => void;
     onDownload: (count?: number) => void;
     onRemove: () => void;
+    onVipToggle: () => void;
 }) {
     const router = useRouter();
+    const isVip = manga.meta?.some(
+        (m: any) => m.key === "next:is-favorite" && m.value === "true",
+    );
 
     const handleClick = (e: React.MouseEvent) => {
         if (isSelectionMode || e.ctrlKey) {
@@ -447,6 +508,14 @@ function MangaCard({
                 ) : (
                     <div className="flex h-full w-full items-center justify-center bg-muted/40 text-[10px] font-bold text-muted-foreground/30 uppercase">
                         No Cover
+                    </div>
+                )}
+
+                {isVip && (
+                    <div className="absolute top-3 left-3 z-20">
+                        <div className="size-8 rounded-full bg-amber-500 flex items-center justify-center shadow-lg transform -rotate-12">
+                            <Star className="size-4 text-zinc-900 fill-zinc-900" />
+                        </div>
                     </div>
                 )}
 
@@ -489,12 +558,36 @@ function MangaCard({
                                 <DropdownMenuItem
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        onVipToggle();
+                                    }}
+                                    className="gap-2"
+                                >
+                                    {isVip ? (
+                                        <>
+                                            <StarOff className="size-4 text-amber-500" />
+                                            Remove from Favorite
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Star className="size-4 text-amber-500 fill-amber-500" />
+                                            Add to Favorite
+                                        </>
+                                    )}
+                                </DropdownMenuItem>
+
+                                <DropdownMenuSeparator />
+
+                                <DropdownMenuItem
+                                    onClick={(e) => {
+                                        e.stopPropagation();
                                         onToggle();
                                     }}
                                 >
                                     <Check className="mr-2 size-4" />
                                     <span>Select</span>
                                 </DropdownMenuItem>
+
+                                <DropdownMenuSeparator />
 
                                 <DropdownMenuSub>
                                     <DropdownMenuSubTrigger>

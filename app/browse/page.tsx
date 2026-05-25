@@ -12,6 +12,9 @@ export default async function BrowsePage() {
                 lang: true,
                 iconUrl: true,
                 supportsLatest: true,
+                extension: {
+                    pkgName: true,
+                }
             },
         },
     });

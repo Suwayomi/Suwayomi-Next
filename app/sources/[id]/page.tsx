@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useRouter, useParams } from "next/navigation";
+import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { 
   Search, 
   ArrowLeft, 
@@ -16,7 +16,8 @@ import {
   Loader2,
   AlertTriangle,
   RefreshCw,
-  WifiOff
+  WifiOff,
+  ChevronRight
 } from "lucide-react";
 
 type SourceManga = {
@@ -28,9 +29,25 @@ type SourceManga = {
 };
 
 export default function SourceBrowsePage() {
+  return (
+    <React.Suspense fallback={
+      <PageLayout title="Loading Source...">
+        <div className="flex items-center justify-center h-full py-40">
+          <Loader2 className="size-10 animate-spin text-primary opacity-20" />
+        </div>
+      </PageLayout>
+    }>
+      <SourceBrowseContent />
+    </React.Suspense>
+  );
+}
+
+function SourceBrowseContent() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const sourceId = params.id as string;
+  const initialSearch = searchParams.get("search") || "";
 
   const [sourceName, setSourceName] = React.useState<string>("Catalog");
   const [sourceMangaItems, setSourceMangaItems] = React.useState<SourceManga[]>([]);
@@ -39,7 +56,7 @@ export default function SourceBrowsePage() {
   
   const [isLoading, setIsLoading] = React.useState(true);
   const [isFetchingNextPage, setIsFetchingNextPage] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState("");
+  const [searchQuery, setSearchQuery] = React.useState(initialSearch);
   const [error, setError] = React.useState<string | null>(null);
 
   const fetchSourceInfo = React.useCallback(async () => {
@@ -112,8 +129,10 @@ export default function SourceBrowsePage() {
 
   React.useEffect(() => {
     fetchSourceInfo();
-    fetchManga(1);
-  }, [fetchSourceInfo, fetchManga]);
+    // Use the latest initialSearch from searchParams
+    fetchManga(1, initialSearch);
+    setSearchQuery(initialSearch);
+  }, [fetchSourceInfo, fetchManga, initialSearch]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
@@ -191,13 +210,26 @@ export default function SourceBrowsePage() {
               </div>
               <div className="space-y-2">
                  <h3 className="text-xl font-bold font-heading">Connection Failed</h3>
-                 <p className="text-sm text-muted-foreground max-w-xs mx-auto">
-                   {error}
-                 </p>
+                 <p className="text-sm text-muted-foreground max-w-xs mx-auto">{error}</p>
               </div>
               <Button onClick={() => fetchManga(1, searchQuery)} className="rounded-full px-8 gap-2 font-bold shadow-lg shadow-primary/20">
                 <RefreshCw className="size-4" /> Try Again
               </Button>
+            </div>
+          ) : !isLoading && sourceMangaItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-40 gap-4 text-center">
+              <div className="size-20 rounded-full bg-muted/20 flex items-center justify-center">
+                <Search className="size-10 text-muted-foreground/20" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold font-heading">No manga found</h3>
+                <p className="text-sm text-muted-foreground">Try a different search term or check if the source is up.</p>
+              </div>
+              {searchQuery && (
+                <Button variant="outline" onClick={() => {setSearchQuery(""); fetchManga(1, "");}} className="mt-4 rounded-full h-10 px-6 border-border/50">
+                  Clear Search
+                </Button>
+              )}
             </div>
           ) : (
             <>
@@ -263,17 +295,7 @@ export default function SourceBrowsePage() {
             </>
           )}
 
-          {sourceMangaItems.length === 0 && !isLoading && !error && (
-            <div className="flex flex-col items-center justify-center py-32 gap-6 text-center">
-              <div className="size-20 rounded-full bg-muted/40 flex items-center justify-center">
-                <AlertTriangle className="size-10 text-muted-foreground/40" />
-              </div>
-              <div className="space-y-1">
-                 <h3 className="text-lg font-bold">No manga found</h3>
-                 <p className="text-sm text-muted-foreground">The source didn't return any results.</p>
-              </div>
-            </div>
-          )}
+
         </div>
       </div>
 

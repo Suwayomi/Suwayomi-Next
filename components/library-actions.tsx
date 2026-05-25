@@ -12,6 +12,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import Link from "next/link";
+import { MangaFilter, MangaFilterState } from "./manga-filter";
+import { useAppStore } from "@/lib/store";
 
 interface LibraryActionsProps {
     categories: string[];
@@ -19,6 +21,8 @@ interface LibraryActionsProps {
     onCategoryChange: (category: string) => void;
     onSelectAll: () => void;
     onConfigure: () => void;
+    filter: MangaFilterState;
+    setFilter: React.Dispatch<React.SetStateAction<MangaFilterState>>;
 }
 
 export function LibraryActions({
@@ -27,9 +31,12 @@ export function LibraryActions({
     onCategoryChange,
     onSelectAll,
     onConfigure,
+    filter,
+    setFilter,
 }: LibraryActionsProps) {
+    const { library } = useAppStore();
     return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground">Category: </span>
             <Select
                 onValueChange={(val) => onCategoryChange(val || "all")}
@@ -56,25 +63,32 @@ export function LibraryActions({
                 />
             </div>
 
-            <Button
-                variant="outline"
-                size="icon-sm"
-                onClick={onSelectAll}
-                title="Select All"
-            >
-                <CheckSquare className="size-4" />
-            </Button>
-
-            <Link href={"/settings/Library"}>
+            <div className="flex items-center gap-2">
+                <MangaFilter
+                    filter={filter}
+                    onFilterChange={setFilter}
+                    availableGenres={library.data?.flatMap((i) => i.genre)}
+                />
                 <Button
                     variant="outline"
                     size="icon-sm"
-                    onClick={onConfigure}
-                    title="Configure"
+                    onClick={onSelectAll}
+                    title="Select All"
                 >
-                    <Settings className="size-4" />
+                    <CheckSquare className="size-4" />
                 </Button>
-            </Link>
+
+                <Link href={"/settings/Library"}>
+                    <Button
+                        variant="outline"
+                        size="icon-sm"
+                        onClick={onConfigure}
+                        title="Configure"
+                    >
+                        <Settings className="size-4" />
+                    </Button>
+                </Link>
+            </div>
         </div>
     );
 }

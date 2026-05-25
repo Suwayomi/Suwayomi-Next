@@ -16,6 +16,7 @@ import {
     ArrowRight,
     ChevronRightIcon,
 } from "lucide-react";
+import { useAppStore, type HistoryItem } from "@/hooks/use-app-store";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -23,21 +24,11 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type HistoryItem = {
-    id: number;
-    name: string;
-    lastReadAt: string | null;
-    manga: {
-        id: number;
-        title: string;
-        thumbnailUrl: string | null;
-    };
-};
-
-export default function HistoryClient({ initialData }: { initialData: any[] }) {
+export default function HistoryClient() {
     const router = useRouter();
-    const [history, setHistory] = React.useState<HistoryItem[]>(initialData);
-    const [isLoading, setIsLoading] = React.useState(false);
+    const { history: historySlice } = useAppStore();
+    const history = historySlice.data || [];
+    const isLoading = historySlice.loading;
 
     const groupHistoryByDate = () => {
         const groups: { [key: string]: HistoryItem[] } = {};

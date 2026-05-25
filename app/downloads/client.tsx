@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { PageLayout } from "@/components/page-layout";
 import { client } from "@/lib/client";
 import { getImageUrl, cn } from "@/lib/utils";
@@ -17,60 +16,16 @@ import {
     CheckCircle2,
     XCircle,
 } from "lucide-react";
+import { useAppStore } from "@/hooks/use-app-store";
 import { Progress } from "@/components/ui/progress";
 
-type DownloadItem = {
-    position: number;
-    progress: number;
-    state: string;
-    chapter: {
-        name: string;
-    };
-    manga: {
-        title: string;
-        thumbnailUrl: string | null;
-    };
-};
+export default function DownloadsClientPage() {
+    const { downloads } = useAppStore();
 
-export default function DownloadsClientPage({
-    initialQueue,
-    initialIsDownloading,
-}: {
-    initialQueue: DownloadItem[];
-    initialIsDownloading: boolean;
-}) {
-    const [queue, setQueue] = React.useState<DownloadItem[]>(initialQueue);
-    const [isDownloading, setIsDownloading] =
-        React.useState(initialIsDownloading);
-    const [isLoading, setIsLoading] = React.useState(false);
-
-    const fetchDownloads = React.useCallback(async () => {
-        try {
-            const result = await client.query({
-                downloadStatus: {
-                    state: true,
-                    queue: {
-                        position: true,
-                        progress: true,
-                        state: true,
-                        chapter: { name: true },
-                        manga: { title: true, thumbnailUrl: true },
-                    },
-                },
-            });
-            setQueue((result.downloadStatus?.queue as any[]) || []);
-            setIsDownloading(result.downloadStatus?.state === "STARTED");
-        } catch (error) {
-            console.error("Failed to fetch downloads:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    React.useEffect(() => {
-        const interval = setInterval(fetchDownloads, 2000); // Poll for progress
-        return () => clearInterval(interval);
-    }, [fetchDownloads]);
+    // Global store data
+    const queue = downloads.data?.queue ?? [];
+    const isDownloading = downloads.data?.state === "STARTED";
+    const isLoading = downloads.loading && !downloads.data;
 
     const toggleDownloader = async () => {
         const action = isDownloading ? "stopDownloader" : "startDownloader";
@@ -81,7 +36,7 @@ export default function DownloadsClientPage({
                     clientMutationId: true,
                 },
             });
-            setIsDownloading(!isDownloading);
+            downloads.refresh();
             toast.success(
                 isDownloading ? "Downloader paused" : "Downloader started",
             );
@@ -98,7 +53,8 @@ export default function DownloadsClientPage({
                     clientMutationId: true,
                 },
             });
-            setQueue([]);
+            // Manual refresh to update UI immediately
+            downloads.refresh();
             toast.success("Queue cleared");
         } catch (error) {
             toast.error("Failed to clear queue");
