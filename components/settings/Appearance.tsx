@@ -3,6 +3,7 @@ import * as React from "react";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Switch } from "../ui/switch";
+import { useMeta } from "@/hooks/use-meta";
 
 const ACCENTS = [
     { name: "Default Blue", value: "oklch(0.53 0.23 250)" },
@@ -21,20 +22,8 @@ export default function AppearanceSettings({
 }: {
     settings?: Record<string, unknown>;
 }) {
-    const [isDark, setIsDark] = React.useState(
-        localStorage.getItem("piper-theme") === "dark",
-    );
-    const [currentAccent, setCurrentAccent] = React.useState<string | null>(
-        () => {
-            if (typeof window !== "undefined") {
-                return (
-                    localStorage.getItem("piper-accent") ||
-                    "oklch(0.53 0.23 250)"
-                );
-            }
-            return "oklch(0.53 0.23 250)";
-        },
-    );
+    const [theme, setTheme] = useMeta("next-theme");
+    const [currentAccent, setCurrentAccent] = useMeta("next-accent-color");
 
     const applyAccent = React.useCallback((value: string) => {
         document.documentElement.style.setProperty("--primary", value);
@@ -66,14 +55,11 @@ export default function AppearanceSettings({
                 </div>
                 <Switch
                     id="theme-change-switch"
-                    checked={isDark}
+                    checked={theme === "dark"}
                     onCheckedChange={(e) => {
+                        const thme = e ? "dark" : "light";
                         document.documentElement.classList.toggle("dark", e);
-                        localStorage.setItem(
-                            "piper-theme",
-                            e ? "dark" : "light",
-                        );
-                        setIsDark(e);
+                        setTheme(thme);
                     }}
                 />
             </section>

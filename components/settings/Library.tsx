@@ -29,7 +29,7 @@ import { client } from "@/lib/client";
 import { ScrollArea } from "../ui/scroll-area";
 import { toast } from "sonner";
 
-interface Category {
+interface LibraryCategory {
     id: number;
     name: string;
     default: boolean;
@@ -38,7 +38,13 @@ interface Category {
     includeInDownload: boolean;
 }
 
-export default function LibrarySettings({ settings }: { settings: any }) {
+export default function LibrarySettings({
+    settings,
+    initialCategories,
+}: {
+    settings: any;
+    initialCategories?: LibraryCategory[] | null;
+}) {
     return (
         <div className="space-y-5">
             <SettingsSection
@@ -47,20 +53,26 @@ export default function LibrarySettings({ settings }: { settings: any }) {
                 }
                 title="Categories"
             >
-                <CategoryConfig />
+                <CategoryConfig initialCategories={initialCategories ?? []} />
             </SettingsSection>
             <CategoryContent category="Library" settings={settings} />
         </div>
     );
 }
 
-function CategoryConfig() {
-    const [categories, setCategories] = React.useState<Category[]>([]);
+function CategoryConfig({
+    initialCategories,
+}: {
+    initialCategories: LibraryCategory[];
+}) {
+    const [categories, setCategories] =
+        React.useState<LibraryCategory[]>(initialCategories);
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [newCategoryName, setNewCategoryName] = React.useState("");
 
     const count = React.useMemo<number>(() => categories.length, [categories]);
 
+    /** Re-fetch after mutations to sync with server state */
     const fetchData = React.useCallback(async () => {
         const result = await client.query({
             categories: {
@@ -77,15 +89,10 @@ function CategoryConfig() {
             },
         });
 
-        // Filter out "Default" if required by your logic
         // @ts-ignore
-        const nodes = (result?.categories?.nodes || []) as Category[];
+        const nodes = (result?.categories?.nodes || []) as LibraryCategory[];
         setCategories(nodes.filter((i) => i.name !== "Default"));
     }, []);
-
-    React.useEffect(() => {
-        fetchData();
-    }, [fetchData]);
 
     const handleUpdateName = async (id: number, newName: string) => {
         // Optimistic UI Update
@@ -96,7 +103,6 @@ function CategoryConfig() {
         );
 
         try {
-            // TODO: Connect your API client here
             client.mutation({
                 updateCategory: {
                     __args: {
@@ -260,7 +266,7 @@ function CategoryRow({
     onUpdateName,
     onDelete,
 }: {
-    category: Category;
+    category: LibraryCategory;
     onUpdateName: (id: number, name: string) => void;
     onDelete: (id: number) => void;
 }) {

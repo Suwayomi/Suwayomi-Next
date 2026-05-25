@@ -23,15 +23,6 @@ Before running this client, ensure you have a running instance of Suwayomi-Serve
 
 4. **Run the development server:**
 
-## 🗺️ Roadmap / Progress Tracker
-
-* [x] Connect to Suwayomi API and fetch library
-* [x] Implement global search across extensions
-* [x] Reader interface (Webtoon and Single Page modes)
-* [x] Category management
-* [ ] search across all your sources
-* ...
-
 ## 🤝 Contributing
 
 Since this project is in its early stages, contributions, bug reports, and feature requests are incredibly welcome! Feel free to open an issue or submit a pull request.

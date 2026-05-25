@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useAppStore } from "@/hooks/use-app-store";
 import {
     Search,
     Globe,
@@ -46,7 +47,9 @@ export default function BrowseClientPage({
     initialSources,
     initialInstalled,
 }: BrowseClientProps) {
+    const { meta } = useAppStore();
     const router = useRouter();
+    const store = useAppStore();
 
     // State initialized with server data
     const [sources, setSources] = React.useState(initialSources);
@@ -187,7 +190,7 @@ export default function BrowseClientPage({
         toast.promise(promise, {
             loading: `${action.charAt(0).toUpperCase() + action.slice(1)}ing extension...`,
             success: async () => {
-                // Refresh both lists after a change
+                // Refresh the local page list and the global store (sidebar badge)
                 fetchExtensions(0, extensionSearchQuery);
                 const installedResult = await client.query({
                     extensions: {
@@ -208,6 +211,8 @@ export default function BrowseClientPage({
                 setInstalledExtensions(
                     (installedResult.extensions?.nodes as Extension[]) || [],
                 );
+                // Keep the global store in sync so the sidebar badge updates
+                store.extensions.refresh();
                 return `Successfully ${action}ed`;
             },
             error: `Failed to ${action} extension`,
@@ -360,30 +365,27 @@ export default function BrowseClientPage({
                             onScroll={handleExtensionScroll}
                         >
                             <div className="flex flex-col gap-8 pb-20">
-                                {installedExtensions.length > 0 &&
-                                    extensionOffset === 0 && (
-                                        <div className="flex flex-col gap-4">
-                                            <div className="flex items-center gap-2 px-2">
-                                                <ShieldCheck className="size-3.5 text-primary" />
-                                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
-                                                    Installed
-                                                </h3>
-                                            </div>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                                {installedExtensions.map(
-                                                    (ext) => (
-                                                        <ExtensionCard
-                                                            key={ext.pkgName}
-                                                            ext={ext}
-                                                            onAction={
-                                                                updateExtensionState
-                                                            }
-                                                        />
-                                                    ),
-                                                )}
-                                            </div>
+                                {installedExtensions.length > 0 && (
+                                    <div className="flex flex-col gap-4">
+                                        <div className="flex items-center gap-2 px-2">
+                                            <ShieldCheck className="size-3.5 text-primary" />
+                                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                                                Installed
+                                            </h3>
                                         </div>
-                                    )}
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {installedExtensions.map((ext) => (
+                                                <ExtensionCard
+                                                    key={ext.pkgName}
+                                                    ext={ext}
+                                                    onAction={
+                                                        updateExtensionState
+                                                    }
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="flex flex-col gap-4">
                                     <div className="flex items-center gap-2 px-2">
@@ -393,13 +395,22 @@ export default function BrowseClientPage({
                                         </h3>
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {availableExtensions.map((ext) => (
-                                            <ExtensionCard
-                                                key={ext.pkgName}
-                                                ext={ext}
-                                                onAction={updateExtensionState}
-                                            />
-                                        ))}
+                                        {availableExtensions
+                                            .filter(
+                                                (i) =>
+                                                    meta.data?.[
+                                                        "next-show-nsfw"
+                                                    ] || !i.isNsfw,
+                                            )
+                                            .map((ext, index) => (
+                                                <ExtensionCard
+                                                    key={ext.pkgName + index}
+                                                    ext={ext}
+                                                    onAction={
+                                                        updateExtensionState
+                                                    }
+                                                />
+                                            ))}
                                     </div>
                                 </div>
                             </div>

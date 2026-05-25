@@ -28,13 +28,18 @@ import {
     TriangleAlertIcon,
 } from "lucide-react";
 import * as React from "react";
-import { SettingsAccordion, SettingsSection } from "../SettingsSection";
+import {
+    SettingRow,
+    SettingsAccordion,
+    SettingsSection,
+} from "../SettingsSection";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import { ScrollArea } from "../ui/scroll-area";
 import { toast } from "sonner";
-import { client } from "@/lib/client";
+import { useMeta } from "@/hooks/use-meta";
+import { Switch } from "../ui/switch";
 
 type BrowseSettingsCategory = Partial<
     Record<(typeof CATEGORY_MAPPING)["Browse"][number], any>
@@ -43,10 +48,17 @@ export default function BrowseSettings(props: { settings: any }) {
     const [settings, setSettings] = React.useState<BrowseSettingsCategory>(
         props.settings,
     );
-    const [showNsfw, setShowNsfw] = React.useState(false);
+    const [showNsfw, setShowNsfw] = useMeta("next-show-nsfw");
     return (
         <div className="flex flex-col gap-12 pb-20 max-w-5xl">
             <ExternalRepo settings={settings} />
+            <SettingRow
+                type="toggle"
+                value={showNsfw}
+                onUpdate={async (_, v) => setShowNsfw(v)}
+                label="Show NSFW"
+                fieldKey="next-show-nsfw"
+            />
         </div>
     );
 }
