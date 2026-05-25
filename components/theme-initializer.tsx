@@ -11,8 +11,8 @@ export function ThemeInitializer() {
 			}
 			const saved_accent = localStorage.getItem("piper-accent");
 			if (saved_accent) {
-			    document.documentElement.style.setProperty("--primary", saved);
-			    document.documentElement.style.setProperty("--ring", saved);
+			    document.documentElement.style.setProperty("--primary", saved_accent);
+			    document.documentElement.style.setProperty("--ring", saved_accent);
 			}
 			`,
             }}

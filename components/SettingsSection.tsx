@@ -223,25 +223,30 @@ export function SettingsAccordion({
     headerLeft,
     headerRight,
     children,
+    isUnderConstruction,
 }: {
     headerLeft: React.ReactNode;
     headerRight?: React.ReactNode;
     children: React.ReactNode;
+    isUnderConstruction?: boolean;
 }) {
     const [open, setOpen] = React.useState<boolean>(false);
 
     return (
-        <div className="group flex flex-col p-2 rounded-xl bg-zinc-100/40 dark:bg-zinc-950/40 border border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-200">
+        <div className="group flex flex-col items-center justify-between p-2 rounded-2xl bg-zinc-100/50 dark:bg-zinc-900/50 border border-black/5 dark:border-white/5 hover:border-primary/20 transition-all">
             <div
                 className="flex cursor-pointer items-center p-2 justify-between w-full text-left outline-none focus-visible:ring-1 focus-visible:ring-primary rounded-sm"
                 onClick={() => setOpen((p) => !p)}
             >
-                {headerLeft}
+                <div className="flex items-center gap-2">
+                    {headerLeft}
+                    {isUnderConstruction && <UnderConstruction />}
+                </div>
                 <div className="flex gap-3 items-center">
                     {open && headerRight}
                     <ChevronDownIcon
                         className={cn(
-                            "size-4 text-zinc-500 transition-transform duration-200 ease-in-out",
+                            "size-7 p-1.5 text-zinc-500 transition-transform duration-200 ease-in-out",
                             open &&
                                 "transform rotate-180 text-zinc-900 dark:text-zinc-200",
                         )}
@@ -251,13 +256,13 @@ export function SettingsAccordion({
 
             <div
                 className={cn(
-                    "grid transition-all duration-200 ease-in-out",
+                    "grid transition-all duration-200 w-full ease-in-out",
                     open
                         ? "grid-rows-[1fr] opacity-100 mt-4"
                         : "grid-rows-[0fr] opacity-0 pointer-events-none",
                 )}
             >
-                <div className="overflow-hidden">{children}</div>
+                <div className="overflow-hidden w-full">{children}</div>
             </div>
         </div>
     );

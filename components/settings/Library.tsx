@@ -46,7 +46,6 @@ export default function LibrarySettings({ settings }: { settings: any }) {
                     <FolderPenIcon className="size-5 text-zinc-500 dark:text-muted-foreground" />
                 }
                 title="Categories"
-                isUnderConstruction
             >
                 <CategoryConfig />
             </SettingsSection>
@@ -281,13 +280,13 @@ function CategoryRow({
                 {category.name}
             </span>
 
-            <div className="flex items-center gap-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1 ">
                 <Dialog
                     open={isEditDialogOpen}
                     onOpenChange={setIsEditDialogOpen}
                 >
                     <DialogTrigger
-                        className="p-1.5 rounded-md hover:bg-zinc-300 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+                        className="p-1.5 cursor-pointer rounded-md hover:bg-zinc-300 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
                         title="Rename category"
                     >
                         <FolderPenIcon className="size-3.5" />

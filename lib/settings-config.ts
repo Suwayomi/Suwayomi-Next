@@ -46,7 +46,7 @@ export const CATEGORY_ICONS: Record<Category, LucideIcon> = {
     Server: Server,
 };
 
-export const CATEGORY_MAPPING: Record<Category, string[]> = {
+export const CATEGORY_MAPPING = {
     Appearance: [
         "webUIFlavor",
         "initialOpenInBrowserEnabled",
@@ -86,19 +86,7 @@ export const CATEGORY_MAPPING: Record<Category, string[]> = {
         "autoBackupIncludeServerSettings",
         "autoBackupIncludeTracking",
     ],
-    Browse: [
-        "extensionRepos",
-        "maxSourcesInParallel",
-        "localSourcePath",
-        "opdsUseBinaryFileSizes",
-        "opdsItemsPerPage",
-        "opdsEnablePageReadProgress",
-        "opdsMarkAsReadOnDownload",
-        "opdsShowOnlyUnreadChapters",
-        "opdsShowOnlyDownloadedChapters",
-        "opdsChapterSortOrder",
-        "opdsCbzMimetype",
-    ],
+    Browse: ["extensionRepos"],
     History: [],
     Device: [
         "koreaderSyncChecksumMethod",
@@ -138,4 +126,4 @@ export const CATEGORY_MAPPING: Record<Category, string[]> = {
         "databasePassword",
         "useHikariConnectionPool",
     ],
-};
+} as const;
