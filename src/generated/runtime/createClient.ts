@@ -7,10 +7,9 @@ import {
     type GraphqlOperation,
 } from './generateGraphqlOperation'
 
-export type Headers =
+export type GenqlHeaders =
     | HeadersInit
-    | (() => HeadersInit)
-    | (() => Promise<HeadersInit>)
+    | (() => HeadersInit | Promise<HeadersInit>)
 
 export type BaseFetcher = (
     operation: GraphqlOperation | GraphqlOperation[],
@@ -21,7 +20,7 @@ export type ClientOptions = Omit<RequestInit, 'body' | 'headers'> & {
     batch?: BatchOptions | boolean
     fetcher?: BaseFetcher
     fetch?: Function
-    headers?: Headers
+    headers?: GenqlHeaders
 }
 
 export const createClient = ({
