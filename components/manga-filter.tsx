@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { SlidersHorizontal, RotateCcw } from "lucide-react";
+import { SlidersHorizontal, RotateCcw, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
     Sheet,
@@ -164,16 +164,27 @@ function TogglePill({
 function FilterSection({
     label,
     children,
+    closeByDefault,
 }: {
     label: string;
     children: React.ReactNode;
+    closeByDefault?: boolean;
 }) {
+    const [isOpen, setOpen] = React.useState(!closeByDefault);
     return (
         <div className="flex flex-col gap-2.5">
-            <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
-                {label}
-            </span>
-            <div className="flex flex-wrap gap-2">{children}</div>
+            <div
+                className="flex items-center justify-between py-1 px-2 hover:bg-secondary/50 rounded cursor-pointer"
+                onClick={() => setOpen((p) => !p)}
+            >
+                <span className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">
+                    {label}
+                </span>
+                <ChevronDown
+                    className={cn("size-3 -rotate-90", isOpen && "rotate-0")}
+                />
+            </div>
+            {isOpen && <div className="flex flex-wrap gap-2">{children}</div>}
         </div>
     );
 }
@@ -380,7 +391,7 @@ export function MangaFilter({
 
                         {/* Genres — only shown when genres are available */}
                         {availableGenres.length > 1 && (
-                            <FilterSection label="Genres">
+                            <FilterSection label="Genres" closeByDefault>
                                 {[...new Set(availableGenres)].map((genre) => (
                                     <TogglePill
                                         key={genre}

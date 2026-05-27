@@ -6,16 +6,21 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
-import { ThemeInitializer } from "@/components/theme-initializer";
 import { ReaderSettingsProvider } from "@/hooks/use-reader-settings";
 import { AppStoreProvider } from "@/hooks/use-app-store";
 import { fetchInstalledExtensions } from "@/lib/store/slices/extensions";
 import { fetchGlobalMeta } from "@/lib/store/slices/meta";
-import { fetchDownloadStatus, type DownloadStatus } from "@/lib/store/slices/downloads";
+import {
+    fetchDownloadStatus,
+    type DownloadStatus,
+} from "@/lib/store/slices/downloads";
 import { fetchLibrary } from "@/lib/store/slices/library";
 import { fetchHistory } from "@/lib/store/slices/history";
 import { fetchRecentUpdates } from "@/lib/store/slices/updates";
+import { fetchSources } from "@/lib/store/slices/sources";
+import { fetchCategories } from "@/lib/store/slices/categories";
 import React from "react";
+import GlobalClient from "./global";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-heading" });
@@ -30,20 +35,31 @@ export default async function RootLayout({
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    // Fetch all global store slices on the server so AppStoreProvider
-    // starts pre-populated — no loading flash, no client waterfall.
-    // Each fetch is wrapped in .catch() so a down server doesn't break the layout.
-    const [extensions, meta, downloads, library, history, updates] = await Promise.all([
+    const [
+        extensions,
+        sources,
+        meta,
+        downloads,
+        library,
+        history,
+        updates,
+        categories,
+    ] = await Promise.all([
         fetchInstalledExtensions().catch(() => []),
+        fetchSources().catch(() => []),
         fetchGlobalMeta().catch(
             () => ({}) as Awaited<ReturnType<typeof fetchGlobalMeta>>,
         ),
         fetchDownloadStatus().catch(
-            () => ({ state: "STOPPED", queue: [] } as DownloadStatus),
+            () => ({ state: "STOPPED", queue: [] }) as DownloadStatus,
         ),
         fetchLibrary().catch(() => []),
         fetchHistory().catch(() => []),
-        fetchRecentUpdates().catch(() => ({ lastUpdateTimestamp: "0", nodes: [] })),
+        fetchRecentUpdates().catch(() => ({
+            lastUpdateTimestamp: "0",
+            nodes: [],
+        })),
+        fetchCategories().catch(() => []),
     ]);
 
     return (
@@ -68,8 +84,20 @@ export default async function RootLayout({
                 className="h-full font-sans selection:bg-primary/30 selection:text-primary"
                 style={{ backgroundColor: "#0e0e0e" }}
             >
+                <GlobalClient />
                 <ReaderSettingsProvider>
-                    <AppStoreProvider initialData={{ extensions, meta, downloads, library, history, updates }}>
+                    <AppStoreProvider
+                        initialData={{
+                            extensions,
+                            sources,
+                            meta,
+                            downloads,
+                            library,
+                            history,
+                            updates,
+                            categories,
+                        }}
+                    >
                         <TooltipProvider>
                             <SidebarProvider className="relative h-full overflow-hidden">
                                 <AppSidebar />

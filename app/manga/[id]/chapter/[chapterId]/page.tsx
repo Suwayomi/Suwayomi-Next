@@ -16,7 +16,12 @@ export default async function ReaderPage(props: {
             client.mutation({
                 fetchChapterPages: {
                     __args: { input: { chapterId } },
-                    chapter: { id: true, name: true, pageCount: true, chapterNumber: true },
+                    chapter: {
+                        id: true,
+                        name: true,
+                        pageCount: true,
+                        chapterNumber: true,
+                    },
                     pages: true,
                 },
             }),
@@ -24,7 +29,12 @@ export default async function ReaderPage(props: {
                 manga: {
                     __args: { id: mangaId },
                     chapters: {
-                        nodes: { id: true, sourceOrder: true, chapterNumber: true },
+                        nodes: {
+                            id: true,
+                            sourceOrder: true,
+                            chapterNumber: true,
+                            name: true,
+                        },
                     },
                 },
             }),

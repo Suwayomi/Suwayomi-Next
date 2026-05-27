@@ -123,8 +123,15 @@ export default function DashboardClient() {
 
                                                 <div className="space-y-2">
                                                     <h2
-                                                        className="text-2xl truncate md:text-5xl lg:text-6xl font-black text-white leading-[1.1] tracking-tighter font-heading italic line-clamp-2"
+                                                        className="text-2xl truncate md:text-5xl lg:text-6xl font-black text-white leading-[1.1] tracking-tighter font-heading italic line-clamp-2 hover:text-primary cursor-pointer hover:underline"
                                                         title={item.manga.title}
+                                                        onClick={() =>
+                                                            router.push(
+                                                                "/manga/" +
+                                                                    item.manga
+                                                                        .id,
+                                                            )
+                                                        }
                                                     >
                                                         {item.manga.title}
                                                     </h2>

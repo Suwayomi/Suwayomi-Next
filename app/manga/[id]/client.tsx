@@ -33,6 +33,7 @@ import {
     Layers,
     History,
     Star,
+    RefreshCw,
 } from "lucide-react";
 import {
     DropdownMenu,
@@ -43,6 +44,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { QueryResult } from "@/src/generated";
 import Link from "next/link";
+import { CategorySelectionDialog } from "@/components/category-selection-dialog";
+import { MangaStatsBar } from "@/components/manga/manga-stats-bar";
 
 export type MangaDetail = QueryResult<{
     manga: {
@@ -103,7 +106,7 @@ export default function MangaDetailClient({
     id,
 }: MangaDetailClientProps) {
     const router = useRouter();
-    const { downloads } = useAppStore();
+    const { downloads, library } = useAppStore();
 
     const [data, setData] = React.useState<MangaDetail | null>(initialData);
     const [isLoading, setIsLoading] = React.useState(!initialData);
@@ -115,86 +118,111 @@ export default function MangaDetailClient({
     const [selectedChapterIds, setSelectedChapterIds] = React.useState<
         Set<number>
     >(new Set());
+    const [isCategoryDialogOpen, setIsCategoryDialogOpen] =
+        React.useState(false);
+    const [isChaptersRefreshing, setIsChaptersRefreshing] =
+        React.useState(false);
 
-    const fetchData = React.useCallback(async () => {
-        try {
-            const result = await client.query({
-                manga: {
-                    __args: { id },
-                    id: true,
-                    title: true,
-                    description: true,
-                    thumbnailUrl: true,
-                    status: true,
-                    author: true,
-                    artist: true,
-                    genre: true,
-                    inLibrary: true,
-                    initialized: true,
-                    unreadCount: true,
-                    chapters: {
-                        totalCount: true,
-                        nodes: {
+    const fetchData = React.useCallback(
+        async (skipRetry = false) => {
+            try {
+                const result = await client.query({
+                    manga: {
+                        __args: { id },
+                        id: true,
+                        title: true,
+                        description: true,
+                        thumbnailUrl: true,
+                        status: true,
+                        author: true,
+                        artist: true,
+                        genre: true,
+                        inLibrary: true,
+                        initialized: true,
+                        unreadCount: true,
+                        chapters: {
+                            totalCount: true,
+                            nodes: {
+                                id: true,
+                                name: true,
+                                mangaId: true,
+                                scanlator: true,
+                                realUrl: true,
+                                sourceOrder: true,
+                                chapterNumber: true,
+                                isRead: true,
+                                isDownloaded: true,
+                                isBookmarked: true,
+                                fetchedAt: true,
+                                uploadDate: true,
+                                lastReadAt: true,
+                            },
+                        },
+                        meta: {
+                            key: true,
+                            value: true,
+                        },
+                        source: {
+                            name: true,
+                            displayName: true,
+                            lang: true,
+                        },
+                        firstUnreadChapter: {
                             id: true,
                             name: true,
-                            mangaId: true,
-                            scanlator: true,
-                            realUrl: true,
-                            sourceOrder: true,
-                            chapterNumber: true,
-                            isRead: true,
-                            isDownloaded: true,
-                            isBookmarked: true,
-                            fetchedAt: true,
-                            uploadDate: true,
-                            lastReadAt: true,
                         },
+                        realUrl: true,
                     },
-                    meta: {
-                        key: true,
-                        value: true,
-                    },
-                    source: {
-                        name: true,
-                        displayName: true,
-                        lang: true,
-                    },
-                    firstUnreadChapter: {
-                        id: true,
-                        name: true,
-                    },
-                    realUrl: true,
-                },
-            });
+                });
 
-            const fetchedData = result as MangaDetail;
-            setData(fetchedData);
+                const fetchedData = result as MangaDetail;
+                setData(fetchedData);
 
-            // If the manga is not initialized, trigger a background metadata fetch
-            if (fetchedData.manga && !fetchedData.manga.initialized) {
-                try {
-                    await client.mutation({
-                        fetchManga: {
-                            __args: { input: { id } },
-                            manga: { id: true },
-                        },
-                    });
-                    // Refresh data after initialization
-                    fetchData();
-                } catch (err) {
-                    console.error("Failed to initialize manga:", err);
-                    toast.error("Failed to fetch full manga details");
+                // If the manga is not initialized or has no chapters, trigger a background metadata fetch
+                if (
+                    !skipRetry &&
+                    fetchedData.manga &&
+                    (!fetchedData.manga.initialized ||
+                        fetchedData.manga.chapters.totalCount === 0)
+                ) {
+                    try {
+                        setIsChaptersRefreshing(true);
+                        // Call both fetchChapters and fetchManga in parallel as the web UI does
+                        await client.mutation({
+                            fetchChapters: {
+                                __args: { input: { mangaId: id } },
+                                chapters: { id: true },
+                            },
+                            fetchManga: {
+                                __args: { input: { id } },
+                                manga: { id: true },
+                            },
+                        });
+                        // Refresh data after initialization, but don't retry again
+                        fetchData(true);
+                    } catch (err) {
+                        console.error("Failed to initialize manga:", err);
+                        toast.error("Failed to fetch full manga details");
+                    } finally {
+                        setIsChaptersRefreshing(false);
+                    }
                 }
+            } catch (error) {
+                console.error("Failed to fetch manga details:", error);
+            } finally {
+                setIsLoading(false);
             }
-        } catch (error) {
-            console.error("Failed to fetch manga details:", error);
-        } finally {
-            setIsLoading(false);
-        }
-    }, [id]);
+        },
+        [id],
+    );
 
     React.useEffect(() => {
-        if (!initialData) {
+        if (
+            !initialData ||
+            (initialData?.manga &&
+                (!initialData.manga.initialized ||
+                    initialData.manga.chapters.totalCount === 0))
+        ) {
             fetchData();
         }
     }, [fetchData, initialData]);
@@ -220,7 +248,7 @@ export default function MangaDetailClient({
         toast.promise(promise, {
             loading: `Marking ${ids.length} chapter(s) as ${isRead ? "read" : "unread"}...`,
             success: () => {
-                fetchData();
+                fetchData(true);
                 if (ids.length > 1) setSelectedChapterIds(new Set());
                 return `Successfully updated chapter(s)`;
             },
@@ -241,7 +269,7 @@ export default function MangaDetailClient({
         toast.promise(promise, {
             loading: `Enqueuing ${ids.length} chapter(s) for download...`,
             success: () => {
-                fetchData();
+                fetchData(true);
                 downloads.refresh();
                 if (ids.length > 1) setSelectedChapterIds(new Set());
                 return `Download started for ${ids.length} chapter(s)`;
@@ -261,7 +289,7 @@ export default function MangaDetailClient({
         toast.promise(promise, {
             loading: `Deleting ${ids.length} downloaded chapter(s)...`,
             success: () => {
-                fetchData();
+                fetchData(true);
                 downloads.refresh();
                 if (ids.length > 1) setSelectedChapterIds(new Set());
                 return `Successfully deleted chapter(s)`;
@@ -283,21 +311,54 @@ export default function MangaDetailClient({
         }
     };
 
-    const addToLibrary = async () => {
+    const addToLibrary = async (categoryId?: number) => {
         const promise = client.mutation({
-            updateManga: {
-                __args: { input: { id, patch: { inLibrary: true } } },
-                manga: { id: true },
+            updateMangaCategories: {
+                __args: {
+                    input: {
+                        id: id,
+                        patch: { addToCategories: [categoryId || 0] },
+                    },
+                },
+                clientMutationId: true,
+            },
+            updateMangas: {
+                __args: {
+                    input: { ids: [id], patch: { inLibrary: true } },
+                },
+                mangas: { id: true },
             },
         });
 
         toast.promise(promise, {
             loading: "Adding to library...",
             success: () => {
-                fetchData();
+                fetchData(true);
+                library.refresh();
                 return "Added to collection";
             },
             error: "Failed to add to library",
+        });
+    };
+
+    const removeFromLibrary = async () => {
+        const promise = client.mutation({
+            updateMangas: {
+                __args: {
+                    input: { ids: [id], patch: { inLibrary: false } },
+                },
+                mangas: { id: true },
+            },
+        });
+
+        toast.promise(promise, {
+            loading: "Removing from library...",
+            success: () => {
+                fetchData(true);
+                library.refresh();
+                return "Removed from collection";
+            },
+            error: "Failed to remove from library",
         });
     };
 
@@ -337,12 +398,34 @@ export default function MangaDetailClient({
                     },
                 });
             }
-            fetchData();
-            toast.success("Added to the favorite list.");
+            fetchData(true);
+            toast.success(isVip ? "Removed from the favorite list." : "Added to the favorite list.");
         } catch (error) {
             console.error("Failed to toggle Favorite status", error);
             toast.error("Failed to toggle Favorite status.");
         }
+    };
+
+    const refreshManga = async () => {
+        const promise = client.mutation({
+            fetchChapters: {
+                __args: { input: { mangaId: id } },
+                chapters: { id: true },
+            },
+            fetchManga: {
+                __args: { input: { id } },
+                manga: { id: true },
+            },
+        });
+
+        toast.promise(promise, {
+            loading: "Refreshing manga and chapters...",
+            success: () => {
+                fetchData(true);
+                return "Manga updated";
+            },
+            error: "Failed to refresh manga",
+        });
     };
 
     if (isLoading) {
@@ -376,8 +459,21 @@ export default function MangaDetailClient({
     };
 
     return (
-        <PageLayout title="Manga Details">
-            <div className="flex flex-col gap-10 pb-24">
+        <PageLayout
+            title="Manga Details"
+            actions={
+                <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={refreshManga}
+                    className="gap-2 rounded-full px-4 h-9 border border-border/40 font-bold"
+                >
+                    <RefreshCw className="size-3.5" />
+                    Refresh
+                </Button>
+            }
+        >
+            <div className="flex-1 overflow-y-auto flex flex-col gap-10 pb-24 scroll-smooth">
                 {/* Hero Section */}
                 <div className="grid md:grid-cols-[2fr_1fr] gap-8">
                     <div className="flex flex-col md:flex-row gap-8 items-start">
@@ -413,41 +509,6 @@ export default function MangaDetailClient({
                                                     manga.source?.name}
                                             </span>
                                         </div>
-                                        {manga.inLibrary && (
-                                            <Button
-                                                size="lg"
-                                                variant="secondary"
-                                                className={cn(
-                                                    "px-2 py-1 h-fit tracking-wider text-[10px] font-bold uppercase border gap-2 border-lg cursor-pointer  rounded",
-                                                    manga.meta?.some(
-                                                        (m: any) =>
-                                                            m.key ===
-                                                                "next:is-favorite" &&
-                                                            m.value === "true",
-                                                    )
-                                                        ? "bg-amber-500 text-amber-950 hover:text-foreground hover:bg-amber-500/20 border-amber-500/30 shadow-lg shadow-amber-500/10"
-                                                        : "bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border-amber-500/30",
-                                                )}
-                                                onClick={addToFavorite}
-                                            >
-                                                {manga.meta?.some(
-                                                    (m: any) =>
-                                                        m.key ===
-                                                            "next:is-favorite" &&
-                                                        m.value === "true",
-                                                ) ? (
-                                                    <>
-                                                        <Star className="size-4 fill-current" />
-                                                        Pinned to Favorite
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Star className="size-4" />
-                                                        Add to Favorite
-                                                    </>
-                                                )}
-                                            </Button>
-                                        )}
                                     </div>
                                 </div>
                                 <h1
@@ -466,52 +527,21 @@ export default function MangaDetailClient({
                             </div>
 
                             {/* Stats Bar */}
-                            <div className="flex flex-wrap gap-6 items-center bg-muted/20 w-fit px-6 py-3 rounded-2xl border border-border/40 font-mono">
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
-                                        Unread
-                                    </span>
-                                    <span className="text-xl font-bold text-primary">
-                                        {manga.unreadCount}
-                                    </span>
-                                </div>
-                                <Separator
-                                    orientation="vertical"
-                                    className="h-8 bg-border/40"
-                                />
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">
-                                        Total
-                                    </span>
-                                    <span className="text-xl font-bold">
-                                        {manga.chapters.totalCount}
-                                    </span>
-                                </div>
-                                {manga.inLibrary && (
-                                    <>
-                                        <Separator
-                                            orientation="vertical"
-                                            className="h-8 bg-border/40"
-                                        />
-                                        <div className="flex items-center gap-2 text-primary font-bold text-sm">
-                                            <Check className="size-4" /> In
-                                            Library
-                                        </div>
-                                    </>
+                            <MangaStatsBar
+                                inLibrary={manga.inLibrary}
+                                isFavorite={manga.meta?.some(
+                                    (m: any) =>
+                                        m.key === "next:is-favorite" &&
+                                        m.value === "true",
                                 )}
-                            </div>
+                                onAddToLibrary={() =>
+                                    setIsCategoryDialogOpen(true)
+                                }
+                                onRemoveFromLibrary={removeFromLibrary}
+                                onToggleFavorite={addToFavorite}
+                            />
 
-                            <div className="flex flex-wrap gap-2">
-                                {manga.genre.map((g) => (
-                                    <Badge
-                                        key={g}
-                                        variant="secondary"
-                                        className="bg-muted hover:bg-muted/80 text-xs py-1 px-3 border-none"
-                                    >
-                                        {g}
-                                    </Badge>
-                                ))}
-                            </div>
+                            <MangaGenreList genre={manga.genre} />
 
                             <div className="flex flex-wrap gap-4 pt-2">
                                 <Button
@@ -529,17 +559,6 @@ export default function MangaDetailClient({
                                     Read{" "}
                                     {manga.firstUnreadChapter?.name || "Now"}
                                 </Button>
-                                {!manga.inLibrary && (
-                                    <Button
-                                        size="lg"
-                                        variant="secondary"
-                                        className="h-12 px-8 gap-2 border cursor-pointer border-border/40 rounded-full font-bold"
-                                        onClick={addToLibrary}
-                                    >
-                                        <Plus className="size-4" />
-                                        Add to Library
-                                    </Button>
-                                )}
                                 {manga.realUrl && (
                                     <Link
                                         href={manga.realUrl}
@@ -648,193 +667,250 @@ export default function MangaDetailClient({
                         </div>
 
                         <div className="overflow-hidden rounded-2xl border border-border/50 divide-y divide-border/50 bg-muted/5 shadow-sm">
-                            {chapters.map((chapter) => (
-                                <div
-                                    key={chapter.id}
-                                    className={cn(
-                                        "group flex items-center justify-between p-4 transition-all hover:bg-muted/30 cursor-pointer relative",
-                                        chapter.isRead && "opacity-60",
-                                        selectedChapterIds.has(chapter.id) &&
-                                            "bg-primary/5 opacity-100 ring-1 ring-inset ring-primary/20",
-                                    )}
-                                    onClick={() => {
-                                        if (selectedChapterIds.size > 0) {
-                                            toggleChapterSelection(chapter.id);
-                                        } else {
-                                            router.push(
-                                                `/manga/${id}/chapter/${chapter.id}`,
-                                            );
-                                        }
-                                    }}
-                                >
-                                    <div className="flex items-center gap-4 flex-1 min-w-0">
-                                        {selectedChapterIds.size > 0 && (
-                                            <div
-                                                className={cn(
-                                                    "size-5 rounded border border-border flex items-center justify-center transition-colors shadow-sm shrink-0",
-                                                    selectedChapterIds.has(
-                                                        chapter.id,
-                                                    )
-                                                        ? "bg-primary border-primary"
-                                                        : "bg-muted",
-                                                )}
-                                            >
-                                                {selectedChapterIds.has(
-                                                    chapter.id,
-                                                ) && (
-                                                    <Check className="size-3 text-primary-foreground stroke-[3px]" />
-                                                )}
+                            {isChaptersRefreshing && chapters.length === 0 ? (
+                                <>
+                                    {[...Array(5)].map((_, i) => (
+                                        <div
+                                            key={i}
+                                            className="p-4 space-y-3 animate-pulse"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <Skeleton className="size-4 rounded-full" />
+                                                <Skeleton className="h-5 w-1/3 rounded-md" />
                                             </div>
+                                            <div className="flex gap-2 ml-7">
+                                                <Skeleton className="h-3 w-20 rounded-md" />
+                                                <Skeleton className="h-3 w-16 rounded-md" />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </>
+                            ) : chapters.length === 0 ? (
+                                <div className="p-12 text-center flex flex-col items-center gap-3">
+                                    <div className="size-16 rounded-full bg-muted/30 flex items-center justify-center">
+                                        <Layers className="size-8 text-muted-foreground/20" />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="font-bold text-foreground">
+                                            No chapters found
+                                        </p>
+                                        <p className="text-xs text-muted-foreground max-w-[200px]">
+                                            This manga might not have any
+                                            chapters or they haven't been
+                                            fetched yet.
+                                        </p>
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={refreshManga}
+                                        className="mt-2 rounded-full font-bold"
+                                    >
+                                        Try Refreshing
+                                    </Button>
+                                </div>
+                            ) : (
+                                chapters.map((chapter) => (
+                                    <div
+                                        key={chapter.id}
+                                        className={cn(
+                                            "group flex items-center justify-between p-4 transition-all hover:bg-muted/30 cursor-pointer relative",
+                                            chapter.isRead && "opacity-60",
+                                            selectedChapterIds.has(
+                                                chapter.id,
+                                            ) &&
+                                            "bg-primary/5 opacity-100 ring-1 ring-inset ring-primary/20",
                                         )}
-
-                                        <div className="flex flex-col gap-1 min-w-0">
-                                            <div className="flex items-center gap-2">
-                                                {chapter.isRead &&
-                                                    !selectedChapterIds.has(
+                                        onClick={() => {
+                                            if (selectedChapterIds.size > 0) {
+                                                toggleChapterSelection(
+                                                    chapter.id,
+                                                );
+                                            } else {
+                                                router.push(
+                                                    `/manga/${id}/chapter/${chapter.id}`,
+                                                );
+                                            }
+                                        }}
+                                    >
+                                        <div className="flex items-center gap-4 flex-1 min-w-0">
+                                            {selectedChapterIds.size > 0 && (
+                                                <div
+                                                    className={cn(
+                                                        "size-5 rounded border border-border flex items-center justify-center transition-colors shadow-sm shrink-0",
+                                                        selectedChapterIds.has(
+                                                            chapter.id,
+                                                        )
+                                                            ? "bg-primary border-primary"
+                                                            : "bg-muted",
+                                                    )}
+                                                >
+                                                    {selectedChapterIds.has(
                                                         chapter.id,
                                                     ) && (
-                                                        <CheckCircle2 className="size-4 text-primary" />
-                                                    )}
-                                                <span
-                                                    className={cn(
-                                                        "font-bold truncate text-foreground",
-                                                        chapter.isRead &&
+                                                            <Check className="size-3 text-primary-foreground stroke-[3px]" />
+                                                        )}
+                                                </div>
+                                            )}
+
+                                            <div className="flex flex-col gap-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    {chapter.isRead &&
+                                                        !selectedChapterIds.has(
+                                                            chapter.id,
+                                                        ) && (
+                                                            <CheckCircle2 className="size-4 text-primary" />
+                                                        )}
+                                                    <span
+                                                        className={cn(
+                                                            "font-bold truncate text-foreground",
+                                                            chapter.isRead &&
                                                             !selectedChapterIds.has(
                                                                 chapter.id,
                                                             ) &&
                                                             "text-muted-foreground font-medium",
+                                                        )}
+                                                    >
+                                                        {chapter.name}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-medium">
+                                                    <span className="flex items-center gap-1">
+                                                        <Calendar className="size-3" />
+                                                        {formatDate(
+                                                            chapter.uploadDate,
+                                                        )}
+                                                    </span>
+                                                    {chapter.scanlator && (
+                                                        <>
+                                                            <Separator
+                                                                orientation="vertical"
+                                                                className="h-2 bg-border/60"
+                                                            />
+                                                            <span className="truncate max-w-[150px]">
+                                                                {
+                                                                    chapter.scanlator
+                                                                }
+                                                            </span>
+                                                        </>
                                                     )}
-                                                >
-                                                    {chapter.name}
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-3 text-[11px] text-muted-foreground font-medium">
-                                                <span className="flex items-center gap-1">
-                                                    <Calendar className="size-3" />
-                                                    {formatDate(
-                                                        chapter.uploadDate,
-                                                    )}
-                                                </span>
-                                                {chapter.scanlator && (
-                                                    <>
-                                                        <Separator
-                                                            orientation="vertical"
-                                                            className="h-2 bg-border/60"
-                                                        />
-                                                        <span className="truncate max-w-[150px]">
-                                                            {chapter.scanlator}
-                                                        </span>
-                                                    </>
-                                                )}
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div className="flex items-center gap-3 ml-4">
-                                        {chapter.isBookmarked && (
-                                            <Bookmark className="size-4 fill-primary text-primary" />
-                                        )}
-                                        {chapter.isDownloaded && (
-                                            <Download className="size-4 text-primary font-bold" />
-                                        )}
+                                        <div className="flex items-center gap-3 ml-4">
+                                            {chapter.isBookmarked && (
+                                                <Bookmark className="size-4 fill-primary text-primary" />
+                                            )}
+                                            {chapter.isDownloaded && (
+                                                <Download className="size-4 text-primary font-bold" />
+                                            )}
 
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger
-                                                render={
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) =>
-                                                            e.stopPropagation()
-                                                        }
-                                                        className="size-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted/50 hover:text-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-all outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                                    >
-                                                        <MoreVertical className="size-4" />
-                                                    </button>
-                                                }
-                                            />
-                                            <DropdownMenuContent
-                                                align="end"
-                                                className="w-56"
-                                                onClick={(e) =>
-                                                    e.stopPropagation()
-                                                }
-                                            >
-                                                <DropdownMenuItem
-                                                    onClick={() =>
-                                                        toggleChapterSelection(
-                                                            chapter.id,
-                                                        )
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger
+                                                    render={
+                                                        <button
+                                                            type="button"
+                                                            onClick={(e) =>
+                                                                e.stopPropagation()
+                                                            }
+                                                            className="size-9 rounded-full flex items-center justify-center text-muted-foreground hover:bg-muted/50 hover:text-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-all outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                                        >
+                                                            <MoreVertical className="size-4" />
+                                                        </button>
+                                                    }
+                                                />
+                                                <DropdownMenuContent
+                                                    align="end"
+                                                    className="w-56"
+                                                    onClick={(e) =>
+                                                        e.stopPropagation()
                                                     }
                                                 >
-                                                    <Check className="mr-2 size-4" />
-                                                    <span>Select</span>
-                                                </DropdownMenuItem>
-
-                                                <DropdownMenuSeparator />
-
-                                                {!chapter.isDownloaded ? (
                                                     <DropdownMenuItem
                                                         onClick={() =>
-                                                            downloadChapters([
+                                                            toggleChapterSelection(
                                                                 chapter.id,
-                                                            ])
-                                                        }
-                                                    >
-                                                        <Download className="mr-2 size-4" />
-                                                        <span>Download</span>
-                                                    </DropdownMenuItem>
-                                                ) : (
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            deleteDownloadedChapters(
-                                                                [chapter.id],
                                                             )
                                                         }
-                                                        className="text-destructive"
                                                     >
-                                                        <Trash2 className="mr-2 size-4" />
+                                                        <Check className="mr-2 size-4" />
+                                                        <span>Select</span>
+                                                    </DropdownMenuItem>
+
+                                                    <DropdownMenuSeparator />
+
+                                                    {!chapter.isDownloaded ? (
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                downloadChapters(
+                                                                    [
+                                                                        chapter.id,
+                                                                    ],
+                                                                )
+                                                            }
+                                                        >
+                                                            <Download className="mr-2 size-4" />
+                                                            <span>
+                                                                Download
+                                                            </span>
+                                                        </DropdownMenuItem>
+                                                    ) : (
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                deleteDownloadedChapters(
+                                                                    [
+                                                                        chapter.id,
+                                                                    ],
+                                                                )
+                                                            }
+                                                            className="text-destructive"
+                                                        >
+                                                            <Trash2 className="mr-2 size-4" />
+                                                            <span>
+                                                                Delete Download
+                                                            </span>
+                                                        </DropdownMenuItem>
+                                                    )}
+
+                                                    <DropdownMenuSeparator />
+
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            markAsRead(
+                                                                [chapter.id],
+                                                                !chapter.isRead,
+                                                            )
+                                                        }
+                                                    >
+                                                        <History className="mr-2 size-4" />
                                                         <span>
-                                                            Delete Download
+                                                            Mark as{" "}
+                                                            {chapter.isRead
+                                                                ? "unread"
+                                                                : "read"}
                                                         </span>
                                                     </DropdownMenuItem>
-                                                )}
 
-                                                <DropdownMenuSeparator />
-
-                                                <DropdownMenuItem
-                                                    onClick={() =>
-                                                        markAsRead(
-                                                            [chapter.id],
-                                                            !chapter.isRead,
-                                                        )
-                                                    }
-                                                >
-                                                    <History className="mr-2 size-4" />
-                                                    <span>
-                                                        Mark as{" "}
-                                                        {chapter.isRead
-                                                            ? "unread"
-                                                            : "read"}
-                                                    </span>
-                                                </DropdownMenuItem>
-
-                                                <DropdownMenuItem
-                                                    onClick={() =>
-                                                        markPreviousAsRead(
-                                                            chapter.sourceOrder,
-                                                        )
-                                                    }
-                                                >
-                                                    <ArrowUpToLine className="mr-2 size-4" />
-                                                    <span>
-                                                        Mark previous as read
-                                                    </span>
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
+                                                    <DropdownMenuItem
+                                                        onClick={() =>
+                                                            markPreviousAsRead(
+                                                                chapter.sourceOrder,
+                                                            )
+                                                        }
+                                                    >
+                                                        <ArrowUpToLine className="mr-2 size-4" />
+                                                        <span>
+                                                            Mark previous as
+                                                            read
+                                                        </span>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </div>
                 </div>
@@ -908,14 +984,46 @@ export default function MangaDetailClient({
                     </div>
                 </div>
             )}
+
+            <CategorySelectionDialog
+                open={isCategoryDialogOpen}
+                onOpenChange={setIsCategoryDialogOpen}
+                onSelect={(categoryId) => addToLibrary(categoryId)}
+            />
         </PageLayout>
+    );
+}
+
+function MangaGenreList({ genre }: { genre: string[] }) {
+    const [showMore, setShowMore] = React.useState(false);
+    return (
+        <div className="flex flex-wrap gap-2">
+            {genre.slice(0, showMore ? genre.length : 10).map((g, ind) => (
+                <Badge
+                    key={g + ind}
+                    variant="secondary"
+                    className="bg-muted hover:bg-muted/80 text-xs py-1 px-3 border-none"
+                >
+                    {g}
+                </Badge>
+            ))}
+            {genre.length > 10 && (
+                <Badge
+                    variant="outline"
+                    className="cursor-pointer"
+                    onClick={() => setShowMore((p) => !p)}
+                >
+                    {showMore ? "Show Less" : `Show ${genre.length - 10} More`}
+                </Badge>
+            )}
+        </div>
     );
 }
 
 function MangaDetailSkeleton() {
     return (
         <PageLayout title="">
-            <div className="flex flex-col gap-10">
+            <div className="flex-1 overflow-y-auto flex flex-col gap-10">
                 <div className="grid md:grid-cols-2">
                     <div className="flex flex-col md:flex-row gap-8">
                         <Skeleton className="w-full md:w-64 lg:w-72 aspect-[3/4] rounded-2xl shadow-xl" />

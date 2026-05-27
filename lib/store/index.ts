@@ -17,9 +17,12 @@ import { fetchDownloadStatus } from "./slices/downloads";
 import { fetchLibrary } from "./slices/library";
 import { fetchHistory } from "./slices/history";
 import { fetchRecentUpdates } from "./slices/updates";
+import { fetchSources } from "./slices/sources";
+import { fetchCategories } from "./slices/categories";
 
 export const { AppStoreProvider, useAppStore } = createStore({
     extensions: { fetch: fetchInstalledExtensions },
+    sources:    { fetch: fetchSources },
     meta:       { fetch: fetchGlobalMeta },
     downloads:  { 
         fetch: fetchDownloadStatus, 
@@ -29,6 +32,7 @@ export const { AppStoreProvider, useAppStore } = createStore({
     library:    { fetch: fetchLibrary },
     history:    { fetch: fetchHistory },
     updates:    { fetch: fetchRecentUpdates },
+    categories: { fetch: fetchCategories },
 });
 
 // Re-export slice types & selectors so consumers don't need deep imports
@@ -41,3 +45,5 @@ export { selectActiveDownloadCount } from "./slices/downloads";
 export type { LibraryManga } from "./slices/library";
 export type { HistoryItem } from "./slices/history";
 export type { UpdatesData, RecentUpdate } from "./slices/updates";
+export type { Source } from "./slices/sources";
+export type { Category } from "./slices/categories";

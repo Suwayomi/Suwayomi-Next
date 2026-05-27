@@ -9,17 +9,15 @@ import { Input } from "@/components/ui/input";
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { useAppStore } from "@/hooks/use-app-store";
+import { useAppStore, type Extension, type Source } from "@/hooks/use-app-store";
 import {
     Search,
     Globe,
     ChevronRight,
     Puzzle,
-    Download,
     RefreshCw,
     Trash2,
     ShieldCheck,
-    Layers,
     Loader2,
     MoreVertical,
 } from "lucide-react";
@@ -37,100 +35,91 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type Extension = {
-    pkgName: string;
-    name: string;
-    lang: string;
-    versionName: string;
-    iconUrl: string | null;
-    isNsfw: boolean;
-    isInstalled: boolean;
-    hasUpdate: boolean;
-    isObsolete: boolean;
-};
-
 const ITEMS_PER_PAGE = 30;
 
-interface BrowseClientProps {
-    initialSources: any;
-    initialInstalled: any[];
-}
-
-export default function BrowseClientPage({
-    initialSources,
-    initialInstalled,
-}: BrowseClientProps) {
-    const { meta } = useAppStore();
+export default function BrowseClientPage() {
+    const { meta, extensions: extensionsStore, sources: sourcesStore } = useAppStore();
     const router = useRouter();
-    const store = useAppStore();
 
-    // State initialized with server data
-    const [sources, setSources] = React.useState(initialSources);
-    const [installedExtensions, setInstalledExtensions] =
-        React.useState<Extension[]>(initialInstalled);
-    const [availableExtensions, setAvailableExtensions] = React.useState<
-        Extension[]
-    >([]);
+    const [availableExtensions, setAvailableExtensions] = React.useState<Extension[]>([]);
     const [isCatalogOpen, setIsCatalogOpen] = React.useState(false);
 
     const [installedSearchQuery, setInstalledSearchQuery] = React.useState("");
     const [catalogSearchQuery, setCatalogSearchQuery] = React.useState("");
 
-    const [globalSearchResults, setGlobalSearchResults] = React.useState<Record<string, { name: string, nodes: any[] }>>({});
+    const [globalSearchResults, setGlobalSearchResults] = React.useState<
+        Record<string, { name: string; nodes: any[] }>
+    >({});
     const [isSearchingGlobal, setIsSearchingGlobal] = React.useState(false);
 
-    const performGlobalSearch = React.useCallback(async (query: string) => {
-        if (!query.trim()) {
-            setGlobalSearchResults({});
-            return;
-        }
-        
-        setIsSearchingGlobal(true);
-        const sourceNodes = sources?.sources?.nodes || [];
-        
-        // Search all sources in parallel
-        const searchPromises = sourceNodes.map(async (source: any) => {
-            try {
-                const result = await client.mutation({
-                    fetchSourceManga: {
-                        __args: {
-                            input: {
-                                source: source.id,
-                                page: 1,
-                                type: "SEARCH" as any,
-                                query: query
-                            }
-                        },
-                        mangas: {
-                            id: true,
-                            title: true,
-                            thumbnailUrl: true,
-                            inLibrary: true,
-                        }
-                    }
-                });
-                return { sourceId: source.id, sourceName: source.displayName, mangas: result.fetchSourceManga?.mangas || [] };
-            } catch (err) {
-                return { sourceId: source.id, sourceName: source.displayName, mangas: [] };
-            }
-        });
+    const installedExtensions = extensionsStore.data || [];
+    const sourceNodes = sourcesStore.data || [];
 
-        const results = await Promise.all(searchPromises);
-        const resultMap: Record<string, { name: string, nodes: any[] }> = {};
-        results.forEach(r => {
-            if (r.mangas.length > 0) {
-                resultMap[r.sourceId] = { name: r.sourceName, nodes: r.mangas };
+    const performGlobalSearch = React.useCallback(
+        async (query: string) => {
+            if (!query.trim()) {
+                setGlobalSearchResults({});
+                return;
             }
-        });
-        
-        setGlobalSearchResults(resultMap);
-        setIsSearchingGlobal(false);
-    }, [sources]);
+
+            setIsSearchingGlobal(true);
+
+            // Search all sources in parallel
+            const searchPromises = sourceNodes.map(async (source: Source) => {
+                try {
+                    const result = await client.mutation({
+                        fetchSourceManga: {
+                            __args: {
+                                input: {
+                                    source: source.id,
+                                    page: 1,
+                                    type: "SEARCH" as any,
+                                    query: query,
+                                },
+                            },
+                            mangas: {
+                                id: true,
+                                title: true,
+                                thumbnailUrl: true,
+                                inLibrary: true,
+                            },
+                        },
+                    });
+                    return {
+                        sourceId: source.id,
+                        sourceName: source.displayName,
+                        mangas: result.fetchSourceManga?.mangas || [],
+                    };
+                } catch (err) {
+                    return {
+                        sourceId: source.id,
+                        sourceName: source.displayName,
+                        mangas: [],
+                    };
+                }
+            });
+
+            const results = await Promise.all(searchPromises);
+            const resultMap: Record<string, { name: string; nodes: any[] }> = {};
+            results.forEach((r) => {
+                if (r.mangas.length > 0) {
+                    resultMap[r.sourceId] = {
+                        name: r.sourceName,
+                        nodes: r.mangas,
+                    };
+                }
+            });
+
+            setGlobalSearchResults(resultMap);
+            setIsSearchingGlobal(false);
+        },
+        [sourceNodes],
+    );
 
     // Group sources by their extension pkgName for easier access
     const sourcesByPkg = React.useMemo(() => {
-        const map: Record<string, any[]> = {};
-        sources?.sources?.nodes?.forEach((s: any) => {
+        const map: Record<string, Source[]> = {};
+        sourceNodes.forEach((s: Source) => {
             const pkg = s.extension?.pkgName;
             if (pkg) {
                 if (!map[pkg]) map[pkg] = [];
@@ -138,7 +127,7 @@ export default function BrowseClientPage({
             }
         });
         return map;
-    }, [sources]);
+    }, [sourceNodes]);
 
     const filteredInstalled = React.useMemo(() => {
         return installedExtensions.filter((e) =>
@@ -186,8 +175,7 @@ export default function BrowseClientPage({
                     },
                 });
 
-                const newAvailable = (availableResult.extensions?.nodes ||
-                    []) as any[];
+                const newAvailable = (availableResult.extensions?.nodes || []) as Extension[];
                 setHasMoreExtensions(newAvailable.length === ITEMS_PER_PAGE);
 
                 if (offset === 0) {
@@ -233,13 +221,15 @@ export default function BrowseClientPage({
     // Auto-fetch next page if current filtered page is empty but more exist
     React.useEffect(() => {
         const showNsfw = meta.data?.["next-show-nsfw"];
-        const visibleAvailable = availableExtensions.filter(ext => showNsfw || !ext.isNsfw);
-        
+        const visibleAvailable = availableExtensions.filter(
+            (ext) => showNsfw || !ext.isNsfw,
+        );
+
         if (
             isCatalogOpen &&
             visibleAvailable.length < 10 && // If list is too short to allow scroll
-            hasMoreExtensions && 
-            !isFetchingNextExtensionPage && 
+            hasMoreExtensions &&
+            !isFetchingNextExtensionPage &&
             !isLoading
         ) {
             const nextOffset = extensionOffset + ITEMS_PER_PAGE;
@@ -247,15 +237,15 @@ export default function BrowseClientPage({
             fetchExtensions(nextOffset, catalogSearchQuery);
         }
     }, [
-        availableExtensions, 
-        hasMoreExtensions, 
-        isFetchingNextExtensionPage, 
-        isLoading, 
-        extensionOffset, 
-        catalogSearchQuery, 
-        fetchExtensions, 
+        availableExtensions,
+        hasMoreExtensions,
+        isFetchingNextExtensionPage,
+        isLoading,
+        extensionOffset,
+        catalogSearchQuery,
+        fetchExtensions,
         meta.data,
-        isCatalogOpen
+        isCatalogOpen,
     ]);
 
     const handleExtensionScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -313,45 +303,27 @@ export default function BrowseClientPage({
         toast.promise(promise, {
             loading: `${action.charAt(0).toUpperCase() + action.slice(1)}ing extension...`,
             success: async () => {
-                // Refresh the local page list and the global store (sidebar badge)
+                // Refresh the local page list and the global stores
                 fetchExtensions(0, catalogSearchQuery);
-                const installedResult = await client.query({
-                    extensions: {
-                        __args: { condition: { isInstalled: true } },
-                        nodes: {
-                            pkgName: true,
-                            name: true,
-                            lang: true,
-                            versionName: true,
-                            iconUrl: true,
-                            isNsfw: true,
-                            isInstalled: true,
-                            hasUpdate: true,
-                            isObsolete: true,
-                        },
-                    },
-                });
-                setInstalledExtensions(
-                    (installedResult.extensions?.nodes as Extension[]) || [],
-                );
-                // Keep the global store in sync so the sidebar badge updates
-                store.extensions.refresh();
+                await Promise.all([
+                    extensionsStore.refresh(),
+                    sourcesStore.refresh()
+                ]);
                 return `Successfully ${action}ed`;
             },
             error: `Failed to ${action} extension`,
         });
     };
 
-    const filteredSources =
-        sources?.sources?.nodes?.filter((s: any) =>
-            s.displayName
-                .toLowerCase()
-                .includes(installedSearchQuery.toLowerCase()),
-        ) || [];
+    const filteredSources = sourceNodes.filter((s: Source) =>
+        s.displayName
+            .toLowerCase()
+            .includes(installedSearchQuery.toLowerCase()),
+    );
 
-    const looseSources = filteredSources.filter((s: any) => {
+    const looseSources = filteredSources.filter((s: Source) => {
         const pkg = s.extension?.pkgName;
-        return !pkg || !installedExtensions.some(e => e.pkgName === pkg);
+        return !pkg || !installedExtensions.some((e) => e.pkgName === pkg);
     });
 
     return (
@@ -370,12 +342,12 @@ export default function BrowseClientPage({
                             }
                         />
                     </div>
-                    <Button 
+                    <Button
                         variant="secondary"
                         onClick={() => setIsCatalogOpen(true)}
                         className="rounded-xl h-10 px-2.5 sm:px-4 gap-2 font-bold shrink-0"
                     >
-                        <Puzzle className="size-4" /> 
+                        <Puzzle className="size-4" />
                         <span className="hidden sm:inline">Browse Catalog</span>
                     </Button>
                 </div>
@@ -396,12 +368,16 @@ export default function BrowseClientPage({
                         {installedSearchQuery.trim() === "" ? (
                             <>
                                 {filteredInstalled.map((ext) => (
-                                    <ExtensionItem 
+                                    <ExtensionItem
                                         key={ext.pkgName}
                                         ext={ext}
-                                        sources={sourcesByPkg[ext.pkgName] || []}
+                                        sources={
+                                            sourcesByPkg[ext.pkgName] || []
+                                        }
                                         onAction={updateExtensionState}
-                                        onEnter={(id: string) => router.push(`/sources/${id}`)}
+                                        onEnter={(id: string) =>
+                                            router.push(`/sources/${id}`)
+                                        }
                                     />
                                 ))}
 
@@ -413,18 +389,28 @@ export default function BrowseClientPage({
                                                 Miscellaneous
                                             </h2>
                                         </div>
-                                        {looseSources.map((source: any) => (
+                                        {looseSources.map((source: Source) => (
                                             <div
                                                 key={source.id}
                                                 className="group flex items-center justify-between p-3 rounded-xl border border-border/40 bg-muted/5 hover:bg-muted/10 transition-all cursor-pointer"
-                                                onClick={() => router.push(`/sources/${source.id}`)}
+                                                onClick={() =>
+                                                    router.push(
+                                                        `/sources/${source.id}`,
+                                                    )
+                                                }
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className="size-10 rounded-lg bg-background border border-border/40 p-2 flex items-center justify-center shrink-0">
                                                         {source.iconUrl ? (
                                                             <img
-                                                                src={getImageUrl(source.iconUrl)!}
-                                                                alt={source.name}
+                                                                src={
+                                                                    getImageUrl(
+                                                                        source.iconUrl,
+                                                                    )!
+                                                                }
+                                                                alt={
+                                                                    source.name
+                                                                }
                                                                 className="size-full object-contain"
                                                             />
                                                         ) : (
@@ -451,78 +437,119 @@ export default function BrowseClientPage({
                                 {isSearchingGlobal && (
                                     <div className="flex flex-col items-center justify-center py-20 gap-4 text-muted-foreground animate-pulse">
                                         <Loader2 className="size-8 animate-spin text-primary" />
-                                        <span className="text-sm font-bold tracking-widest uppercase">Searching all sources...</span>
+                                        <span className="text-sm font-bold tracking-widest uppercase">
+                                            Searching all sources...
+                                        </span>
                                     </div>
                                 )}
-                                
-                                {Object.entries(globalSearchResults).map(([sourceId, results]: [string, { name: string, nodes: any[] }]) => (
-                                    <div key={sourceId} className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                                        <div className="flex items-center gap-2 px-2 sticky top-0 py-2 bg-background/80 backdrop-blur-md z-10 border-b border-border/5">
-                                            <span className="text-xs font-black uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded">
-                                                {results.name}
-                                            </span>
-                                            <span className="text-[10px] font-bold text-muted-foreground">
-                                                {results.nodes.length} results
-                                            </span>
-                                        </div>
-                                        
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">
-                                            {results.nodes.slice(0, 6).map((manga: any) => (
-                                                <div 
-                                                    key={manga.id} 
-                                                    className="group flex flex-col gap-2 cursor-pointer"
-                                                    onClick={() => router.push(`/manga/${manga.id}`)}
-                                                >
-                                                    <div className="relative aspect-[3/4] overflow-hidden rounded-xl border border-border/40 bg-muted/30 shadow-sm transition-all hover:ring-2 hover:ring-primary/40 group-hover:shadow-lg">
-                                                        {manga.thumbnailUrl ? (
-                                                            <img
-                                                                src={getImageUrl(manga.thumbnailUrl)!}
-                                                                alt={manga.title}
-                                                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                                            />
-                                                        ) : (
-                                                            <div className="flex h-full w-full items-center justify-center bg-muted/40 text-[10px] text-muted-foreground/30 font-bold">No Cover</div>
-                                                        )}
-                                                        {manga.inLibrary && (
-                                                            <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-[8px] font-black px-1.5 py-0.5 rounded shadow-lg uppercase tracking-tighter">
-                                                                Library
+
+                                {Object.entries(globalSearchResults).map(
+                                    ([sourceId, results]: [
+                                        string,
+                                        { name: string; nodes: any[] },
+                                    ]) => (
+                                        <div
+                                            key={sourceId}
+                                            className="flex flex-col gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500"
+                                        >
+                                            <div className="flex items-center gap-2 px-2 sticky top-0 py-2 bg-background/80 backdrop-blur-md z-10 border-b border-border/5">
+                                                <span className="text-xs font-black uppercase tracking-widest text-primary bg-primary/10 px-2 py-0.5 rounded">
+                                                    {results.name}
+                                                </span>
+                                                <span className="text-[10px] font-bold text-muted-foreground">
+                                                    {results.nodes.length}{" "}
+                                                    results
+                                                </span>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-6">
+                                                {results.nodes
+                                                    .slice(0, 6)
+                                                    .map((manga: any) => (
+                                                        <div
+                                                            key={manga.id}
+                                                            className="group flex flex-col gap-2 cursor-pointer"
+                                                            onClick={() =>
+                                                                router.push(
+                                                                    `/manga/${manga.id}`,
+                                                                )
+                                                            }
+                                                        >
+                                                            <div className="relative aspect-[3/4] overflow-hidden rounded-xl border border-border/40 bg-muted/30 shadow-sm transition-all hover:ring-2 hover:ring-primary/40 group-hover:shadow-lg">
+                                                                {manga.thumbnailUrl ? (
+                                                                    <img
+                                                                        src={
+                                                                            getImageUrl(
+                                                                                manga.thumbnailUrl,
+                                                                            )!
+                                                                        }
+                                                                        alt={
+                                                                            manga.title
+                                                                        }
+                                                                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                                    />
+                                                                ) : (
+                                                                    <div className="flex h-full w-full items-center justify-center bg-muted/40 text-[10px] text-muted-foreground/30 font-bold">
+                                                                        No Cover
+                                                                    </div>
+                                                                )}
+                                                                {manga.inLibrary && (
+                                                                    <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-[8px] font-black px-1.5 py-0.5 rounded shadow-lg uppercase tracking-tighter">
+                                                                        Library
+                                                                    </div>
+                                                                )}
                                                             </div>
-                                                        )}
+                                                            <h3 className="line-clamp-2 text-xs font-bold leading-tight group-hover:text-primary transition-colors text-center">
+                                                                {manga.title}
+                                                            </h3>
+                                                        </div>
+                                                    ))}
+
+                                                {/* View More Button */}
+                                                <div
+                                                    className="group flex flex-col gap-2 cursor-pointer"
+                                                    onClick={() =>
+                                                        router.push(
+                                                            `/sources/${sourceId}?search=${encodeURIComponent(installedSearchQuery)}`,
+                                                        )
+                                                    }
+                                                >
+                                                    <div className="relative aspect-[3/4] overflow-hidden rounded-xl border border-dashed border-primary/30 bg-primary/5 shadow-sm transition-all hover:bg-primary/10 hover:border-primary/50 flex flex-col items-center justify-center gap-2 group-hover:shadow-lg">
+                                                        <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                                            <ChevronRight className="size-5 text-primary" />
+                                                        </div>
+                                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                                                            View More
+                                                        </span>
                                                     </div>
-                                                    <h3 className="line-clamp-2 text-xs font-bold leading-tight group-hover:text-primary transition-colors text-center">{manga.title}</h3>
+                                                    <h3 className="text-xs font-bold text-muted-foreground group-hover:text-primary transition-colors text-center">
+                                                        Open full catalog
+                                                    </h3>
                                                 </div>
-                                            ))}
-                                            
-                                            {/* View More Button */}
-                                            <div 
-                                                className="group flex flex-col gap-2 cursor-pointer"
-                                                onClick={() => router.push(`/sources/${sourceId}?search=${encodeURIComponent(installedSearchQuery)}`)}
-                                            >
-                                                <div className="relative aspect-[3/4] overflow-hidden rounded-xl border border-dashed border-primary/30 bg-primary/5 shadow-sm transition-all hover:bg-primary/10 hover:border-primary/50 flex flex-col items-center justify-center gap-2 group-hover:shadow-lg">
-                                                    <div className="size-10 rounded-full bg-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                                        <ChevronRight className="size-5 text-primary" />
-                                                    </div>
-                                                    <span className="text-[10px] font-black uppercase tracking-widest text-primary">
-                                                        View More
-                                                    </span>
-                                                </div>
-                                                <h3 className="text-xs font-bold text-muted-foreground group-hover:text-primary transition-colors text-center">Open full catalog</h3>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
-
-                                {!isSearchingGlobal && Object.keys(globalSearchResults).length === 0 && (
-                                    <div className="flex flex-col items-center justify-center py-40 gap-4 text-center">
-                                        <div className="size-16 rounded-full bg-muted/40 flex items-center justify-center">
-                                            <Search className="size-8 text-muted-foreground/20" />
-                                        </div>
-                                        <div className="space-y-1">
-                                            <h3 className="text-lg font-bold">No results across sources</h3>
-                                            <p className="text-xs text-muted-foreground">Try a different search term or browse individual catalogs.</p>
-                                        </div>
-                                    </div>
+                                    ),
                                 )}
+
+                                {!isSearchingGlobal &&
+                                    Object.keys(globalSearchResults).length ===
+                                        0 && (
+                                        <div className="flex flex-col items-center justify-center py-40 gap-4 text-center">
+                                            <div className="size-16 rounded-full bg-muted/40 flex items-center justify-center">
+                                                <Search className="size-8 text-muted-foreground/20" />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <h3 className="text-lg font-bold">
+                                                    No results across sources
+                                                </h3>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Try a different search term
+                                                    or browse individual
+                                                    catalogs.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
                             </div>
                         )}
                     </div>
@@ -531,12 +558,20 @@ export default function BrowseClientPage({
 
             {/* Catalog Layer Overlay */}
             <Sheet open={isCatalogOpen} onOpenChange={setIsCatalogOpen}>
-                <SheetContent side="right" className="w-full sm:max-w-4xl bg-background border-l border-border/40 p-0 flex flex-col">
+                <SheetContent
+                    side="right"
+                    className="w-full sm:max-w-4xl bg-background border-l border-border/40 p-0 flex flex-col"
+                >
                     <SheetHeader className="p-6 border-b border-border/10 shrink-0">
                         <div className="flex items-center justify-between">
                             <div className="flex flex-col gap-1">
-                                <SheetTitle className="text-2xl font-black">Extension Catalog</SheetTitle>
-                                <SheetDescription>Find and install new extensions from the repositories</SheetDescription>
+                                <SheetTitle className="text-2xl font-black">
+                                    Extension Catalog
+                                </SheetTitle>
+                                <SheetDescription>
+                                    Find and install new extensions from the
+                                    repositories
+                                </SheetDescription>
                             </div>
                             <Button
                                 variant="ghost"
@@ -545,7 +580,13 @@ export default function BrowseClientPage({
                                 onClick={refreshExtensions}
                                 disabled={isRefreshingExtensions}
                             >
-                                <RefreshCw className={cn("size-3.5", isRefreshingExtensions && "animate-spin")} />
+                                <RefreshCw
+                                    className={cn(
+                                        "size-3.5",
+                                        isRefreshingExtensions &&
+                                            "animate-spin",
+                                    )}
+                                />
                                 Sync Repos
                             </Button>
                         </div>
@@ -556,19 +597,25 @@ export default function BrowseClientPage({
                                 placeholder="Search catalog..."
                                 className="pl-10 h-10 rounded-xl bg-muted/20 border-muted-foreground/5 focus:bg-background transition-all"
                                 value={catalogSearchQuery}
-                                onChange={(e) => setCatalogSearchQuery(e.target.value)}
+                                onChange={(e) =>
+                                    setCatalogSearchQuery(e.target.value)
+                                }
                             />
                         </div>
                     </SheetHeader>
 
                     {/* Use a native div for reliable onScroll infinite loading */}
-                    <div 
+                    <div
                         className="flex-1 overflow-y-auto p-6 scrollbar-hide"
                         onScroll={handleExtensionScroll}
                     >
                         <div className="grid grid-cols-1 gap-1 pb-20">
                             {availableExtensions
-                                .filter((i) => meta.data?.["next-show-nsfw"] || !i.isNsfw)
+                                .filter(
+                                    (i) =>
+                                        meta.data?.["next-show-nsfw"] ||
+                                        !i.isNsfw,
+                                )
                                 .map((ext, index) => (
                                     <ExtensionItem
                                         key={ext.pkgName + index}
@@ -606,7 +653,7 @@ function ExtensionItem({
     onEnter,
 }: {
     ext: Extension;
-    sources?: any[];
+    sources?: Source[];
     onAction: (p: string, a: any) => void;
     onEnter?: (id: string) => void;
 }) {
@@ -617,10 +664,12 @@ function ExtensionItem({
     };
 
     return (
-        <div 
+        <div
             className={cn(
                 "group flex items-center gap-4 p-3 rounded-xl transition-all border border-transparent",
-                ext.isInstalled ? "cursor-pointer hover:bg-primary/5 hover:border-primary/10 active:scale-[0.995]" : "hover:bg-muted/30 hover:border-border/40"
+                ext.isInstalled
+                    ? "cursor-pointer hover:bg-primary/5 hover:border-primary/10 active:scale-[0.995]"
+                    : "hover:bg-muted/30 hover:border-border/40",
             )}
             onClick={handleRowClick}
         >
@@ -635,7 +684,7 @@ function ExtensionItem({
                     <Puzzle className="size-6 text-muted-foreground/30" />
                 )}
             </div>
-            
+
             <div className="flex-1 min-w-0 flex flex-col">
                 <div className="flex items-center gap-2">
                     <span className="font-bold text-foreground truncate">
@@ -654,7 +703,10 @@ function ExtensionItem({
                 </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div
+                className="flex items-center gap-2"
+                onClick={(e) => e.stopPropagation()}
+            >
                 {ext.isInstalled ? (
                     <>
                         {ext.hasUpdate && (
@@ -682,10 +734,16 @@ function ExtensionItem({
                                     </Button>
                                 }
                             />
-                            <DropdownMenuContent align="end" className="w-40 rounded-xl bg-background border-border/40 font-bold">
-                                <DropdownMenuItem 
+                            <DropdownMenuContent
+                                align="end"
+                                className="w-40 rounded-xl bg-background border-border/40 font-bold"
+                            >
+                                <DropdownMenuItem
                                     className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
-                                    onClick={() => onAction(ext.pkgName, "uninstall")}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onAction(ext.pkgName, "uninstall");
+                                    }}
                                 >
                                     <Trash2 className="size-4" /> Uninstall
                                 </DropdownMenuItem>
@@ -694,15 +752,15 @@ function ExtensionItem({
                     </>
                 ) : (
                     <Button
+                        variant="secondary"
                         size="sm"
-                        variant="outline"
-                        className="h-8 rounded-lg gap-1.5 font-bold border-primary/20 hover:bg-primary hover:text-primary-foreground transition-all relative z-10"
+                        className="h-8 rounded-lg bg-muted text-foreground font-bold hover:bg-primary hover:text-primary-foreground transition-all relative z-10"
                         onClick={(e) => {
                             e.stopPropagation();
                             onAction(ext.pkgName, "install");
                         }}
                     >
-                        <Download className="size-3.5" /> Install
+                        Install
                     </Button>
                 )}
             </div>
