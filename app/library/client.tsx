@@ -29,22 +29,30 @@ import {
     DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { LibraryManga, useAppStore } from "@/lib/store";
 import {
     applyMangaFilter,
     defaultMangaFilter,
+    MangaFavorited,
 } from "@/components/manga-filter";
 
 interface LibraryClientProps {}
 
 export default function LibraryClient({}: LibraryClientProps) {
+    //
+    const pathname = useSearchParams();
+    const pathFilter = pathname.get("filter");
+    //
     let { library } = useAppStore();
     // Seed your local state with the preloaded server data
     const [mangas, setMangas] = React.useState<LibraryManga[]>(
         library.data || [],
     );
-    const [filter, setFilter] = React.useState(defaultMangaFilter);
+    const [filter, setFilter] = React.useState({
+        ...defaultMangaFilter,
+        favorited: (pathFilter as MangaFavorited) || "all",
+    });
     const [searchQuery, setSearchQuery] = React.useState("");
     const [selectedCategory, setSelectedCategory] =
         React.useState<string>("all");

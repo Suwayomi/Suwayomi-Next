@@ -399,7 +399,11 @@ export default function MangaDetailClient({
                 });
             }
             fetchData(true);
-            toast.success(isVip ? "Removed from the favorite list." : "Added to the favorite list.");
+            toast.success(
+                isVip
+                    ? "Removed from the favorite list."
+                    : "Added to the favorite list.",
+            );
         } catch (error) {
             console.error("Failed to toggle Favorite status", error);
             toast.error("Failed to toggle Favorite status.");
@@ -473,7 +477,7 @@ export default function MangaDetailClient({
                 </Button>
             }
         >
-            <div className="flex-1 overflow-y-auto flex flex-col gap-10 pb-24 scroll-smooth">
+            <div className="flex-1 overflow-y-auto overflow-hidden flex flex-col gap-10 pb-24 scroll-smooth">
                 {/* Hero Section */}
                 <div className="grid md:grid-cols-[2fr_1fr] gap-8">
                     <div className="flex flex-col md:flex-row gap-8 items-start">
@@ -719,7 +723,7 @@ export default function MangaDetailClient({
                                             selectedChapterIds.has(
                                                 chapter.id,
                                             ) &&
-                                            "bg-primary/5 opacity-100 ring-1 ring-inset ring-primary/20",
+                                                "bg-primary/5 opacity-100 ring-1 ring-inset ring-primary/20",
                                         )}
                                         onClick={() => {
                                             if (selectedChapterIds.size > 0) {
@@ -748,8 +752,8 @@ export default function MangaDetailClient({
                                                     {selectedChapterIds.has(
                                                         chapter.id,
                                                     ) && (
-                                                            <Check className="size-3 text-primary-foreground stroke-[3px]" />
-                                                        )}
+                                                        <Check className="size-3 text-primary-foreground stroke-[3px]" />
+                                                    )}
                                                 </div>
                                             )}
 
@@ -765,10 +769,10 @@ export default function MangaDetailClient({
                                                         className={cn(
                                                             "font-bold truncate text-foreground",
                                                             chapter.isRead &&
-                                                            !selectedChapterIds.has(
-                                                                chapter.id,
-                                                            ) &&
-                                                            "text-muted-foreground font-medium",
+                                                                !selectedChapterIds.has(
+                                                                    chapter.id,
+                                                                ) &&
+                                                                "text-muted-foreground font-medium",
                                                         )}
                                                     >
                                                         {chapter.name}

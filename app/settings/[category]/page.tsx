@@ -31,18 +31,18 @@ export default async function CategorySettingsPage({ params }: Props) {
     const categoriesPromise =
         category === "Library"
             ? client.query({
-                categories: {
-                    nodes: {
-                        id: true,
-                        name: true,
-                        default: true,
-                        order: true,
-                        includeInUpdate: true,
-                        includeInDownload: true,
-                    },
-                    totalCount: true,
-                },
-            })
+                  categories: {
+                      nodes: {
+                          id: true,
+                          name: true,
+                          default: true,
+                          order: true,
+                          includeInUpdate: true,
+                          includeInDownload: true,
+                      },
+                      totalCount: true,
+                  },
+              })
             : null;
 
     // Run both in parallel, no waterfall
@@ -60,6 +60,7 @@ export default async function CategorySettingsPage({ params }: Props) {
         <CategorySettingsClient
             category={category}
             initialData={settingsResult.settings}
+            // @ts-ignore
             initialCategories={initialCategories}
         />
     );

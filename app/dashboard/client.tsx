@@ -60,8 +60,6 @@ export default function DashboardClient() {
         return () => clearInterval(interval);
     }, [slideshowItems.length, activeIndex]);
 
-    const activeItem = slideshowItems[activeIndex];
-
     return (
         <PageLayout>
             <ScrollArea className="h-full pr-4 -mr-4">
@@ -155,7 +153,7 @@ export default function DashboardClient() {
                                                 <div className="flex items-center gap-4 pt-2">
                                                     <Button
                                                         size="lg"
-                                                        className="h-12 md:h-14 px-8 md:px-10 rounded-2xl gap-3 font-black text-base md:text-lg shadow-2xl shadow-primary/40 active:scale-95 transition-all"
+                                                        className="h-12 cursor-pointer md:h-14 px-8 md:px-10 rounded-2xl gap-3 font-black text-base md:text-lg shadow-2xl shadow-primary/40 active:scale-95 transition-all"
                                                         onClick={() =>
                                                             router.push(
                                                                 `/manga/${item.manga.id}/chapter/${item.id}`,
@@ -218,23 +216,38 @@ export default function DashboardClient() {
                                     </span>
                                 </h2>
                             </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="rounded-full gap-2 text-xs font-black uppercase text-zinc-500 hover:text-amber-500"
-                                onClick={() => setShowVip(!showVip)}
-                            >
-                                {showVip ? (
-                                    <>
-                                        <EyeOff className="size-4" /> Hide
-                                        Content
-                                    </>
-                                ) : (
-                                    <>
-                                        <Eye className="size-4" /> Show Content
-                                    </>
-                                )}
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="rounded-full gap-2 text-xs font-black uppercase text-zinc-500 hover:text-amber-500"
+                                    onClick={() => setShowVip(!showVip)}
+                                >
+                                    {showVip ? (
+                                        <>
+                                            <EyeOff className="size-4" /> Hide
+                                            Content
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Eye className="size-4" /> Show
+                                            Content
+                                        </>
+                                    )}
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="rounded-full gap-2 font-black text-xs text-muted-foreground hover:text-primary transition-colors"
+                                    onClick={() =>
+                                        router.push(
+                                            "/library?filter=is_favorited",
+                                        )
+                                    }
+                                >
+                                    View All <ArrowRight className="size-4" />
+                                </Button>
+                            </div>
                         </div>
 
                         {showVip && (

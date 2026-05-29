@@ -1,5 +1,6 @@
 import { client } from "@/lib/client";
 import AboutClientPage from "./client";
+import { Suspense } from "react";
 
 export default async function AboutPage() {
     const result = await client.query({
@@ -23,5 +24,10 @@ export default async function AboutPage() {
         Links: Object.entries({ github, discord }),
     };
 
-    return <AboutClientPage initialData={initialData} />;
+    return (
+        <Suspense>
+            {" "}
+            <AboutClientPage initialData={initialData} />
+        </Suspense>
+    );
 }

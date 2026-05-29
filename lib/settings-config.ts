@@ -48,7 +48,6 @@ export const CATEGORY_ICONS: Record<Category, LucideIcon> = {
 
 export const CATEGORY_MAPPING = {
     Appearance: [
-        "webUIFlavor",
         "initialOpenInBrowserEnabled",
         "webUIInterface",
         "webUIChannel",
@@ -94,7 +93,7 @@ export const CATEGORY_MAPPING = {
         "koreaderSyncStrategyForward",
         "koreaderSyncPercentageTolerance",
     ],
-    Client: ["electronPath"],
+    Client: ["webUIFlavor"],
     Server: [
         "ip",
         "port",

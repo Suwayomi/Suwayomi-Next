@@ -12,6 +12,9 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
+/**
+ * Types and State
+ */
 export type MangaStatusFilter =
     | "all"
     | "ONGOING"
@@ -53,65 +56,74 @@ export type FilterableManga = {
     title: string;
     status: string;
     inLibrary: boolean;
-    unreadCount: number;
+    unreadCount?: number;
     genre: string[];
     chapters: { totalCount: number };
-    meta: {
+    meta?: {
         key: string;
         value: any;
     }[];
     [key: string]: unknown;
 };
 
+/**
+ * Logic to filter and sort the manga list.
+ * Includes safety guards (?? and ?.) for optional data.
+ */
 export function applyMangaFilter<T extends FilterableManga>(
     filter: MangaFilterState,
     mangas: T[],
 ): T[] {
     let result = [...mangas];
 
+    // Status Filter
     if (filter.status !== "all") {
         result = result.filter((m) => m.status === filter.status);
     }
 
+    // Library Filter
     if (filter.library === "in_library")
         result = result.filter((m) => m.inLibrary);
     else if (filter.library === "not_in_library")
         result = result.filter((m) => !m.inLibrary);
 
+    // Unread Filter (Treats undefined as 0)
     if (filter.unread === "has_unread")
-        result = result.filter((m) => m.unreadCount > 0);
+        result = result.filter((m) => (m.unreadCount ?? 0) > 0);
     else if (filter.unread === "all_read")
-        result = result.filter((m) => m.unreadCount === 0);
+        result = result.filter((m) => (m.unreadCount ?? 0) === 0);
 
+    // Genre Filter
     if (filter.genres.length > 0) {
         result = result.filter((m) =>
             filter.genres.every((g) => m.genre.includes(g)),
         );
     }
+
+    // Favorited Filter (Uses optional chaining for meta)
     if (filter.favorited === "is_favorited") {
-        console.log("pre: ", result);
         result = result.filter((i) =>
-            i.meta.some(
-                (i) => i.key === "next:is-favorite" && i.value === "true",
+            i.meta?.some(
+                (m) => m.key === "next:is-favorite" && m.value === "true",
             ),
         );
-        console.log("post: ", result);
     } else if (filter.favorited === "not_favorited") {
         result = result.filter(
             (i) =>
-                !i.meta.some(
-                    (i) => i.key === "next:is-favorite" && i.value === "true",
+                !i.meta?.some(
+                    (m) => m.key === "next:is-favorite" && m.value === "true",
                 ),
         );
     }
 
+    // Sorting Logic
     const dir = filter.sortDirection === "asc" ? 1 : -1;
     result.sort((a, b) => {
         switch (filter.sortKey) {
             case "title":
                 return a.title.localeCompare(b.title) * dir;
             case "unreadCount":
-                return (a.unreadCount - b.unreadCount) * dir;
+                return ((a.unreadCount ?? 0) - (b.unreadCount ?? 0)) * dir;
             case "totalChapters":
                 return (a.chapters.totalCount - b.chapters.totalCount) * dir;
             case "status":
@@ -136,6 +148,9 @@ function isActiveFilter(f: MangaFilterState): boolean {
     );
 }
 
+/**
+ * UI Components
+ */
 function TogglePill({
     active,
     onClick,
@@ -192,17 +207,23 @@ function FilterSection({
 interface MangaFilterProps {
     filter: MangaFilterState;
     onFilterChange: React.Dispatch<React.SetStateAction<MangaFilterState>>;
-    /** Pass the unfiltered list so genre pills can be derived from actual data */
     availableGenres?: string[];
+    /** Pass the list here so the UI can adapt to available data keys */
+    mangaList?: FilterableManga[];
 }
 
 export function MangaFilter({
     filter,
     onFilterChange,
     availableGenres = [],
+    mangaList = [],
 }: MangaFilterProps) {
     const [open, setOpen] = React.useState(false);
     const active = isActiveFilter(filter);
+
+    // Feature Detection: Check if keys exist in at least one item
+    const hasUnreadData = mangaList.some((m) => m.unreadCount !== undefined);
+    const hasMetaRecord = mangaList.some((m) => m.meta !== undefined);
 
     const set = <K extends keyof MangaFilterState>(
         key: K,
@@ -302,48 +323,57 @@ export function MangaFilter({
                             ))}
                         </FilterSection>
 
-                        {/* Unread */}
-                        <FilterSection label="Unread">
-                            {(
-                                [
-                                    { value: "all", label: "All" },
-                                    {
-                                        value: "has_unread",
-                                        label: "Has Unread",
-                                    },
-                                    { value: "all_read", label: "All Read" },
-                                ] as const
-                            ).map(({ value, label }) => (
-                                <TogglePill
-                                    key={value}
-                                    active={filter.unread === value}
-                                    onClick={() => set("unread", value)}
-                                >
-                                    {label}
-                                </TogglePill>
-                            ))}
-                        </FilterSection>
+                        {/* Unread - Adaptive */}
+                        {hasUnreadData && (
+                            <FilterSection label="Unread">
+                                {(
+                                    [
+                                        { value: "all", label: "All" },
+                                        {
+                                            value: "has_unread",
+                                            label: "Has Unread",
+                                        },
+                                        {
+                                            value: "all_read",
+                                            label: "All Read",
+                                        },
+                                    ] as const
+                                ).map(({ value, label }) => (
+                                    <TogglePill
+                                        key={value}
+                                        active={filter.unread === value}
+                                        onClick={() => set("unread", value)}
+                                    >
+                                        {label}
+                                    </TogglePill>
+                                ))}
+                            </FilterSection>
+                        )}
 
-                        {/* Sort by */}
+                        {/* Sort by - Adaptive */}
                         <FilterSection label="Sort by">
-                            {(
-                                [
-                                    { value: "title", label: "Title" },
-                                    {
-                                        value: "unreadCount",
-                                        label: "Unread",
-                                    },
-                                    {
-                                        value: "totalChapters",
-                                        label: "Total chapters",
-                                    },
-                                    { value: "status", label: "Status" },
-                                ] as const
-                            ).map(({ value, label }) => (
+                            {[
+                                { value: "title", label: "Title" },
+                                ...(hasUnreadData
+                                    ? [
+                                          {
+                                              value: "unreadCount",
+                                              label: "Unread",
+                                          },
+                                      ]
+                                    : []),
+                                {
+                                    value: "totalChapters",
+                                    label: "Total chapters",
+                                },
+                                { value: "status", label: "Status" },
+                            ].map(({ value, label }) => (
                                 <TogglePill
                                     key={value}
                                     active={filter.sortKey === value}
-                                    onClick={() => set("sortKey", value)}
+                                    onClick={() =>
+                                        set("sortKey", value as MangaSortKey)
+                                    }
                                 >
                                     {label}
                                 </TogglePill>
@@ -365,32 +395,36 @@ export function MangaFilter({
                                 Descending
                             </TogglePill>
                         </FilterSection>
-                        <FilterSection label="Favored">
-                            {(
-                                [
-                                    { value: "all", label: "All" },
-                                    {
-                                        value: "is_favorited",
-                                        label: "Favored",
-                                    },
-                                    {
-                                        value: "not_favorited",
-                                        label: "Not favored",
-                                    },
-                                ] as const
-                            ).map(({ value, label }) => (
-                                <TogglePill
-                                    key={value}
-                                    active={filter.favorited === value}
-                                    onClick={() => set("favorited", value)}
-                                >
-                                    {label}
-                                </TogglePill>
-                            ))}
-                        </FilterSection>
 
-                        {/* Genres — only shown when genres are available */}
-                        {availableGenres.length > 1 && (
+                        {/* Favored - Adaptive */}
+                        {hasMetaRecord && (
+                            <FilterSection label="Favored">
+                                {(
+                                    [
+                                        { value: "all", label: "All" },
+                                        {
+                                            value: "is_favorited",
+                                            label: "Favored",
+                                        },
+                                        {
+                                            value: "not_favorited",
+                                            label: "Not favored",
+                                        },
+                                    ] as const
+                                ).map(({ value, label }) => (
+                                    <TogglePill
+                                        key={value}
+                                        active={filter.favorited === value}
+                                        onClick={() => set("favorited", value)}
+                                    >
+                                        {label}
+                                    </TogglePill>
+                                ))}
+                            </FilterSection>
+                        )}
+
+                        {/* Genres */}
+                        {availableGenres.length > 0 && (
                             <FilterSection label="Genres" closeByDefault>
                                 {[...new Set(availableGenres)].map((genre) => (
                                     <TogglePill

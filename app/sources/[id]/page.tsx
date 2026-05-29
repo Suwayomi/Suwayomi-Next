@@ -3,7 +3,7 @@
 import * as React from "react";
 import { PageLayout } from "@/components/page-layout";
 import { client } from "@/lib/client";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
@@ -21,13 +21,26 @@ import {
 } from "lucide-react";
 import { CategorySelectionDialog } from "@/components/category-selection-dialog";
 import { useAppStore } from "@/lib/store";
+import { SourceFilter } from "@/components/source-filter";
+import {
+    Filter,
+    FetchSourceMangaType,
+    FilterChangeInput,
+} from "@/src/generated/schema";
+import { TrendingUp, Clock3 } from "lucide-react";
 
 type SourceManga = {
     id: number;
     title: string;
     thumbnailUrl: string | null;
-    status?: string;
+    status: string;
     inLibrary: boolean;
+    chapters: { totalCount: number };
+    artist: string;
+    author: string;
+    genre: string[];
+    unreadCount: number;
+    meta?: any;
 };
 
 export default function SourceBrowsePage() {
@@ -54,16 +67,25 @@ function SourceBrowseContent() {
     const sourceId = params.id as string;
     const initialSearch = searchParams.get("search") || "";
 
+    const [browseType, setBrowseType] = React.useState<FetchSourceMangaType>(
+        initialSearch ? "SEARCH" : "POPULAR",
+    );
     const [sourceName, setSourceName] = React.useState<string>("Catalog");
+    const [sourceFilters, setSourceFilters] = React.useState<Filter[]>([]);
+    const [activeSourceFilters, setActiveSourceFilters] = React.useState<
+        Record<number, FilterChangeInput>
+    >({});
+
     const [sourceMangaItems, setSourceMangaItems] = React.useState<
         SourceManga[]
     >([]);
+    const [searchQuery, setSearchQuery] = React.useState(initialSearch);
+
     const [currentPage, setCurrentPage] = React.useState(1);
     const [hasNextPage, setHasNextPage] = React.useState(true);
 
     const [isLoading, setIsLoading] = React.useState(true);
     const [isFetchingNextPage, setIsFetchingNextPage] = React.useState(false);
-    const [searchQuery, setSearchQuery] = React.useState(initialSearch);
     const [error, setError] = React.useState<string | null>(null);
 
     const [isCategoryDialogOpen, setIsCategoryDialogOpen] =
@@ -78,10 +100,41 @@ function SourceBrowseContent() {
                 source: {
                     __args: { id: sourceId },
                     displayName: true,
+                    filters: {
+                        __typename: true,
+                        ...({
+                            on_CheckBoxFilter: { name: true },
+                            on_SelectFilter: { name: true, values: true },
+                            on_TextFilter: { name: true },
+                            on_TriStateFilter: { name: true },
+                            on_SortFilter: {
+                                name: true,
+                                values: true,
+                            } as any,
+                            on_GroupFilter: {
+                                name: true,
+                                filters: {
+                                    __typename: true,
+                                    on_CheckBoxFilter: { name: true },
+                                    on_SelectFilter: {
+                                        name: true,
+                                        values: true,
+                                    },
+                                    on_TextFilter: { name: true },
+                                    on_TriStateFilter: { name: true },
+                                },
+                            } as any,
+                            on_HeaderFilter: { name: true },
+                            on_SeparatorFilter: { __typename: true },
+                        } as any),
+                    },
                 },
             });
             if (result.source?.displayName) {
                 setSourceName(result.source.displayName);
+            }
+            if (result.source?.filters) {
+                setSourceFilters(result.source.filters as Filter[]);
             }
         } catch (error) {
             console.error("Failed to fetch source info:", error);
@@ -89,7 +142,12 @@ function SourceBrowseContent() {
     }, [sourceId]);
 
     const fetchManga = React.useCallback(
-        async (page: number, query?: string) => {
+        async (
+            page: number,
+            query?: string,
+            type?: FetchSourceMangaType,
+            filters?: Record<number, FilterChangeInput>,
+        ) => {
             if (page === 1) {
                 setIsLoading(true);
                 setError(null);
@@ -98,16 +156,18 @@ function SourceBrowseContent() {
             }
 
             try {
+                const targetType = type || (query ? "SEARCH" : "POPULAR");
+                const filterList = Object.values(filters || {});
+
                 const result = await client.mutation({
                     fetchSourceManga: {
                         __args: {
                             input: {
                                 source: sourceId,
                                 page: page,
-                                type: query
-                                    ? ("SEARCH" as any)
-                                    : ("POPULAR" as any),
+                                type: targetType as any,
                                 query: query || undefined,
+                                filters: filterList as any,
                             },
                         },
                         hasNextPage: true,
@@ -116,6 +176,11 @@ function SourceBrowseContent() {
                             title: true,
                             thumbnailUrl: true,
                             inLibrary: true,
+                            chapters: { totalCount: true },
+                            status: true,
+                            artist: true,
+                            author: true,
+                            genre: true,
                         },
                     },
                 });
@@ -131,7 +196,6 @@ function SourceBrowseContent() {
                 }
             } catch (err: any) {
                 console.error("Failed to fetch source manga:", err);
-                // Extract a readable error message if possible
                 const msg = err.message || "Failed to connect to source";
                 if (page === 1) {
                     setError(msg);
@@ -148,8 +212,12 @@ function SourceBrowseContent() {
 
     React.useEffect(() => {
         fetchSourceInfo();
-        // Use the latest initialSearch from searchParams
-        fetchManga(1, initialSearch);
+        fetchManga(
+            1,
+            initialSearch,
+            initialSearch ? "SEARCH" : "POPULAR",
+            activeSourceFilters,
+        );
         setSearchQuery(initialSearch);
     }, [fetchSourceInfo, fetchManga, initialSearch]);
 
@@ -164,7 +232,7 @@ function SourceBrowseContent() {
         ) {
             const nextPage = currentPage + 1;
             setCurrentPage(nextPage);
-            fetchManga(nextPage, searchQuery);
+            fetchManga(nextPage, searchQuery, browseType, activeSourceFilters);
         }
     };
 
@@ -172,7 +240,25 @@ function SourceBrowseContent() {
         e.preventDefault();
         setSourceMangaItems([]);
         setCurrentPage(1);
-        fetchManga(1, searchQuery);
+        setBrowseType("SEARCH");
+        fetchManga(1, searchQuery, "SEARCH", activeSourceFilters);
+    };
+
+    const handleTypeChange = (type: FetchSourceMangaType) => {
+        setBrowseType(type);
+        setSearchQuery("");
+        setSourceMangaItems([]);
+        setCurrentPage(1);
+        fetchManga(1, "", type, activeSourceFilters);
+    };
+
+    const handleSourceFilterChange = (
+        changes: Record<number, FilterChangeInput>,
+    ) => {
+        setActiveSourceFilters(changes);
+        setSourceMangaItems([]);
+        setCurrentPage(1);
+        fetchManga(1, searchQuery, browseType, changes);
     };
 
     const addToLibrary = async (mangaId: number, categoryId?: number) => {
@@ -218,14 +304,53 @@ function SourceBrowseContent() {
         <PageLayout
             title={sourceName}
             actions={
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => router.push("/browse")}
-                    className="gap-2 rounded-full h-10 px-6 bg-muted/20"
-                >
-                    <ArrowLeft className="size-4" /> Back to Discovery
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => router.push("/browse")}
+                        className="gap-2 rounded-full h-10 px-4 bg-muted/20"
+                    >
+                        <ArrowLeft className="size-4" />
+                    </Button>
+
+                    <div className="flex items-center bg-muted/20 rounded-full p-1 border border-border/10">
+                        <Button
+                            variant={
+                                browseType === "POPULAR" ? "secondary" : "ghost"
+                            }
+                            size="sm"
+                            className={cn(
+                                "rounded-full h-8 px-4 gap-2 cursor-pointer font-bold text-[10px] uppercase tracking-widest transition-all",
+                                browseType === "POPULAR" &&
+                                    "shadow-sm bg-primary text-primary-foreground",
+                            )}
+                            onClick={() => handleTypeChange("POPULAR")}
+                        >
+                            <TrendingUp className="size-3" /> Popular
+                        </Button>
+                        <Button
+                            variant={
+                                browseType === "LATEST" ? "secondary" : "ghost"
+                            }
+                            size="sm"
+                            className={cn(
+                                "rounded-full h-8 px-4 gap-2 font-bold cursor-pointer text-[10px] uppercase tracking-widest transition-all",
+                                browseType === "LATEST" &&
+                                    "shadow-sm bg-primary text-primary-foreground",
+                            )}
+                            onClick={() => handleTypeChange("LATEST")}
+                        >
+                            <Clock3 className="size-3" /> Recent
+                        </Button>
+                    </div>
+
+                    <SourceFilter
+                        sourceFilters={sourceFilters}
+                        activeSourceFilters={activeSourceFilters}
+                        onSourceFilterChange={handleSourceFilterChange}
+                    />
+                </div>
             }
         >
             <div className="flex flex-col gap-8 h-full">
