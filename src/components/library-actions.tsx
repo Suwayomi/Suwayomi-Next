@@ -1,5 +1,11 @@
 import * as React from "react"
-import { Search, Settings, CheckSquare } from "lucide-react"
+import {
+    Search,
+    Settings,
+    CheckSquare,
+    MoreVertical,
+    Dices,
+} from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,10 +17,19 @@ import {
 } from "@/components/ui/select"
 import { MangaFilter, type MangaFilterState } from "./manga-filter"
 import { useAppStore } from "@/lib/store"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "./ui/dropdown-menu"
+import { Randomizer } from "./Randomizer"
 
 interface LibraryActionsProps {
     categories: string[]
+    ids: number[]
     onSearch: (query: string) => void
     onCategoryChange: (category: string) => void
     onSelectAll: () => void
@@ -26,6 +41,7 @@ interface LibraryActionsProps {
 export function LibraryActions({
     categories,
     onSearch,
+    ids,
     onCategoryChange,
     onSelectAll,
     onConfigure,
@@ -33,6 +49,7 @@ export function LibraryActions({
     setFilter,
 }: LibraryActionsProps) {
     const { library } = useAppStore()
+    const navigate = useNavigate()
     return (
         <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-muted-foreground">Category: </span>
@@ -67,26 +84,56 @@ export function LibraryActions({
                     onFilterChange={setFilter}
                     availableGenres={library.data?.flatMap((i) => i.genre)}
                 />
-                <Button
-                    variant="outline"
-                    size="icon-sm"
-                    onClick={onSelectAll}
-                    title="Select All"
-                >
-                    <CheckSquare className="size-4" />
-                </Button>
+                <Randomizer
+                    onSelect={(id) => {
+                        navigate("/manga/" + id)
+                    }}
+                    items={ids}
+                />
+            </div>
 
-                <Link to={"/settings/Library"}>
-                    <Button
-                        variant="outline"
-                        size="icon-sm"
-                        onClick={onConfigure}
-                        title="Configure"
+            <DropdownMenu>
+                <DropdownMenuTrigger
+                    render={
+                        <button
+                            type="button"
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex size-8 items-center justify-center rounded-full bg-background/80 text-foreground shadow-lg backdrop-blur-sm transition-all outline-none hover:bg-background"
+                        >
+                            <MoreVertical className="size-4" />
+                        </button>
+                    }
+                />
+                <DropdownMenuContent
+                    align="end"
+                    className="w-64"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <DropdownMenuItem
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            onSelectAll()
+                        }}
+                        className="gap-2"
+                    >
+                        <CheckSquare className="size-4" />
+                        Select All
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            onConfigure()
+                            navigate("/settings/Library")
+                        }}
+                        className="gap-2"
                     >
                         <Settings className="size-4" />
-                    </Button>
-                </Link>
-            </div>
+                        Settings
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
         </div>
     )
 }

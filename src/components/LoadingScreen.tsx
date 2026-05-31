@@ -1,24 +1,28 @@
-import * as React from "react";
-import { Loader2, Command } from "lucide-react";
-import { cn } from "@/lib/utils";
+import * as React from "react"
+import { Loader2, Command } from "lucide-react"
+import { cn } from "@/lib/utils"
 
-export const LoadingScreen = ({ 
-    message = "Syncing with engine...", 
+export const LoadingScreen = ({
+    message = "Syncing with engine...",
     subtext = "Please wait while we prepare your experience.",
-    isOverlay = true 
-}: { 
-    message?: string;
-    subtext?: string;
-    isOverlay?: boolean;
+    isOverlay = true,
+}: {
+    message?: string
+    subtext?: string
+    isOverlay?: boolean
 }) => {
     return (
-        <div className={cn(
-            "flex flex-col items-center justify-center bg-[#09090b] transition-all duration-500",
-            isOverlay ? "fixed inset-0 z-[100] h-screen w-screen" : "h-full w-full py-20"
-        )}>
+        <div
+            className={cn(
+                "fixed inset-0 z-300 flex flex-col items-center justify-center bg-[#09090b] transition-all duration-500",
+                isOverlay
+                    ? "fixed inset-0 z-[100] h-screen w-screen"
+                    : "h-full w-full py-20"
+            )}
+        >
             {/* Background Noise/Gradient */}
             <div className="pointer-events-none absolute inset-0 z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150" />
-            
+
             <div className="relative z-10 flex flex-col items-center">
                 {/* Brand Logo / Icon */}
                 <div className="relative mb-8">
@@ -46,13 +50,17 @@ export const LoadingScreen = ({
 
             {/* Decorative Blur */}
             <div className="absolute top-1/2 left-1/2 -z-10 h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[120px]" />
-            
-            <style dangerouslySetInnerHTML={{ __html: `
+
+            <style
+                dangerouslySetInnerHTML={{
+                    __html: `
                 @keyframes loading {
                     0% { transform: translateX(-100%); }
                     100% { transform: translateX(100%); }
                 }
-            `}} />
+            `,
+                }}
+            />
         </div>
-    );
-};
+    )
+}

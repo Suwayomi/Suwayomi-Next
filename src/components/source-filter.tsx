@@ -333,7 +333,7 @@ export function SourceFilter({
                 size="sm"
                 onClick={() => setOpen(true)}
                 className={cn(
-                    "h-10 gap-2 rounded-full bg-muted/20 px-4 text-xs transition-all hover:bg-muted/30",
+                    "h-9 gap-2 text-xs transition-all",
                     active &&
                         "border border-primary/20 bg-primary/10 text-primary hover:bg-primary/20"
                 )}

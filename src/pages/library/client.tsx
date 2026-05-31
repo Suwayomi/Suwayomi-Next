@@ -39,12 +39,11 @@ import { useNavigate, useSearchParams } from "react-router-dom"
 interface LibraryClientProps {}
 
 export default function LibraryClient({}: LibraryClientProps) {
-    //
     const [pathname, _] = useSearchParams()
     const pathFilter = pathname.get("filter")
-    //
+
     let { library } = useAppStore()
-    // Seed your local state with the preloaded server data
+
     const [mangas, setMangas] = React.useState<LibraryManga[]>(
         library.data || []
     )
@@ -57,7 +56,6 @@ export default function LibraryClient({}: LibraryClientProps) {
         React.useState<string>("all")
     const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set())
 
-    // Keeping this function strictly for refreshing data after mutations complete
     const syncWithServer = React.useCallback(async () => {
         try {
             const result = await client.query({
@@ -92,7 +90,6 @@ export default function LibraryClient({}: LibraryClientProps) {
         }
     }, [])
 
-    // Derive categories from manga data
     const categories = React.useMemo(() => {
         const cats = new Set<string>()
         ;(mangas || []).forEach((manga) => {
@@ -110,14 +107,15 @@ export default function LibraryClient({}: LibraryClientProps) {
         )
     }, [mangas, searchQuery, filter])
 
-    // Group mangas by category for rendering
     const groupedMangas = React.useMemo(() => {
         if (selectedCategory === "all") return null
-
         return filteredMangas.filter((m) =>
             m.categories.nodes.find((c) => c.name === selectedCategory)
         )
     }, [filteredMangas, selectedCategory])
+
+    const activeList =
+        selectedCategory === "all" ? filteredMangas : groupedMangas || []
 
     const toggleSelection = (id: number) => {
         setSelectedIds((prev) => {
@@ -129,9 +127,6 @@ export default function LibraryClient({}: LibraryClientProps) {
     }
 
     const handleSelectAll = () => {
-        const activeList =
-            selectedCategory === "all" ? filteredMangas : groupedMangas || []
-
         if (selectedIds.size === activeList.length) {
             setSelectedIds(new Set())
         } else {
@@ -139,7 +134,6 @@ export default function LibraryClient({}: LibraryClientProps) {
         }
     }
 
-    // Actions
     const downloadChapters = async (mangaId: number, count?: number) => {
         const manga = mangas.find((m) => m.id === mangaId)
         if (!manga?.chapters?.nodes) return
@@ -217,7 +211,6 @@ export default function LibraryClient({}: LibraryClientProps) {
     }
 
     const removeFromLibrary = async (mangaIds: number[]) => {
-        // Optimistic UI: Remove from list immediately
         const previousMangas = mangas
         setMangas((prev) => prev.filter((m) => !mangaIds.includes(m.id)))
 
@@ -234,11 +227,11 @@ export default function LibraryClient({}: LibraryClientProps) {
             loading: "Removing from library...",
             success: () => {
                 setSelectedIds(new Set())
-                syncWithServer() // Sync with server categories
+                syncWithServer()
                 return "Removed from collection"
             },
             error: () => {
-                setMangas(previousMangas) // Rollback if mutation fails
+                setMangas(previousMangas)
                 return "Failed to remove manga"
             },
         })
@@ -291,6 +284,7 @@ export default function LibraryClient({}: LibraryClientProps) {
     const actions = (
         <LibraryActions
             categories={categories}
+            ids={activeList.map((i) => i.id)}
             onSearch={setSearchQuery}
             onCategoryChange={setSelectedCategory}
             onSelectAll={handleSelectAll}
@@ -302,98 +296,23 @@ export default function LibraryClient({}: LibraryClientProps) {
 
     return (
         <PageLayout title="Library" actions={actions}>
-            <ScrollArea className="h-full pr-4">
-                <div className="flex flex-col gap-10 pb-24">
-                    {selectedCategory === "all" ? (
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="font-heading text-xl font-semibold tracking-tight text-foreground/90">
-                                    All Books
-                                </h2>
-                                <span className="text-xs font-medium text-muted-foreground">
-                                    {filteredMangas.length} items
-                                </span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                                {filteredMangas.map((manga) => (
-                                    <MangaCard
-                                        key={manga.id}
-                                        manga={manga}
-                                        isSelected={selectedIds.has(manga.id)}
-                                        onToggle={() =>
-                                            toggleSelection(manga.id)
-                                        }
-                                        isSelectionMode={selectedIds.size > 0}
-                                        onMarkRead={() =>
-                                            markMangaAsRead([manga.id])
-                                        }
-                                        onDownload={(count) =>
-                                            downloadChapters(manga.id, count)
-                                        }
-                                        onRemove={() =>
-                                            removeFromLibrary([manga.id])
-                                        }
-                                        onVipToggle={() => toggleVip(manga.id)}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                    ) : (
-                        <section className="flex flex-col gap-4">
-                            <div className="flex items-center justify-between">
-                                <h2 className="font-heading text-xl font-semibold tracking-tight text-foreground/90">
-                                    {selectedCategory}
-                                </h2>
-                                <span className="text-xs font-medium text-muted-foreground">
-                                    {groupedMangas?.length || 0} items
-                                </span>
-                            </div>
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                                {groupedMangas?.map((manga) => (
-                                    <MangaCard
-                                        key={manga.id}
-                                        manga={manga}
-                                        isSelected={selectedIds.has(manga.id)}
-                                        onToggle={() =>
-                                            toggleSelection(manga.id)
-                                        }
-                                        isSelectionMode={selectedIds.size > 0}
-                                        onMarkRead={() =>
-                                            markMangaAsRead([manga.id])
-                                        }
-                                        onDownload={(count) =>
-                                            downloadChapters(manga.id, count)
-                                        }
-                                        onRemove={() =>
-                                            removeFromLibrary([manga.id])
-                                        }
-                                        onVipToggle={() => toggleVip(manga.id)}
-                                    />
-                                ))}
-                            </div>
-                        </section>
-                    )}
+            <div className="h-full min-h-0 w-full">
+                <DisplayList
+                    items={activeList}
+                    categoryName={
+                        selectedCategory === "all"
+                            ? "All Books"
+                            : selectedCategory
+                    }
+                    selectedIds={selectedIds}
+                    toggleSelection={toggleSelection}
+                    markMangaAsRead={markMangaAsRead}
+                    downloadChapters={downloadChapters}
+                    removeFromLibrary={removeFromLibrary}
+                    toggleVip={toggleVip}
+                />
+            </div>
 
-                    {filteredMangas.length === 0 && (
-                        <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
-                            <div className="flex size-16 items-center justify-center rounded-full bg-muted/30">
-                                <Library className="size-8 text-muted-foreground/40" />
-                            </div>
-                            <div className="space-y-1">
-                                <p className="font-bold text-foreground">
-                                    No manga found
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                    Try clearing your search or add some to
-                                    library.
-                                </p>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            </ScrollArea>
-
-            {/* Selection Toolbar */}
             {selectedIds.size > 0 && (
                 <div className="fixed bottom-8 left-1/2 z-50 -translate-x-1/2 animate-in duration-300 fade-in slide-in-from-bottom-4">
                     <div className="flex items-center gap-4 rounded-full border border-white/10 bg-zinc-900/90 px-6 py-3 shadow-2xl ring-1 ring-black/10 backdrop-blur-md">
@@ -461,6 +380,77 @@ export default function LibraryClient({}: LibraryClientProps) {
     )
 }
 
+interface DisplayListProps {
+    items: any[]
+    categoryName: string
+    selectedIds: Set<number>
+    toggleSelection: (id: number) => void
+    markMangaAsRead: (ids: number[]) => void
+    downloadChapters: (id: number, count?: number) => void
+    removeFromLibrary: (ids: number[]) => void
+    toggleVip: (id: number) => void
+}
+
+function DisplayList({
+    items,
+    categoryName,
+    selectedIds,
+    toggleSelection,
+    markMangaAsRead,
+    downloadChapters,
+    removeFromLibrary,
+    toggleVip,
+}: DisplayListProps) {
+    return (
+        <div className="flex h-full min-h-0 flex-col gap-4">
+            <div className="flex shrink-0 items-center justify-between px-1">
+                <h2 className="font-heading text-xl font-semibold tracking-tight text-foreground/90">
+                    {categoryName}
+                </h2>
+                <span className="text-xs font-medium text-muted-foreground">
+                    {items.length} items
+                </span>
+            </div>
+
+            <ScrollArea className="min-h-0 flex-1 pr-4">
+                {items.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+                        <div className="flex size-16 items-center justify-center rounded-full bg-muted/30">
+                            <Library className="size-8 text-muted-foreground/40" />
+                        </div>
+                        <div className="space-y-1">
+                            <p className="font-bold text-foreground">
+                                No manga found
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                                Try clearing your search or add some to library.
+                            </p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-6 pb-20 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                        {items.map((manga) => (
+                            <MangaCard
+                                key={manga.id}
+                                manga={manga}
+                                isSelected={selectedIds.has(manga.id)}
+                                onToggle={() => toggleSelection(manga.id)}
+                                isSelectionMode={selectedIds.size > 0}
+                                onMarkRead={() => markMangaAsRead([manga.id])}
+                                onDownload={(count) =>
+                                    downloadChapters(manga.id, count)
+                                }
+                                onRemove={() => removeFromLibrary([manga.id])}
+                                onVipToggle={() => toggleVip(manga.id)}
+                            />
+                        ))}
+                    </div>
+                )}
+            </ScrollArea>
+        </div>
+    )
+}
+
 function MangaCard({
     manga,
     isSelected,
@@ -518,13 +508,12 @@ function MangaCard({
 
                 {isVip && (
                     <div className="absolute top-3 left-3 z-20">
-                        <div className="flex size-8 -rotate-12 transform items-center justify-center rounded-full bg-amber-500 shadow-lg">
+                        <div className="flex size-8 -rotate-12 transform items-center justify-center rounded-full bg-amber-500 shadow-lg shadow-black">
                             <Star className="size-4 fill-zinc-900 text-zinc-900" />
                         </div>
                     </div>
                 )}
 
-                {/* Selection overlay */}
                 <div
                     className={cn(
                         "absolute inset-0 flex items-center justify-center bg-primary/10 transition-opacity",
@@ -540,9 +529,8 @@ function MangaCard({
                     )}
                 </div>
 
-                {/* Overlay buttons appearing on hover (only if not in selection mode) */}
                 {!isSelectionMode && (
-                    <div className="absolute top-2 right-2 z-20 flex flex-col gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="absolute top-2 right-2 z-20 flex flex-col gap-2 opacity-100 transition-opacity group-hover:opacity-100 md:opacity-0">
                         <DropdownMenu>
                             <DropdownMenuTrigger
                                 render={

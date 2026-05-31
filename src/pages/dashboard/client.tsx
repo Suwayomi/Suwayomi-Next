@@ -29,7 +29,7 @@ export default function DashboardClient() {
     } = useAppStore()
 
     const rawHistory = historySlice.data || []
-    const updates = updatesSlice.data?.nodes || []
+    const updates = updatesSlice.data?.nodes.slice(0, 10) || []
 
     // HERO SLIDESHOW: Unique Last 6 Manga
     const slideshowItems = React.useMemo(() => {
@@ -315,6 +315,79 @@ export default function DashboardClient() {
                         )}
                     </section>
 
+                    {/* 4. BOTTOM SECTIONS: QUEUE & CATCH UP */}
+                    <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+                        {/* MY "UP NEXT" QUEUE */}
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <BookOpen className="size-6 text-zinc-500" />
+                                <h2 className="font-heading text-xl font-black tracking-tight uppercase">
+                                    My "Up Next" Queue
+                                </h2>
+                            </div>
+                            <div className="flex flex-col gap-4">
+                                {[1, 2].map((i) => (
+                                    <div
+                                        key={i}
+                                        className="group flex cursor-pointer gap-4 rounded-3xl border border-white/5 bg-zinc-900/40 p-4 transition-all hover:bg-zinc-800/40"
+                                    >
+                                        <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/5 bg-zinc-800 text-[10px] font-black text-zinc-600 italic">
+                                            COVER {i}
+                                        </div>
+                                        <div className="flex flex-col justify-center gap-1">
+                                            <h4 className="font-bold text-white transition-colors group-hover:text-primary">
+                                                Story Title Placeholder {i}
+                                            </h4>
+                                            <p className="text-xs font-medium text-zinc-500 italic">
+                                                "
+                                                {i === 1
+                                                    ? "Read this weekend"
+                                                    : "Anime airing soon"}
+                                                "
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* TIME TO CATCH UP? */}
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <HistoryIcon className="size-6 text-zinc-500" />
+                                <h2 className="font-heading text-xl font-black tracking-tight uppercase">
+                                    Time to catch up?
+                                </h2>
+                            </div>
+                            <div className="flex items-center gap-6 rounded-[2.5rem] border border-white/5 bg-gradient-to-br from-zinc-900/50 to-zinc-900/20 p-6 backdrop-blur-sm">
+                                <div className="flex size-24 shrink-0 items-center justify-center rounded-2xl border border-white/5 bg-zinc-800 text-[10px] font-black text-zinc-700 italic">
+                                    COVER Z
+                                </div>
+                                <div className="flex flex-col gap-3">
+                                    <div>
+                                        <h4 className="font-heading text-xl font-black">
+                                            Manga Title Z
+                                        </h4>
+                                        <p className="text-sm font-bold text-zinc-500">
+                                            You haven't read in a month
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-black tracking-tighter text-primary uppercase">
+                                            +15 New Chapters
+                                        </span>
+                                    </div>
+                                    <Button
+                                        size="sm"
+                                        className="w-fit gap-2 rounded-xl text-xs font-black"
+                                    >
+                                        <Play className="size-3 fill-current" />{" "}
+                                        Jump Back In
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     {/* 3. 🔥 FRESH RELEASES */}
                     <section className="space-y-8">
                         <div className="flex items-center justify-between">
@@ -427,80 +500,6 @@ export default function DashboardClient() {
                             </div>
                         )}
                     </section>
-
-                    {/* 4. BOTTOM SECTIONS: QUEUE & CATCH UP */}
-                    <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
-                        {/* MY "UP NEXT" QUEUE */}
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-3">
-                                <BookOpen className="size-6 text-zinc-500" />
-                                <h2 className="font-heading text-xl font-black tracking-tight uppercase">
-                                    My "Up Next" Queue
-                                </h2>
-                            </div>
-                            <div className="flex flex-col gap-4">
-                                {[1, 2].map((i) => (
-                                    <div
-                                        key={i}
-                                        className="group flex cursor-pointer gap-4 rounded-3xl border border-white/5 bg-zinc-900/40 p-4 transition-all hover:bg-zinc-800/40"
-                                    >
-                                        <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/5 bg-zinc-800 text-[10px] font-black text-zinc-600 italic">
-                                            COVER {i}
-                                        </div>
-                                        <div className="flex flex-col justify-center gap-1">
-                                            <h4 className="font-bold text-white transition-colors group-hover:text-primary">
-                                                Story Title Placeholder {i}
-                                            </h4>
-                                            <p className="text-xs font-medium text-zinc-500 italic">
-                                                "
-                                                {i === 1
-                                                    ? "Read this weekend"
-                                                    : "Anime airing soon"}
-                                                "
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* TIME TO CATCH UP? */}
-                        <div className="space-y-6">
-                            <div className="flex items-center gap-3">
-                                <HistoryIcon className="size-6 text-zinc-500" />
-                                <h2 className="font-heading text-xl font-black tracking-tight uppercase">
-                                    Time to catch up?
-                                </h2>
-                            </div>
-                            <div className="flex items-center gap-6 rounded-[2.5rem] border border-white/5 bg-gradient-to-br from-zinc-900/50 to-zinc-900/20 p-6 backdrop-blur-sm">
-                                <div className="flex size-24 shrink-0 items-center justify-center rounded-2xl border border-white/5 bg-zinc-800 text-[10px] font-black text-zinc-700 italic">
-                                    COVER Z
-                                </div>
-                                <div className="flex flex-col gap-3">
-                                    <div>
-                                        <h4 className="font-heading text-xl font-black">
-                                            Manga Title Z
-                                        </h4>
-                                        <p className="text-sm font-bold text-zinc-500">
-                                            You haven't read in a month
-                                        </p>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-black tracking-tighter text-primary uppercase">
-                                            +15 New Chapters
-                                        </span>
-                                    </div>
-                                    <Button
-                                        size="sm"
-                                        className="w-fit gap-2 rounded-xl text-xs font-black"
-                                    >
-                                        <Play className="size-3 fill-current" />{" "}
-                                        Jump Back In
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </ScrollArea>
         </PageLayout>

@@ -26,6 +26,7 @@ import {
 } from "@/generated/schema"
 import { TrendingUp, Clock3 } from "lucide-react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
+import { Randomizer } from "@/components/Randomizer"
 
 type SourceManga = {
     id: number
@@ -312,14 +313,14 @@ function SourceBrowseContent() {
                         <ArrowLeft className="size-4" />
                     </Button>
 
-                    <div className="flex items-center rounded-full border border-border/10 bg-muted/20 p-1">
+                    <div className="flex items-center rounded-xl border border-border/10 bg-muted/20 p-1">
                         <Button
                             variant={
                                 browseType === "POPULAR" ? "secondary" : "ghost"
                             }
                             size="sm"
                             className={cn(
-                                "h-8 cursor-pointer gap-2 rounded-full px-4 text-[10px] font-bold tracking-widest uppercase transition-all",
+                                "h-8 cursor-pointer gap-2 rounded-xl px-4 text-[10px] font-bold tracking-widest uppercase transition-all",
                                 browseType === "POPULAR" &&
                                     "bg-primary text-primary-foreground shadow-sm"
                             )}
@@ -333,7 +334,7 @@ function SourceBrowseContent() {
                             }
                             size="sm"
                             className={cn(
-                                "h-8 cursor-pointer gap-2 rounded-full px-4 text-[10px] font-bold tracking-widest uppercase transition-all",
+                                "h-8 cursor-pointer gap-2 rounded-xl px-4 text-[10px] font-bold tracking-widest uppercase transition-all",
                                 browseType === "LATEST" &&
                                     "bg-primary text-primary-foreground shadow-sm"
                             )}
@@ -347,6 +348,12 @@ function SourceBrowseContent() {
                         sourceFilters={sourceFilters}
                         activeSourceFilters={activeSourceFilters}
                         onSourceFilterChange={handleSourceFilterChange}
+                    />
+                    <Randomizer
+                        items={sourceMangaItems}
+                        onSelect={(item) => {
+                            navigate("/manga/" + item.id)
+                        }}
                     />
                 </div>
             }

@@ -94,10 +94,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         <SidebarMenuButton size="lg" render={<div></div>}>
                             <div className="grid flex-1 text-left text-sm leading-tight">
                                 <span className="truncate font-semibold text-foreground">
-                                    Suwayomi
+                                    {/* Suwayomi */}
+                                    すわよみ
                                 </span>
                                 <span className="truncate text-xs text-muted-foreground">
-                                    Next
+                                    {/* Next */}次
                                 </span>
                             </div>
                         </SidebarMenuButton>
