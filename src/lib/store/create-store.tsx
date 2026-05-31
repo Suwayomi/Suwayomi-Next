@@ -143,19 +143,7 @@ export function createStore<S extends AnySlices>(slices: S) {
                 const wasSSRd = ssrData?.[key] !== undefined
 
                 if (wasSSRd) {
-                    // Silent background refresh — no loading spinner, just update data
-                    slices[key]
-                        .fetch()
-                        .then((data) =>
-                            dispatchRef.current({ type: "OK", key, data })
-                        )
-                        .catch((err) =>
-                            dispatchRef.current({
-                                type: "ERR",
-                                key,
-                                error: String(err),
-                            })
-                        )
+                    // We already have the data from hydration/Main.tsx, no need to refresh immediately
                 } else {
                     refreshFns[key]()
                 }

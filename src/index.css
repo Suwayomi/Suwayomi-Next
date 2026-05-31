@@ -136,3 +136,7 @@
 button {
 	cursor: pointer;
 }
+
+div {
+	--tw-ring-color: none;
+}

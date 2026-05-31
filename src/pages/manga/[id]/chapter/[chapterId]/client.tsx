@@ -62,6 +62,7 @@ export default function ReaderClient({
                             name: true,
                             pageCount: true,
                             chapterNumber: true,
+                            isRead: true,
                         },
                         pages: true,
                     },
@@ -138,24 +139,51 @@ export default function ReaderClient({
         }
     }
 
+    const visiblePagesRef = React.useRef<Map<number, number>>(new Map())
     React.useEffect(() => {
         if (isNavigating || !isScrollMode) return
 
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
+                    const index = parseInt(entry.target.id.split("-")[1])
                     if (entry.isIntersecting) {
-                        const index = parseInt(entry.target.id.split("-")[1])
-                        setCurrentPage(index)
+                        visiblePagesRef.current.set(index, entry.intersectionRatio)
+                    } else {
+                        visiblePagesRef.current.delete(index)
                     }
                 })
+
+                if (visiblePagesRef.current.size > 0) {
+                    let bestIndex = -1
+                    let maxRatio = -1
+
+                    visiblePagesRef.current.forEach((ratio, index) => {
+                        if (ratio > maxRatio) {
+                            maxRatio = ratio
+                            bestIndex = index
+                        } else if (Math.abs(ratio - maxRatio) < 0.01 && index > bestIndex) {
+                            bestIndex = index
+                        }
+                    })
+
+                    if (bestIndex !== -1) {
+                        setCurrentPage(bestIndex)
+                    }
+                }
             },
-            { root: containerRef.current, threshold: 0.3 }
+            {
+                root: containerRef.current,
+                threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
+            }
         )
 
         const elements = document.querySelectorAll('[id^="page-"]')
         elements.forEach((el) => observer.observe(el))
-        return () => observer.disconnect()
+        return () => {
+            observer.disconnect()
+            visiblePagesRef.current.clear()
+        }
     }, [isNavigating, isScrollMode, pages.length])
 
     const handleTap = (e: React.MouseEvent) => {
@@ -219,6 +247,34 @@ export default function ReaderClient({
         setIsLoading(true)
     }
 
+    const markAsRead = React.useCallback(async () => {
+        try {
+            await client.mutation({
+                updateChapter: {
+                    __args: {
+                        input: {
+                            id: chapterId,
+                            patch: {
+                                isRead: true,
+                            },
+                        },
+                    },
+                    chapter: {
+                        id: true,
+                    },
+                },
+            })
+        } catch (err) {
+            console.error("Failed to mark chapter as read:", err)
+        }
+    }, [chapterId])
+
+    React.useEffect(() => {
+        if (currentPage === pages.length - 1 && pages.length > 0) {
+            markAsRead()
+        }
+    }, [currentPage, pages.length, markAsRead])
+
     if (isLoading) {
         return <ReaderLoader />
     }
@@ -264,6 +320,7 @@ export default function ReaderClient({
                 containerRef={containerRef}
                 onTap={handleTap}
                 nextChapter={nextChapter}
+                onMarkAsRead={markAsRead}
                 onNavigateToChapter={navigateToChapter}
                 padding={{
                     top:

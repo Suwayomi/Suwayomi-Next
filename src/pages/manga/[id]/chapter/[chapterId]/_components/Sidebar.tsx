@@ -132,7 +132,7 @@ export function ReaderSidebar({
                         </Button>
                         <Select
                             modal={false}
-                            value={chapter?.id?.toString()}
+                            value={chapter?.chapterNumber}
                             onValueChange={(val) =>
                                 onNavigateToChapter(parseInt(val))
                             }
@@ -142,13 +142,12 @@ export function ReaderSidebar({
                                 <SelectValue placeholder={chapter?.name} />
                             </SelectTrigger>
                             <SelectContent className={"z-[200]"}>
-                                {chapters.map((ch, index) => (
+                                {chapters.map((ch) => (
                                     <SelectItem
                                         key={ch.id}
                                         value={ch.id.toString()}
                                     >
-                                        {ch["name"] ||
-                                            `Chapter ${ch.chapterNumber}`}
+                                        {ch.chapterNumber}
                                     </SelectItem>
                                 ))}
                             </SelectContent>

@@ -31,7 +31,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 
 const ITEMS_PER_PAGE = 30
 
@@ -48,8 +48,18 @@ export default function BrowseClientPage() {
     >([])
     const [isCatalogOpen, setIsCatalogOpen] = React.useState(false)
 
-    const [installedSearchQuery, setInstalledSearchQuery] = React.useState("")
+    const [searchParams] = useSearchParams()
+    const [installedSearchQuery, setInstalledSearchQuery] = React.useState(
+        searchParams.get("search") || ""
+    )
     const [catalogSearchQuery, setCatalogSearchQuery] = React.useState("")
+
+    React.useEffect(() => {
+        const query = searchParams.get("search")
+        if (query !== null) {
+            setInstalledSearchQuery(query)
+        }
+    }, [searchParams])
 
     const [globalSearchResults, setGlobalSearchResults] = React.useState<
         Record<string, { name: string; nodes: any[] }>

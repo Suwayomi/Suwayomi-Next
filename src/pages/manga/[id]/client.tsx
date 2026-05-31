@@ -514,11 +514,16 @@ export default function MangaDetailClient({
                                 </div>
                                 <h1
                                     className={cn(
-                                        "leading-tight font-black tracking-tight text-foreground transition-all duration-500",
+                                        "cursor-pointer leading-tight font-black tracking-tight text-foreground transition-all duration-500 hover:underline hover:text-primary",
                                         manga.title.length > 30
                                             ? "text-2xl md:text-3xl lg:text-4xl"
                                             : "text-4xl md:text-5xl lg:text-6xl"
                                     )}
+                                    onClick={() =>
+                                        navigate(
+                                            `/browse?search=${encodeURIComponent(manga.title)}`
+                                        )
+                                    }
                                 >
                                     {manga.title}
                                 </h1>

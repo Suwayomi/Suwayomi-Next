@@ -27,6 +27,7 @@ import {
 import { TrendingUp, Clock3 } from "lucide-react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { Randomizer } from "@/components/Randomizer"
+import { MangaCard } from "@/components/MangaCard"
 
 type SourceManga = {
     id: number
@@ -438,59 +439,7 @@ function SourceBrowseContent() {
                         <>
                             <div className="grid grid-cols-2 gap-x-6 gap-y-10 pb-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                                 {sourceMangaItems.map((manga) => (
-                                    <div
-                                        key={manga.id}
-                                        className="group flex cursor-pointer flex-col gap-3"
-                                        onClick={() =>
-                                            navigate(`/manga/${manga.id}`)
-                                        }
-                                    >
-                                        <div className="relative aspect-[3/4] overflow-hidden rounded-2xl border border-border/40 bg-muted/30 shadow-sm transition-all group-hover:shadow-xl hover:ring-4 hover:ring-primary/20">
-                                            {manga.thumbnailUrl ? (
-                                                <img
-                                                    src={
-                                                        getImageUrl(
-                                                            manga.thumbnailUrl
-                                                        )!
-                                                    }
-                                                    alt={manga.title}
-                                                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                                />
-                                            ) : (
-                                                <div className="flex h-full w-full items-center justify-center bg-muted/40 font-bold text-muted-foreground/30">
-                                                    No Cover
-                                                </div>
-                                            )}
-
-                                            {manga.inLibrary && (
-                                                <div className="absolute top-3 left-3 rounded-md border border-white/20 bg-primary px-2 py-1 text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg">
-                                                    In Library
-                                                </div>
-                                            )}
-
-                                            {!manga.inLibrary && (
-                                                <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/80 via-transparent to-transparent p-5 opacity-0 transition-opacity group-hover:opacity-100">
-                                                    <Button
-                                                        size="sm"
-                                                        className="h-10 w-full gap-2 rounded-xl font-bold shadow-lg shadow-primary/20"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            onAddClick(manga.id)
-                                                        }}
-                                                    >
-                                                        <Plus className="size-4" />{" "}
-                                                        Add to Library
-                                                    </Button>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="flex flex-col gap-1 px-1">
-                                            <h3 className="line-clamp-2 font-heading text-sm leading-tight font-bold transition-colors group-hover:text-primary">
-                                                {manga.title}
-                                            </h3>
-                                            <div className="h-1 w-8 rounded-full bg-primary/20 transition-all duration-500 group-hover:w-full" />
-                                        </div>
-                                    </div>
+                                    <MangaCard manga={manga} />
                                 ))}
                             </div>
 

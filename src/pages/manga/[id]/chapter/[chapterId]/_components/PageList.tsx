@@ -13,6 +13,7 @@ interface ReaderPageProps {
     containerRef: React.RefObject<HTMLDivElement | null>
     onTap: (e: React.MouseEvent) => void
     nextChapter: any
+    onMarkAsRead: () => void
     onNavigateToChapter: (id: number) => void
     padding?: {
         top: number
@@ -32,6 +33,7 @@ export function PageList({
     containerRef,
     onTap,
     nextChapter,
+    onMarkAsRead,
     onNavigateToChapter,
     padding,
 }: ReaderPageProps) {
@@ -78,7 +80,7 @@ export function PageList({
                 {!loadedPages[index] && (
                     <div
                         className={cn(
-                            "flex animate-pulse items-center justify-center rounded-xl border border-white/5 bg-zinc-900",
+                            "flex animate-pulse items-center justify-center",
                             scaleType === "fit-width" &&
                                 (readingMode === "continuous-horizontal"
                                     ? "h-[60vh] w-[90vw]"
@@ -164,10 +166,12 @@ export function PageList({
                             size="lg"
                             className="h-16 rounded-2xl bg-white px-16 text-lg font-bold text-black"
                             disabled={!nextChapter}
-                            onClick={() =>
-                                nextChapter &&
-                                onNavigateToChapter(nextChapter.id)
-                            }
+                            onClick={() => {
+                                onMarkAsRead()
+                                if (nextChapter) {
+                                    onNavigateToChapter(nextChapter.id)
+                                }
+                            }}
                         >
                             Next Chapter <ChevronRight className="ml-2" />
                         </Button>
