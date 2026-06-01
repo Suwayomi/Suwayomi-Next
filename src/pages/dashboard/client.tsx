@@ -273,13 +273,24 @@ function ReadLaterQueue({ readLater }: { readLater: any[] }) {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-3">
-                <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
-                    <ClipboardClock className="size-6 text-primary" />
+            <div className="flex justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
+                        <ClipboardClock className="size-6 text-primary" />
+                    </div>
+                    <h2 className="font-heading text-xl font-black tracking-tight uppercase">
+                        Read Later
+                    </h2>
                 </div>
-                <h2 className="font-heading text-xl font-black tracking-tight uppercase">
-                    My "Read Later" Queue
-                </h2>
+
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-2 rounded-full text-xs font-black text-muted-foreground transition-colors hover:text-primary"
+                    onClick={() => navigate("/library?filter=read_later")}
+                >
+                    View All <ArrowRight className="size-4" />
+                </Button>
             </div>
             <div className="flex flex-col gap-4">
                 {readLater.length > 0 ? (
@@ -289,16 +300,12 @@ function ReadLaterQueue({ readLater }: { readLater: any[] }) {
                             className="group flex cursor-pointer gap-4 rounded-3xl border border-white/5 bg-zinc-900/40 p-4 transition-all hover:bg-zinc-800/40"
                             onClick={() => navigate(`/manga/${m.id}`)}
                         >
-                            <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/5 bg-zinc-800 text-[10px] font-black text-zinc-600 italic">
-                                <img
-                                    src={getImageUrl(m.thumbnailUrl)!}
-                                    alt=""
-                                    className="h-full w-full rounded-lg object-cover"
-                                />
-                            </div>
                             <div className="flex min-w-0 flex-col justify-center gap-1">
                                 <h4 className="truncate font-bold text-white transition-colors group-hover:text-primary">
-                                    {m.title}
+                                    {m.title}{" "}
+                                    <span className="text-xs text-muted-foreground">
+                                        {m.chapters.totalCount}
+                                    </span>
                                 </h4>
                                 <p className="truncate text-xs font-medium text-zinc-500 italic">
                                     {m.description
@@ -503,8 +510,10 @@ export default function DashboardClient() {
                         metaItem.value === "true"
                 )
 
-                if (isFavorite) acc.favorites.push(m)
-                if (isReadLater) acc.readLater.push(m)
+                if (isFavorite && acc.favorites.length < 10)
+                    acc.favorites.push(m)
+                if (isReadLater && acc.readLater.length < 2)
+                    acc.readLater.push(m)
 
                 return acc
             },

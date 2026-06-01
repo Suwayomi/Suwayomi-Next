@@ -8,7 +8,8 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Check, FolderPlus, Loader2 } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { FolderPlus, Loader2 } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -16,8 +17,9 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 interface CategorySelectionDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    onSelect: (categoryId: number) => void
+    onSelect: (categoryIds: number[]) => void
     title?: string
+    previousIds?: number[]
 }
 
 export function CategorySelectionDialog({
@@ -25,24 +27,27 @@ export function CategorySelectionDialog({
     onOpenChange,
     onSelect,
     title = "Add to Library",
+    previousIds = [0],
 }: CategorySelectionDialogProps) {
     const { categories } = useAppStore()
-    const [selectedId, setSelectedId] = React.useState<number | null>(null)
-
-    // Default to 'Default' category (usually ID 0) if it exists
+    const [selectedIds, setSelectedIds] = React.useState<number[]>(previousIds)
     React.useEffect(() => {
-        if (open && categories.data) {
-            const defaultCat = categories.data.find(
-                (c) => c.default || c.id === 0
-            )
-            if (defaultCat) {
-                setSelectedId(defaultCat.id)
-            }
-        }
-    }, [open, categories.data])
+        setSelectedIds(previousIds)
+    }, [open])
+
+    const handleToggleCategory = (id: number) => {
+        setSelectedIds(
+            (prev) =>
+                prev.includes(id)
+                    ? prev.filter((item) => item !== id) // Remove if already selected
+                    : [...prev, id] // Add if not selected
+        )
+    }
 
     const handleConfirm = () => {
-        onSelect(selectedId ?? 0)
+        // If nothing is selected, fall back to category ID 0
+        const finalSelection = selectedIds.length > 0 ? selectedIds : [0]
+        onSelect(finalSelection)
         onOpenChange(false)
     }
 
@@ -55,8 +60,8 @@ export function CategorySelectionDialog({
                         {title}
                     </DialogTitle>
                     <DialogDescription className="text-zinc-400">
-                        Select a category to organize this manga in your
-                        library.
+                        Select one or more categories to organize this manga in
+                        your library.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -68,49 +73,55 @@ export function CategorySelectionDialog({
                     ) : (
                         <ScrollArea className="max-h-[300px] pr-4">
                             <div className="grid gap-2">
-                                {categories.data.map((category) => (
-                                    <button
-                                        key={category.id}
-                                        onClick={() =>
-                                            setSelectedId(category.id)
-                                        }
-                                        className={cn(
-                                            "group flex items-center justify-between rounded-xl border p-3 text-left transition-all",
-                                            selectedId === category.id
-                                                ? "border-primary bg-primary/10 shadow-[0_0_15px_rgba(var(--primary),0.1)]"
-                                                : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900"
-                                        )}
-                                    >
-                                        <div className="flex flex-col">
-                                            <span
-                                                className={cn(
-                                                    "font-bold transition-colors",
-                                                    selectedId === category.id
-                                                        ? "text-primary"
-                                                        : "text-zinc-200 group-hover:text-zinc-100"
-                                                )}
-                                            >
-                                                {category.name}
-                                            </span>
-                                            {category.default && (
-                                                <span className="text-[10px] font-black tracking-widest text-zinc-500 uppercase">
-                                                    Default Category
-                                                </span>
+                                {categories.data.slice(1).map((category) => {
+                                    const isChecked = selectedIds.includes(
+                                        category.id
+                                    )
+                                    return (
+                                        <label
+                                            key={category.id}
+                                            className={cn(
+                                                "group flex cursor-pointer items-center justify-between rounded-xl border p-3 text-left transition-all select-none",
+                                                isChecked
+                                                    ? "border-primary bg-primary/10 shadow-[0_0_15px_rgba(var(--primary),0.1)]"
+                                                    : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900"
                                             )}
-                                        </div>
-                                        {selectedId === category.id && (
-                                            <div className="rounded-full bg-primary p-1 text-primary-foreground ring-4 ring-primary/10">
-                                                <Check className="size-3 stroke-[3px]" />
+                                        >
+                                            <div className="flex flex-col">
+                                                <span
+                                                    className={cn(
+                                                        "font-bold transition-colors",
+                                                        isChecked
+                                                            ? "text-primary"
+                                                            : "text-zinc-200 group-hover:text-zinc-100"
+                                                    )}
+                                                >
+                                                    {category.name}
+                                                </span>
+                                                {category.default && (
+                                                    <span className="text-[10px] font-black tracking-widest text-zinc-500 uppercase">
+                                                        Default Category
+                                                    </span>
+                                                )}
                                             </div>
-                                        )}
-                                    </button>
-                                ))}
+                                            <Checkbox
+                                                checked={isChecked}
+                                                onCheckedChange={() =>
+                                                    handleToggleCategory(
+                                                        category.id
+                                                    )
+                                                }
+                                                className="border-zinc-700 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                                            />
+                                        </label>
+                                    )
+                                })}
                             </div>
                         </ScrollArea>
                     )}
                 </div>
 
-                <DialogFooter className="gap-2 sm:gap-0">
+                <DialogFooter className="gap-2">
                     <Button
                         variant="ghost"
                         onClick={() => onOpenChange(false)}

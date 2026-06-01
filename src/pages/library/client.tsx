@@ -2,7 +2,6 @@ import * as React from "react"
 import { PageLayout } from "@/components/page-layout"
 import { LibraryActions } from "@/components/library-actions"
 import { client } from "@/lib/client"
-import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
 import {
@@ -17,16 +16,12 @@ import {
     StarOff,
     ClipboardClock,
 } from "lucide-react"
-import { getImageUrl, cn } from "@/lib/utils"
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { type LibraryManga, useAppStore } from "@/lib/store"
@@ -34,10 +29,13 @@ import {
     applyMangaFilter,
     defaultMangaFilter,
     type MangaFavorited,
+    type MangaReadLater,
 } from "@/components/manga-filter"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import { useSearchParams } from "react-router-dom"
 import type { MangaMetaType } from "@/lib/store/slices/meta"
 import { MangaCard } from "@/components/MangaCard"
+import { CategorySelectionDialog } from "@/components/category-selection-dialog"
+import { updateMangaCategory } from "@/lib/library"
 
 interface LibraryClientProps {}
 
@@ -53,6 +51,7 @@ export default function LibraryClient({}: LibraryClientProps) {
     const [filter, setFilter] = React.useState({
         ...defaultMangaFilter,
         favorited: (pathFilter as MangaFavorited) || "all",
+        readLater: (pathFilter as MangaReadLater) || "all",
     })
     const [searchQuery, setSearchQuery] = React.useState("")
     const [selectedCategory, setSelectedCategory] =
@@ -67,6 +66,7 @@ export default function LibraryClient({}: LibraryClientProps) {
                     nodes: {
                         id: true,
                         title: true,
+                        inLibrary: true,
                         unreadCount: true,
                         thumbnailUrl: true,
                         chapters: {
@@ -283,6 +283,65 @@ export default function LibraryClient({}: LibraryClientProps) {
         }
     }
 
+    const bulkToggleMeta = async (type: MangaMetaType, forceValue: boolean) => {
+        const ids = Array.from(selectedIds)
+
+        // Optimistic update for all selected mangas
+        setMangas((prev) =>
+            prev.map((m) => {
+                if (!ids.includes(m.id)) return m
+                const updatedMeta = forceValue
+                    ? m.meta?.some(
+                          (x: any) => x.key === type && x.value === "true"
+                      )
+                        ? m.meta // already set, leave as-is
+                        : [...(m.meta || []), { key: type, value: "true" }]
+                    : (m.meta || []).filter((x: any) => x.key !== type)
+                return { ...m, meta: updatedMeta }
+            })
+        )
+
+        const promise = Promise.all(
+            ids.map((mangaId) => {
+                const manga = mangas.find((m) => m.id === mangaId)
+                const isActive = manga?.meta?.some(
+                    (m: any) => m.key === type && m.value === "true"
+                )
+                if (forceValue && isActive) return Promise.resolve() // nothing to do
+                if (!forceValue && !isActive) return Promise.resolve()
+
+                if (forceValue) {
+                    return client.mutation({
+                        setMangaMeta: {
+                            __args: {
+                                input: {
+                                    meta: { key: type, mangaId, value: "true" },
+                                },
+                            },
+                            meta: { key: true },
+                        },
+                    })
+                } else {
+                    return client.mutation({
+                        deleteMangaMeta: {
+                            __args: { input: { key: type, mangaId } },
+                            clientMutationId: true,
+                        },
+                    })
+                }
+            })
+        )
+
+        toast.promise(promise, {
+            loading: `Updating ${ids.length} manga(s)...`,
+            success: () => {
+                setTimeout(() => syncWithServer(), 300)
+                return "Updated"
+            },
+            error: "Failed to update",
+        })
+    }
+
     const actions = (
         <LibraryActions
             categories={categories}
@@ -362,6 +421,72 @@ export default function LibraryClient({}: LibraryClientProps) {
                                     Mark read
                                 </span>
                             </Button>
+
+                            {/* More actions dropdown */}
+                            <DropdownMenu>
+                                <DropdownMenuTrigger className="inline-flex h-9 items-center gap-2 rounded-md px-3 text-sm font-medium text-white transition-colors hover:bg-white/10">
+                                    <MoreVertical className="size-4" />
+                                    <span className="hidden sm:inline">
+                                        More
+                                    </span>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                    align="end"
+                                    side="top"
+                                    className="mb-2 w-56"
+                                >
+                                    <DropdownMenuItem
+                                        className="gap-2"
+                                        onClick={() =>
+                                            bulkToggleMeta(
+                                                "next:is-favorite",
+                                                true
+                                            )
+                                        }
+                                    >
+                                        <Star className="size-4 fill-amber-500 text-amber-500" />
+                                        Favorite all
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        className="gap-2"
+                                        onClick={() =>
+                                            bulkToggleMeta(
+                                                "next:is-favorite",
+                                                false
+                                            )
+                                        }
+                                    >
+                                        <StarOff className="size-4 text-amber-500" />
+                                        Unfavorite all
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                        className="gap-2"
+                                        onClick={() =>
+                                            bulkToggleMeta(
+                                                "next:read-later",
+                                                true
+                                            )
+                                        }
+                                    >
+                                        <ClipboardClock className="size-4" />
+                                        Add all to Read Later
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                        className="gap-2"
+                                        onClick={() =>
+                                            bulkToggleMeta(
+                                                "next:read-later",
+                                                false
+                                            )
+                                        }
+                                    >
+                                        <ClipboardClock className="size-4 opacity-40" />
+                                        Remove all from Read Later
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+
                             <div className="mx-1 h-6 w-px bg-white/10" />
                             <Button
                                 variant="ghost"
@@ -403,6 +528,27 @@ function DisplayList({
     removeFromLibrary,
     toggleCustomMeta,
 }: DisplayListProps) {
+    const { library } = useAppStore()
+    const [targetManga, setTargetManga] = React.useState<{
+        action: "category"
+        manga: any
+    } | null>(null)
+
+    const onChangeCategory = async ({
+        mangaId,
+        categoryIds = [],
+    }: {
+        mangaId: number
+        categoryIds?: number[]
+    }) => {
+        await updateMangaCategory({
+            mangaId,
+            categoryIds,
+            onSuccess: () => {
+                library.refresh
+            },
+        })
+    }
     return (
         <div className="flex h-full min-h-0 flex-col gap-4">
             <div className="flex shrink-0 items-center justify-between px-1">
@@ -455,235 +601,32 @@ function DisplayList({
                                         manga.id
                                     )
                                 }
+                                onChangeCategory={() =>
+                                    setTargetManga({
+                                        action: "category",
+                                        manga,
+                                    })
+                                }
                             />
                         ))}
                     </div>
                 )}
             </ScrollArea>
+            <CategorySelectionDialog
+                open={targetManga !== null && targetManga.action === "category"}
+                onOpenChange={() => setTargetManga(null)}
+                onSelect={(categoryIds) => {
+                    if (targetManga?.manga.id !== null) {
+                        onChangeCategory({
+                            mangaId: targetManga?.manga.id,
+                            categoryIds: categoryIds,
+                        })
+                    }
+                }}
+                previousIds={targetManga?.manga.categories.nodes.map(
+                    (i: any) => i.id
+                )}
+            />
         </div>
     )
 }
-
-// function MangaCard({
-//     manga,
-//     isSelected,
-//     onToggle,
-//     isSelectionMode,
-//     onMarkRead,
-//     onDownload,
-//     onRemove,
-//     onVipToggle,
-//     onReadLaterToggle,
-// }: {
-//     manga: any
-//     isSelected: boolean
-//     onToggle: () => void
-//     isSelectionMode: boolean
-//     onMarkRead: () => void
-//     onDownload: (count?: number) => void
-//     onRemove: () => void
-//     onVipToggle: () => void
-//     onReadLaterToggle: () => void
-// }) {
-//     const navigate = useNavigate()
-//     const isVip = manga.meta?.some(
-//         (m: any) => m.key === "next:is-favorite" && m.value === "true"
-//     )
-//     const isOnReadLater = manga.meta?.some(
-//         (m: any) => m.key === "next:read-later" && m.value === "true"
-//     )
-//
-//     const handleClick = (e: React.MouseEvent) => {
-//         if (isSelectionMode || e.ctrlKey) {
-//             onToggle()
-//         } else {
-//             navigate(`/manga/${manga.id}`)
-//         }
-//     }
-//
-//     return (
-//         <div
-//             className="group relative flex flex-col gap-2 transition-all"
-//             onClick={handleClick}
-//         >
-//             <div
-//                 className={cn(
-//                     "relative aspect-[3/4] cursor-pointer overflow-hidden rounded-lg border border-border/50 bg-muted/30 shadow-sm transition-all group-hover:shadow-md",
-//                     isSelected && "border-4 border-primary"
-//                 )}
-//             >
-//                 {manga.thumbnailUrl ? (
-//                     <img
-//                         src={getImageUrl(manga.thumbnailUrl)!}
-//                         alt={manga.title}
-//                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-//                     />
-//                 ) : (
-//                     <div className="flex h-full w-full items-center justify-center bg-muted/40 text-[10px] font-bold text-muted-foreground/30 uppercase">
-//                         No Cover
-//                     </div>
-//                 )}
-//
-//                 {isVip && (
-//                     <div className="absolute top-3 left-3 z-20">
-//                         <div className="flex size-8 -rotate-12 transform items-center justify-center rounded-full bg-amber-500 shadow-lg shadow-black">
-//                             <Star className="size-4 fill-zinc-900 text-zinc-900" />
-//                         </div>
-//                     </div>
-//                 )}
-//
-//                 <div
-//                     className={cn(
-//                         "absolute inset-0 flex items-center justify-center bg-primary/10 transition-opacity",
-//                         isSelected
-//                             ? "opacity-100"
-//                             : "opacity-0 group-hover:opacity-20"
-//                     )}
-//                 >
-//                     {isSelected && (
-//                         <div className="scale-110 rounded-full bg-primary p-2 text-primary-foreground shadow-lg">
-//                             <Check className="size-6 stroke-[3px]" />
-//                         </div>
-//                     )}
-//                 </div>
-//
-//                 {!isSelectionMode && (
-//                     <div className="absolute top-2 right-2 z-20 flex flex-col gap-2 opacity-100 transition-opacity group-hover:opacity-100 md:opacity-0">
-//                         <DropdownMenu>
-//                             <DropdownMenuTrigger
-//                                 render={
-//                                     <button
-//                                         type="button"
-//                                         onClick={(e) => e.stopPropagation()}
-//                                         className="flex size-8 items-center justify-center rounded-full bg-background/80 text-foreground shadow-lg backdrop-blur-sm transition-all outline-none hover:bg-background"
-//                                     >
-//                                         <MoreVertical className="size-4" />
-//                                     </button>
-//                                 }
-//                             />
-//                             <DropdownMenuContent
-//                                 align="end"
-//                                 className="w-64"
-//                                 onClick={(e) => e.stopPropagation()}
-//                             >
-//                                 <DropdownMenuItem
-//                                     onClick={(e) => {
-//                                         e.stopPropagation()
-//                                         onVipToggle()
-//                                     }}
-//                                     className="gap-2"
-//                                 >
-//                                     {isVip ? (
-//                                         <>
-//                                             <StarOff className="size-4 text-amber-500" />
-//                                             Remove from Favorite
-//                                         </>
-//                                     ) : (
-//                                         <>
-//                                             <Star className="size-4 fill-amber-500 text-amber-500" />
-//                                             Add to Favorite
-//                                         </>
-//                                     )}
-//                                 </DropdownMenuItem>
-//                                 <DropdownMenuItem
-//                                     onClick={(e) => {
-//                                         e.stopPropagation()
-//                                         onReadLaterToggle()
-//                                     }}
-//                                 >
-//                                     <ClipboardClock className="mr-2 size-4" />
-//                                     <span>
-//                                         {isOnReadLater
-//                                             ? 'Remove from "Read later"'
-//                                             : 'Add to "Read later"'}
-//                                     </span>
-//                                 </DropdownMenuItem>
-//                                 <DropdownMenuSeparator />
-//
-//                                 <DropdownMenuItem
-//                                     onClick={(e) => {
-//                                         e.stopPropagation()
-//                                         onToggle()
-//                                     }}
-//                                 >
-//                                     <Check className="mr-2 size-4" />
-//                                     <span>Select</span>
-//                                 </DropdownMenuItem>
-//
-//                                 <DropdownMenuSeparator />
-//
-//                                 <DropdownMenuSub>
-//                                     <DropdownMenuSubTrigger>
-//                                         <Download className="mr-2 size-4" />
-//                                         <span>Download</span>
-//                                     </DropdownMenuSubTrigger>
-//                                     <DropdownMenuSubContent className="w-56">
-//                                         <DropdownMenuItem
-//                                             onClick={() => onDownload(1)}
-//                                         >
-//                                             Next chapter
-//                                         </DropdownMenuItem>
-//                                         <DropdownMenuItem
-//                                             onClick={() => onDownload(5)}
-//                                         >
-//                                             Next 5 chapters
-//                                         </DropdownMenuItem>
-//                                         <DropdownMenuItem
-//                                             onClick={() => onDownload(10)}
-//                                         >
-//                                             Next 10 chapters
-//                                         </DropdownMenuItem>
-//                                         <DropdownMenuItem
-//                                             onClick={() => onDownload(25)}
-//                                         >
-//                                             Next 25 chapters
-//                                         </DropdownMenuItem>
-//                                         <DropdownMenuSeparator />
-//                                         <DropdownMenuItem
-//                                             onClick={() => onDownload()}
-//                                         >
-//                                             All unread
-//                                         </DropdownMenuItem>
-//                                     </DropdownMenuSubContent>
-//                                 </DropdownMenuSub>
-//
-//                                 <DropdownMenuSeparator />
-//
-//                                 <DropdownMenuItem onClick={onMarkRead}>
-//                                     <BookOpen className="mr-2 size-4" />
-//                                     <span>Mark unread as read</span>
-//                                 </DropdownMenuItem>
-//
-//                                 <DropdownMenuSeparator />
-//
-//                                 <DropdownMenuItem
-//                                     variant="destructive"
-//                                     onClick={onRemove}
-//                                 >
-//                                     <Trash2 className="mr-2 size-4" />
-//                                     <span>Remove from Library</span>
-//                                 </DropdownMenuItem>
-//                             </DropdownMenuContent>
-//                         </DropdownMenu>
-//                     </div>
-//                 )}
-//
-//                 {manga.unreadCount > 0 && !isSelected && (
-//                     <div className="absolute right-2 bottom-2 z-10">
-//                         <Badge className="border-none bg-primary font-bold text-primary-foreground shadow-sm">
-//                             {manga.unreadCount}
-//                         </Badge>
-//                     </div>
-//                 )}
-//             </div>
-//             <div className="flex flex-col gap-0.5 px-0.5">
-//                 <h3 className="line-clamp-2 text-sm leading-snug font-medium text-foreground transition-colors group-hover:text-primary">
-//                     {manga.title}
-//                 </h3>
-//                 <p className="text-[11px] text-muted-foreground">
-//                     {manga.chapters?.totalCount} Chapters
-//                 </p>
-//             </div>
-//         </div>
-//     )
-// }

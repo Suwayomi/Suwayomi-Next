@@ -1,4 +1,4 @@
-1- when reaching a chapter at the last page you register it to the history.
+1- [x] when reaching a chapter at the last page you register it to the history.
 2- [?] when changing a reading mode in a source it should be saved for that only source.
 3- [x] clicking a manga name goes to globalsearch?search=
-4- [.] randomizer button on all lists
+4- [x] randomizer button on all lists

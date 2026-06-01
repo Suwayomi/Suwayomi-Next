@@ -23,30 +23,30 @@ export type MangaStatusFilter =
     | "ON_HIATUS"
     | "UNKNOWN"
 
-export type MangaLibraryFilter = "all" | "in_library" | "not_in_library"
 export type MangaUnreadFilter = "all" | "has_unread" | "all_read"
 export type MangaSortKey = "title" | "unreadCount" | "totalChapters" | "status"
 export type MangaSortDirection = "asc" | "desc"
 export type MangaFavorited = "all" | "is_favorited" | "not_favorited"
+export type MangaReadLater = "all" | "read_later" | "not_read_later"
 
 export interface MangaFilterState {
     status: MangaStatusFilter
-    library: MangaLibraryFilter
     unread: MangaUnreadFilter
     genres: string[]
     sortKey: MangaSortKey
     sortDirection: MangaSortDirection
     favorited: MangaFavorited
+    readLater: MangaReadLater
 }
 
 export const defaultMangaFilter: MangaFilterState = {
     status: "all",
-    library: "all",
     unread: "all",
     genres: [],
     sortKey: "title",
     sortDirection: "asc",
     favorited: "all",
+    readLater: "all",
 }
 
 export type FilterableManga = {
@@ -79,12 +79,6 @@ export function applyMangaFilter<T extends FilterableManga>(
         result = result.filter((m) => m.status === filter.status)
     }
 
-    // Library Filter
-    if (filter.library === "in_library")
-        result = result.filter((m) => m.inLibrary)
-    else if (filter.library === "not_in_library")
-        result = result.filter((m) => !m.inLibrary)
-
     // Unread Filter (Treats undefined as 0)
     if (filter.unread === "has_unread")
         result = result.filter((m) => (m.unreadCount ?? 0) > 0)
@@ -114,6 +108,21 @@ export function applyMangaFilter<T extends FilterableManga>(
         )
     }
 
+    if (filter.readLater === "read_later") {
+        result = result.filter((i) =>
+            i.meta?.some(
+                (m) => m.key === "next:read-later" && m.value === "true"
+            )
+        )
+    } else if (filter.readLater === "not_read_later") {
+        result = result.filter(
+            (i) =>
+                !i.meta?.some(
+                    (m) => m.key === "next:read-later" && m.value === "true"
+                )
+        )
+    }
+
     // Sorting Logic
     const dir = filter.sortDirection === "asc" ? 1 : -1
     result.sort((a, b) => {
@@ -123,7 +132,7 @@ export function applyMangaFilter<T extends FilterableManga>(
             case "unreadCount":
                 return ((a.unreadCount ?? 0) - (b.unreadCount ?? 0)) * dir
             case "totalChapters":
-                return (a.chapters.totalCount - b.chapters.totalCount) * dir
+                return (b.chapters.totalCount - a.chapters.totalCount) * dir
             case "status":
                 return a.status.localeCompare(b.status) * dir
             default:
@@ -137,12 +146,12 @@ export function applyMangaFilter<T extends FilterableManga>(
 function isActiveFilter(f: MangaFilterState): boolean {
     return (
         f.status !== defaultMangaFilter.status ||
-        f.library !== defaultMangaFilter.library ||
         f.unread !== defaultMangaFilter.unread ||
         f.genres.length > 0 ||
         f.sortKey !== defaultMangaFilter.sortKey ||
         f.sortDirection !== defaultMangaFilter.sortDirection ||
-        f.favorited !== defaultMangaFilter.favorited
+        f.favorited !== defaultMangaFilter.favorited ||
+        f.readLater !== defaultMangaFilter.readLater
     )
 }
 
@@ -289,31 +298,6 @@ export function MangaFilter({
                             ))}
                         </FilterSection>
 
-                        {/* Library */}
-                        <FilterSection label="Library">
-                            {(
-                                [
-                                    { value: "all", label: "All" },
-                                    {
-                                        value: "in_library",
-                                        label: "In Library",
-                                    },
-                                    {
-                                        value: "not_in_library",
-                                        label: "Not in Library",
-                                    },
-                                ] as const
-                            ).map(({ value, label }) => (
-                                <TogglePill
-                                    key={value}
-                                    active={filter.library === value}
-                                    onClick={() => set("library", value)}
-                                >
-                                    {label}
-                                </TogglePill>
-                            ))}
-                        </FilterSection>
-
                         {/* Unread - Adaptive */}
                         <FilterSection label="Unread">
                             {(
@@ -405,7 +389,29 @@ export function MangaFilter({
                                 </TogglePill>
                             ))}
                         </FilterSection>
-
+                        <FilterSection label="Read Later">
+                            {(
+                                [
+                                    { value: "all", label: "All" },
+                                    {
+                                        value: "read_later",
+                                        label: "Only",
+                                    },
+                                    {
+                                        value: "not_read_later",
+                                        label: "Not",
+                                    },
+                                ] as const
+                            ).map(({ value, label }) => (
+                                <TogglePill
+                                    key={value}
+                                    active={filter.readLater === value}
+                                    onClick={() => set("readLater", value)}
+                                >
+                                    {label}
+                                </TogglePill>
+                            ))}
+                        </FilterSection>
                         {/* Genres */}
                         {availableGenres.length > 0 && (
                             <FilterSection label="Genres" closeByDefault>

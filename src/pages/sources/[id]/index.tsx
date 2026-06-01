@@ -1,21 +1,12 @@
 import * as React from "react"
 import { PageLayout } from "@/components/page-layout"
 import { client } from "@/lib/client"
-import { getImageUrl, cn } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
-import {
-    Search,
-    ArrowLeft,
-    Plus,
-    Loader2,
-    AlertTriangle,
-    RefreshCw,
-    WifiOff,
-    ChevronRight,
-} from "lucide-react"
+import { Search, Loader2, RefreshCw, WifiOff } from "lucide-react"
 import { CategorySelectionDialog } from "@/components/category-selection-dialog"
 import { useAppStore } from "@/lib/store"
 import { SourceFilter } from "@/components/source-filter"
@@ -28,6 +19,7 @@ import { TrendingUp, Clock3 } from "lucide-react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { Randomizer } from "@/components/Randomizer"
 import { MangaCard } from "@/components/MangaCard"
+import { updateMangaCategory } from "@/lib/library"
 
 type SourceManga = {
     id: number
@@ -261,37 +253,24 @@ function SourceBrowseContent() {
         fetchManga(1, searchQuery, browseType, changes)
     }
 
-    const addToLibrary = async (mangaId: number, categoryId?: number) => {
-        const promise = client.mutation({
-            updateMangaCategories: {
-                __args: {
-                    input: {
-                        id: mangaId,
-                        patch: { addToCategories: [categoryId || 0] },
-                    },
-                },
-                clientMutationId: true,
-            },
-            updateMangas: {
-                __args: {
-                    input: { ids: [mangaId], patch: { inLibrary: true } },
-                },
-                mangas: { id: true },
-            },
-        })
-
-        toast.promise(promise, {
-            loading: "Adding to library...",
-            success: () => {
+    const addToLibrary = async ({
+        mangaId,
+        categoryIds = [],
+    }: {
+        mangaId: number
+        categoryIds?: number[]
+    }) => {
+        await updateMangaCategory({
+            mangaId,
+            categoryIds,
+            onSuccess: () => {
                 setSourceMangaItems((prev) =>
                     prev.map((m) =>
                         m.id === mangaId ? { ...m, inLibrary: true } : m
                     )
                 )
                 library.refresh()
-                return "Added to collection"
             },
-            error: "Failed to add manga",
         })
     }
 
@@ -303,17 +282,9 @@ function SourceBrowseContent() {
     return (
         <PageLayout
             title={sourceName}
+            onBack={() => navigate("/browse")}
             actions={
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => navigate("/browse")}
-                        className="h-10 gap-2 rounded-full bg-muted/20 px-4"
-                    >
-                        <ArrowLeft className="size-4" />
-                    </Button>
-
+                <div className="flex flex-wrap items-center gap-2">
                     <div className="flex items-center rounded-xl border border-border/10 bg-muted/20 p-1">
                         <Button
                             variant={
@@ -356,24 +327,24 @@ function SourceBrowseContent() {
                             navigate("/manga/" + item.id)
                         }}
                     />
+
+                    <form
+                        onSubmit={handleSearch}
+                        className="relative w-full max-w-xl shrink-0 md:w-fit"
+                    >
+                        <Search className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                            placeholder={`Search within ${sourceName}...`}
+                            className="h-12 rounded-2xl border-none bg-muted/20 pl-12 shadow-inner transition-all focus:bg-background"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            disabled={!!error && sourceMangaItems.length === 0}
+                        />
+                    </form>
                 </div>
             }
         >
             <div className="flex h-full flex-col gap-8">
-                <form
-                    onSubmit={handleSearch}
-                    className="relative max-w-xl shrink-0"
-                >
-                    <Search className="absolute top-1/2 left-4 size-5 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                        placeholder={`Search within ${sourceName}...`}
-                        className="h-12 rounded-2xl border-none bg-muted/20 pl-12 shadow-inner transition-all focus:bg-background"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        disabled={!!error && sourceMangaItems.length === 0}
-                    />
-                </form>
-
                 <div
                     className="custom-scrollbar flex-1 overflow-y-auto pr-4"
                     onScroll={handleScroll}
@@ -439,7 +410,13 @@ function SourceBrowseContent() {
                         <>
                             <div className="grid grid-cols-2 gap-x-6 gap-y-10 pb-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                                 {sourceMangaItems.map((manga) => (
-                                    <MangaCard manga={manga} />
+                                    <MangaCard
+                                        manga={manga}
+                                        onAddLibrary={() =>
+                                            onAddClick(manga.id)
+                                        }
+                                        page="source"
+                                    />
                                 ))}
                             </div>
 
@@ -479,11 +456,15 @@ function SourceBrowseContent() {
             `}</style>
 
             <CategorySelectionDialog
+                title="Update Category"
                 open={isCategoryDialogOpen}
                 onOpenChange={setIsCategoryDialogOpen}
-                onSelect={(categoryId) => {
+                onSelect={(categoryIds) => {
                     if (pendingMangaId !== null) {
-                        addToLibrary(pendingMangaId, categoryId)
+                        addToLibrary({
+                            mangaId: pendingMangaId,
+                            categoryIds: categoryIds,
+                        })
                     }
                 }}
             />
