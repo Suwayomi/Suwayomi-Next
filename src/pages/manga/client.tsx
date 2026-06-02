@@ -308,13 +308,13 @@ export default function MangaDetailClient({
         }
     }
 
-    const addToLibrary = async (categoryId?: number) => {
+    const addToLibrary = async (categoryId?: number[]) => {
         const promise = client.mutation({
             updateMangaCategories: {
                 __args: {
                     input: {
                         id: id,
-                        patch: { addToCategories: [categoryId || 0] },
+                        patch: { addToCategories: categoryId || [0] },
                     },
                 },
                 clientMutationId: true,
