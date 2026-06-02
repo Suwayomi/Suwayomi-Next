@@ -29,7 +29,6 @@ import {
     Trash2,
     Layers,
     History,
-    Star,
     RefreshCw,
 } from "lucide-react"
 import {
@@ -308,13 +307,13 @@ export default function MangaDetailClient({
         }
     }
 
-    const addToLibrary = async (categoryId?: number) => {
+    const addToLibrary = async (categoryId?: number[]) => {
         const promise = client.mutation({
             updateMangaCategories: {
                 __args: {
                     input: {
                         id: id,
-                        patch: { addToCategories: [categoryId || 0] },
+                        patch: { addToCategories: categoryId || [0] },
                     },
                 },
                 clientMutationId: true,
@@ -514,7 +513,7 @@ export default function MangaDetailClient({
                                 </div>
                                 <h1
                                     className={cn(
-                                        "cursor-pointer leading-tight font-black tracking-tight text-foreground transition-all duration-500 hover:underline hover:text-primary",
+                                        "cursor-pointer leading-tight font-black tracking-tight text-foreground transition-all duration-500 hover:text-primary hover:underline",
                                         manga.title.length > 30
                                             ? "text-2xl md:text-3xl lg:text-4xl"
                                             : "text-4xl md:text-5xl lg:text-6xl"
@@ -993,25 +992,47 @@ export default function MangaDetailClient({
 }
 
 function MangaGenreList({ genre }: { genre: string[] }) {
+    const { meta } = useAppStore()
     const [showMore, setShowMore] = React.useState(false)
+
+    const tags = React.useMemo(
+        () =>
+            new Set(meta.data?.["next-custom-tags"]?.map((i) => i.name) ?? []),
+        [meta.data]
+    )
+
+    const list = React.useMemo(() => {
+        if (tags.size === 0) return genre
+
+        return [
+            ...genre.filter((g) => tags.has(g.toLowerCase())),
+            ...genre.filter((g) => !tags.has(g.toLowerCase())),
+        ]
+    }, [genre, tags])
+
+    const visibleItems = showMore ? list : list.slice(0, 10)
+
     return (
         <div className="flex flex-wrap gap-2">
-            {genre.slice(0, showMore ? genre.length : 10).map((g, ind) => (
+            {visibleItems.map((g) => (
                 <Badge
-                    key={g + ind}
-                    variant="secondary"
-                    className="border-none bg-muted px-3 py-1 text-xs hover:bg-muted/80"
+                    key={g}
+                    variant={
+                        tags.has(g.toLowerCase()) ? "default" : "secondary"
+                    }
+                    className="border-none px-3 py-1 text-xs"
                 >
                     {g}
                 </Badge>
             ))}
-            {genre.length > 10 && (
+
+            {list.length > 10 && (
                 <Badge
                     variant="outline"
                     className="cursor-pointer"
                     onClick={() => setShowMore((p) => !p)}
                 >
-                    {showMore ? "Show Less" : `Show ${genre.length - 10} More`}
+                    {showMore ? "Show Less" : `Show ${list.length - 10} More`}
                 </Badge>
             )}
         </div>

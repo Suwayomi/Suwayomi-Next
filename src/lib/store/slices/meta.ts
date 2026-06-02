@@ -1,9 +1,15 @@
 import { client } from "@/lib/client"
 
+export interface CustomTag {
+    id: number
+    name: string
+}
+
 export const META_REGISTRY = {
     "next-show-nsfw": { default: false },
     "next-theme": { default: "dark" as "dark" | "light" | "system" },
     "next-accent-color": { default: "oklch(0.53 0.23 250)" as string },
+    "next-custom-tags": { default: [] as CustomTag[] },
 } as const satisfies MetaRegistryShape
 export type MangaMetaType = "next:is-favorite" | "next:read-later"
 

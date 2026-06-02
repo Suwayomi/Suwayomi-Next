@@ -16,8 +16,10 @@ export const updateMangaCategory = async ({
                 input: {
                     id: mangaId,
                     patch: {
-                        addToCategories:
-                            categoryIds.length > 0 ? categoryIds : [0],
+                        clearCategories: true,
+                        ...(categoryIds.length > 0
+                            ? { addToCategories: categoryIds }
+                            : { addToCategories: [0] }),
                     },
                 },
             },
@@ -32,16 +34,11 @@ export const updateMangaCategory = async ({
     })
 
     toast.promise(promise, {
-        loading: "Adding to library...",
+        loading: "Updating categories...",
         success: () => {
             onSuccess && onSuccess()
-            // setSourceMangaItems((prev) =>
-            //     prev.map((m) =>
-            //         m.id === mangaId ? { ...m, inLibrary: true } : m
-            //     )
-            // )
-            return "Added to collection"
+            return "Categories updated"
         },
-        error: "Failed to add manga",
+        error: "Failed to update categories",
     })
 }

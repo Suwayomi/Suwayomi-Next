@@ -52,7 +52,7 @@ export default function SourceBrowsePage() {
 }
 
 function SourceBrowseContent() {
-    const { library } = useAppStore()
+    const { library, meta } = useAppStore()
     const navigate = useNavigate()
     const params = useParams()
     const [searchParams, _] = useSearchParams()

@@ -4,10 +4,9 @@ import {
     Settings,
     CheckSquare,
     MoreVertical,
-    Dices,
+    RefreshCw,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import {
     Select,
     SelectContent,
@@ -17,7 +16,7 @@ import {
 } from "@/components/ui/select"
 import { MangaFilter, type MangaFilterState } from "./manga-filter"
 import { useAppStore } from "@/lib/store"
-import { Link, useNavigate } from "react-router-dom"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -36,6 +35,7 @@ interface LibraryActionsProps {
     onConfigure: () => void
     filter: MangaFilterState
     setFilter: React.Dispatch<React.SetStateAction<MangaFilterState>>
+    refreshLibrary: () => void
 }
 
 export function LibraryActions({
@@ -47,15 +47,39 @@ export function LibraryActions({
     onConfigure,
     filter,
     setFilter,
+    refreshLibrary,
 }: LibraryActionsProps) {
     const { library } = useAppStore()
     const navigate = useNavigate()
+    const [searchParams, setSearchParams] = useSearchParams()
+    const currentCategory = searchParams.get("category")
+    const handleCategoryChange = (newCategory: string | null) => {
+        const newParams = new URLSearchParams(searchParams)
+        if (newCategory === "all") {
+            newParams.delete("category")
+        } else if (newCategory) {
+            newParams.set("category", newCategory)
+        }
+        setSearchParams(newParams)
+        onCategoryChange(
+            categories.find(
+                (i) => i.toLowerCase() === newCategory?.toLowerCase()
+            ) || "all"
+        )
+    }
     return (
         <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-muted-foreground">Category: </span>
             <Select
-                onValueChange={(val) => onCategoryChange(val || "all")}
-                defaultValue="all"
+                onValueChange={(val) => handleCategoryChange(val)}
+                value={
+                    categories.some(
+                        (i) =>
+                            i.toLowerCase() === currentCategory?.toLowerCase()
+                    )
+                        ? currentCategory
+                        : "all"
+                }
             >
                 <SelectTrigger className="h-9 w-[180px]">
                     <SelectValue placeholder="All Categories" />
@@ -63,7 +87,7 @@ export function LibraryActions({
                 <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
                     {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat}>
+                        <SelectItem key={cat} value={cat.toLowerCase()}>
                             {cat}
                         </SelectItem>
                     ))}
@@ -119,7 +143,16 @@ export function LibraryActions({
                         <CheckSquare className="size-4" />
                         Select All
                     </DropdownMenuItem>
-
+                    <DropdownMenuItem
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            refreshLibrary()
+                        }}
+                        className="gap-2"
+                    >
+                        <RefreshCw className="size-4" />
+                        Refresh Library
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                         onClick={(e) => {

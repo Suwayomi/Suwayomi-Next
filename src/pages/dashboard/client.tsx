@@ -19,33 +19,34 @@ import { useAppStore } from "@/hooks/use-app-store"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useNavigate } from "react-router-dom"
+import type { HistoryGroup } from "@/lib/store/slices/history"
 
-function HeroSlideshow({ rawHistory }: { rawHistory: any[] }) {
+function HeroSlideshow({ rawHistory }: { rawHistory: HistoryGroup[] }) {
     const navigate = useNavigate()
     const [activeIndex, setActiveIndex] = React.useState(0)
 
-    const slideshowItems = React.useMemo(() => {
-        const seen = new Set<number>()
-        const unique: typeof rawHistory = []
-        for (const item of rawHistory) {
-            if (!seen.has(item.manga.id)) {
-                seen.add(item.manga.id)
-                unique.push(item)
-            }
-            if (unique.length >= 6) break
-        }
-        return unique
-    }, [rawHistory])
+    // const slideshowItems = React.useMemo(() => {
+    //     const seen = new Set<number>()
+    //     const unique: typeof rawHistory = []
+    //     for (const item of rawHistory) {
+    //         if (!seen.has(item.manga.id)) {
+    //             seen.add(item.manga.id)
+    //             unique.push(item)
+    //         }
+    //         if (unique.length >= 6) break
+    //     }
+    //     return unique
+    // }, [rawHistory])
 
     React.useEffect(() => {
-        if (slideshowItems.length <= 1) return
+        if (rawHistory.length <= 1) return
         const interval = setInterval(() => {
-            setActiveIndex((prev) => (prev + 1) % slideshowItems.length)
+            setActiveIndex((prev) => (prev + 1) % rawHistory.length)
         }, 6000)
         return () => clearInterval(interval)
-    }, [slideshowItems.length])
+    }, [rawHistory.length])
 
-    if (slideshowItems.length === 0) {
+    if (rawHistory.length === 0) {
         return (
             <section className="relative flex h-[450px] w-full flex-col items-center justify-center gap-4 overflow-hidden rounded-[2.5rem] border border-white/5 bg-zinc-900/40 p-8 text-center shadow-2xl md:h-[400px]">
                 <Sparkles className="size-16 animate-pulse text-primary" />
@@ -65,7 +66,7 @@ function HeroSlideshow({ rawHistory }: { rawHistory: any[] }) {
         <section className="relative h-[450px] w-full overflow-hidden rounded-[2.5rem] border border-white/5 bg-zinc-900/40 shadow-2xl transition-all duration-700 md:h-[400px]">
             <div className="flex h-full flex-col md:flex-row">
                 <div className="group/thumb relative h-[300px] w-full shrink-0 overflow-hidden md:h-full md:w-[300px]">
-                    {slideshowItems.map((item, idx) => (
+                    {rawHistory.map((item, idx) => (
                         <div
                             key={item.id}
                             className={cn(
@@ -76,7 +77,7 @@ function HeroSlideshow({ rawHistory }: { rawHistory: any[] }) {
                             )}
                         >
                             <img
-                                src={getImageUrl(item.manga.thumbnailUrl)!}
+                                src={getImageUrl(item.thumbnailUrl)!}
                                 alt=""
                                 className="h-full w-full object-cover"
                             />
@@ -88,7 +89,7 @@ function HeroSlideshow({ rawHistory }: { rawHistory: any[] }) {
                 <div className="relative flex flex-1 flex-col justify-center gap-4 overflow-hidden bg-zinc-900 p-6 md:p-12">
                     <div className="relative inset-0 z-0 bg-gradient-to-r from-zinc-900 via-zinc-900/40 to-transparent" />
 
-                    {slideshowItems.map((item, idx) => (
+                    {rawHistory.map((item, idx) => (
                         <div
                             key={item.id}
                             className={cn(
@@ -105,29 +106,29 @@ function HeroSlideshow({ rawHistory }: { rawHistory: any[] }) {
                                     </Badge>
                                     <div className="flex items-center gap-2 truncate rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-bold text-primary md:text-xs">
                                         <Clock className="size-3 shrink-0" />
-                                        {item.name}
+                                        {item.lastReadTenChapters[0].name}
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
                                     <h2
                                         className="line-clamp-2 cursor-pointer truncate font-heading text-2xl leading-[1.1] font-black tracking-tighter text-white italic hover:text-primary hover:underline md:text-5xl lg:text-6xl"
-                                        title={item.manga.title}
+                                        title={item.title}
                                         onClick={() =>
-                                            navigate("/manga/" + item.manga.id)
+                                            navigate("/manga/" + item.id)
                                         }
                                     >
-                                        {item.manga.title}
+                                        {item.title}
                                     </h2>
-                                    {item.manga.description && (
+                                    {item.description && (
                                         <p className="line-clamp-2 max-w-xl text-xs leading-relaxed font-medium text-zinc-400 italic opacity-80 md:text-base">
                                             "
-                                            {item.manga.description.length > 150
-                                                ? item.manga.description.substring(
+                                            {item.description.length > 150
+                                                ? item.description.substring(
                                                       0,
                                                       150
                                                   ) + "..."
-                                                : item.manga.description}
+                                                : item.description}
                                             "
                                         </p>
                                     )}
@@ -139,7 +140,7 @@ function HeroSlideshow({ rawHistory }: { rawHistory: any[] }) {
                                         className="h-12 cursor-pointer gap-3 rounded-2xl px-8 text-base font-black shadow-2xl shadow-primary/40 transition-all active:scale-95 md:h-14 md:px-10 md:text-lg"
                                         onClick={() =>
                                             navigate(
-                                                `/manga/${item.manga.id}/chapter/${item.id}`
+                                                `/manga/${item.id}/chapter/${item.lastReadTenChapters[0].id}`
                                             )
                                         }
                                     >
@@ -152,7 +153,7 @@ function HeroSlideshow({ rawHistory }: { rawHistory: any[] }) {
                     ))}
 
                     <div className="absolute right-12 bottom-12 flex gap-3">
-                        {slideshowItems.map((_, idx) => (
+                        {rawHistory.map((_, idx) => (
                             <button
                                 key={idx}
                                 onClick={() => setActiveIndex(idx)}
@@ -537,7 +538,7 @@ export default function DashboardClient() {
                         <ReadLaterQueue readLater={readLater} />
 
                         {/* TIME TO CATCH UP? */}
-                        <CatchUpSection />
+                        {/* <CatchUpSection /> */}
                     </div>
 
                     {/* 3. 🔥 FRESH RELEASES */}

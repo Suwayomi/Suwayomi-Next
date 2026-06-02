@@ -11,9 +11,10 @@ import {
     MoreVertical,
     BookOpen,
     ArrowRight,
-    ChevronRightIcon,
+    ChevronDown,
+    ChevronUp,
 } from "lucide-react"
-import { useAppStore, type HistoryItem } from "@/hooks/use-app-store"
+import { useAppStore } from "@/hooks/use-app-store"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -21,47 +22,20 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useNavigate } from "react-router-dom"
+import type { HistoryGroup } from "@/lib/store/slices/history"
 
 export default function HistoryClient() {
     const navigate = useNavigate()
     const { history: historySlice } = useAppStore()
-    const history = historySlice.data || []
+
+    // history is now an array of HistoryGroup instead of raw chapters
+    const history = (historySlice.data || []) as HistoryGroup[]
     const isLoading = historySlice.loading
 
-    const groupHistoryByDate = () => {
-        const groups: { [key: string]: HistoryItem[] } = {}
-
-        history.forEach((item) => {
-            if (!item.lastReadAt) return
-            const date = new Date(parseInt(item.lastReadAt) * 1000)
-            const today = new Date()
-            const yesterday = new Date()
-            yesterday.setDate(yesterday.getDate() - 1)
-
-            let key = date.toLocaleDateString(undefined, {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-            })
-
-            if (date.toDateString() === today.toDateString()) key = "Today"
-            else if (date.toDateString() === yesterday.toDateString())
-                key = "Yesterday"
-
-            if (!groups[key]) groups[key] = []
-            groups[key].push(item)
-        })
-
-        return groups
-    }
-
-    const groupedHistory = groupHistoryByDate()
-
     return (
-        <PageLayout title="Reading History">
+        <PageLayout title="Recent Reading Activity">
             <ScrollArea className="h-full pr-4">
-                <div className="flex flex-col gap-12 pb-24">
+                <div className="flex flex-col gap-6 pb-24">
                     {isLoading ? (
                         <HistorySkeleton />
                     ) : history.length === 0 ? (
@@ -75,7 +49,7 @@ export default function HistoryClient() {
                                 </h3>
                                 <p className="mx-auto max-w-xs text-muted-foreground">
                                     Manga you read will show up here so you can
-                                    pick up where you left off.
+                                    pick up right where you left off.
                                 </p>
                             </div>
                             <Button
@@ -86,15 +60,14 @@ export default function HistoryClient() {
                             </Button>
                         </div>
                     ) : (
-                        Object.entries(groupedHistory).map(
-                            ([date, items], id) => (
-                                <HistorySection
-                                    date={date}
-                                    items={items}
-                                    key={id}
+                        <div className="flex flex-col gap-4">
+                            {history.map((mangaGroup) => (
+                                <MangaHistoryCard
+                                    key={mangaGroup.id}
+                                    manga={mangaGroup}
                                 />
-                            )
-                        )
+                            ))}
+                        </div>
                     )}
                 </div>
             </ScrollArea>
@@ -102,179 +75,182 @@ export default function HistoryClient() {
     )
 }
 
-function HistorySection({
-    date,
-    items,
-}: {
-    date: string
-    items: HistoryItem[]
-}) {
-    const [isOpen, setOpen] = React.useState(false)
-    return (
-        <section key={date} className="flex flex-col gap-6">
-            <div className="flex items-center gap-4">
-                <button
-                    className="group flex cursor-pointer items-center gap-2 rounded-full border border-border/40 bg-muted/20 px-4 py-1.5"
-                    onClick={() => setOpen((p) => !p)}
-                >
-                    <h2 className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase group-hover:text-primary">
-                        {date}
-                    </h2>
-                    <ChevronRightIcon className="size-4 text-muted-foreground group-hover:text-primary" />
-                </button>
-                <div className="h-px flex-1 bg-border/40" />
-            </div>
-            {isOpen && (
-                <div className="flex flex-col gap-3">
-                    {items.map((item) => (
-                        <HistoryRow key={item.id} item={item} />
-                    ))}
-                </div>
-            )}
-        </section>
-    )
-}
-
-function HistoryRow({ item }: { item: HistoryItem }) {
+function MangaHistoryCard({ manga }: { manga: HistoryGroup }) {
     const navigate = useNavigate()
+    const [isExpanded, setIsExpanded] = React.useState(false)
+
+    // The very first item represents the absolute latest chapter read for this manga
+    const latestChapter = manga.lastReadTenChapters[0]
 
     const formatTime = (ts: string | null) => {
         if (!ts) return ""
-        return new Date(parseInt(ts)).toLocaleTimeString(undefined, {
+        // Multiplied by 1000 if your backend uses Unix timestamps, otherwise omit
+        const dateObj =
+            ts.length <= 10
+                ? new Date(parseInt(ts) * 1000)
+                : new Date(parseInt(ts))
+        return dateObj.toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
             hour: "2-digit",
             minute: "2-digit",
         })
     }
 
     return (
-        <div
-            className="group relative flex cursor-pointer items-center gap-4 overflow-hidden rounded-2xl border border-border/40 bg-muted/5 p-3 transition-all hover:border-primary/20 hover:bg-muted/30"
-            onClick={() =>
-                navigate(`/manga/${item.manga.id}/chapter/${item.id}`)
-            }
-        >
-            <div className="absolute top-0 right-0 h-full w-32 bg-gradient-to-l from-primary/5 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-
-            {/* Cover Mini */}
-            <div
-                className="size-16 shrink-0 overflow-hidden rounded-xl border border-border/60 shadow-sm md:size-20"
-                onClick={(e) => {
-                    e.stopPropagation()
-                    navigate(`/manga/${item.manga.id}`)
-                }}
-            >
-                {item.manga.thumbnailUrl ? (
-                    <img
-                        src={getImageUrl(item.manga.thumbnailUrl)!}
-                        alt={item.manga.title}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-muted">
-                        <BookOpen className="size-6 text-muted-foreground/30" />
-                    </div>
-                )}
-            </div>
-
-            {/* Info */}
-            <div className="flex min-w-0 flex-1 flex-col gap-1 pr-10">
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold tracking-[0.1em] text-primary uppercase">
-                        {item.manga.title}
-                    </span>
-                </div>
-                <h3 className="line-clamp-1 font-heading text-base font-bold text-foreground transition-colors group-hover:text-primary md:text-lg">
-                    {item.name}
-                </h3>
-                <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
-                    <span className="flex items-center gap-1.5">
-                        <Clock className="size-3" />
-                        {formatTime(item.lastReadAt)}
-                    </span>
-                    <Separator
-                        orientation="vertical"
-                        className="h-2.5 bg-border/60"
-                    />
-                    <span className="flex items-center gap-1.5 text-primary/80">
-                        <Play className="size-3 fill-current" />
-                        Resume
-                    </span>
-                </div>
-            </div>
-
-            {/* Actions */}
-            <div className="absolute top-1/2 right-3 z-10 flex -translate-y-1/2 items-center gap-1">
-                <DropdownMenu>
-                    <DropdownMenuTrigger
-                        render={
-                            <button
-                                type="button"
-                                className="flex size-10 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-all outline-none group-hover:opacity-100 hover:bg-muted/50 hover:text-foreground data-[state=open]:opacity-100"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <MoreVertical className="size-4" />
-                            </button>
-                        }
-                    />
-                    <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuItem
-                            onClick={(e) => {
-                                e.stopPropagation()
-                                navigate(`/manga/${item.manga.id}`)
-                            }}
-                        >
-                            <BookOpen className="mr-2 size-4" /> View Manga
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-
-                <Button
-                    size="icon"
-                    className="size-10 translate-x-4 rounded-full opacity-0 shadow-lg transition-all duration-300 group-hover:translate-x-0 group-hover:opacity-100"
+        <div className="group overflow-hidden rounded-2xl border border-border/40 bg-muted/5 transition-all hover:border-primary/20 hover:bg-muted/10">
+            {/* Main Manga Header Row */}
+            <div className="flex items-center gap-4 p-4">
+                {/* Manga Cover image */}
+                <div
+                    className="size-20 shrink-0 cursor-pointer overflow-hidden rounded-xl border border-border/60 shadow-md md:size-24"
+                    onClick={() => navigate(`/manga/${manga.id}`)}
                 >
-                    <Play className="size-4 fill-current" />
-                </Button>
+                    {manga.thumbnailUrl ? (
+                        <img
+                            src={getImageUrl(manga.thumbnailUrl)!}
+                            alt={manga.title}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-muted">
+                            <BookOpen className="size-8 text-muted-foreground/30" />
+                        </div>
+                    )}
+                </div>
+
+                {/* Info Text Area */}
+                <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <h2
+                        className="line-clamp-1 cursor-pointer font-heading text-lg font-bold text-foreground transition-colors hover:text-primary md:text-xl"
+                        onClick={() => navigate(`/manga/${manga.id}`)}
+                    >
+                        {manga.title}
+                    </h2>
+
+                    {latestChapter && (
+                        <p className="line-clamp-1 text-sm text-muted-foreground">
+                            Last read:{" "}
+                            <span className="font-semibold text-foreground/80">
+                                {latestChapter.name}
+                            </span>
+                        </p>
+                    )}
+
+                    {latestChapter && (
+                        <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <Clock className="size-3" />
+                            <span>{formatTime(latestChapter.lastReadAt)}</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* UI Interactive Controls */}
+                <div className="flex items-center gap-2">
+                    {/* Expand/Collapse Button */}
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="gap-1.5 rounded-full text-muted-foreground hover:text-foreground"
+                    >
+                        {isExpanded ? (
+                            <>
+                                Hide <ChevronUp className="size-4" />
+                            </>
+                        ) : (
+                            <>
+                                History ({manga.lastReadTenChapters.length}){" "}
+                                <ChevronDown className="size-4" />
+                            </>
+                        )}
+                    </Button>
+
+                    {/* Context Action Menu */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger className="rounded-full text-muted-foreground hover:text-foreground">
+                            <MoreVertical className="size-4" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem
+                                onClick={() => navigate(`/manga/${manga.id}`)}
+                            >
+                                <BookOpen className="mr-2 size-4" /> View
+                                Details
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
+                    {/* Quick Resume Button */}
+                    {latestChapter && (
+                        <Button
+                            size="icon"
+                            onClick={() =>
+                                navigate(
+                                    `/manga/${manga.id}/chapter/${latestChapter.id}`
+                                )
+                            }
+                            className="size-11 rounded-full shadow-md transition-transform duration-200 active:scale-95"
+                            title="Resume latest chapter"
+                        >
+                            <Play className="size-4 fill-current" />
+                        </Button>
+                    )}
+                </div>
             </div>
+
+            {/* Collapsible Chapters History Section */}
+            {isExpanded && (
+                <div className="animate-in border-t border-border/30 bg-muted/20 px-4 py-2 duration-200 fade-in slide-in-from-top-2">
+                    <div className="px-2 py-1.5 text-[10px] font-bold tracking-wider text-muted-foreground/70 uppercase">
+                        Recent Chapters List
+                    </div>
+                    <div className="flex flex-col gap-1.5 pb-2">
+                        {manga.lastReadTenChapters.map((chapter) => (
+                            <div
+                                key={chapter.id}
+                                onClick={() =>
+                                    navigate(
+                                        `/manga/${manga.id}/chapter/${chapter.id}`
+                                    )
+                                }
+                                className="group/row flex cursor-pointer items-center justify-between rounded-xl px-3 py-2.5 transition-colors hover:bg-muted/60"
+                            >
+                                <span className="text-sm font-medium text-foreground/90 transition-colors group-hover/row:text-primary">
+                                    {chapter.name}
+                                </span>
+                                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                                    <span>
+                                        {formatTime(chapter.lastReadAt)}
+                                    </span>
+                                    <Play className="size-3 fill-current text-primary opacity-0 transition-opacity group-hover/row:opacity-100" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
 
 function HistorySkeleton() {
     return (
-        <div className="flex flex-col gap-12">
-            {[...Array(3)].map((_, i) => (
-                <div key={i} className="flex flex-col gap-6">
-                    <Skeleton className="mx-auto h-6 w-32 rounded-full" />
-                    <div className="flex flex-col gap-3">
-                        {[...Array(3)].map((_, j) => (
-                            <Skeleton
-                                key={j}
-                                className="h-24 w-full rounded-2xl"
-                            />
-                        ))}
+        <div className="flex flex-col gap-4">
+            {[...Array(4)].map((_, i) => (
+                <div
+                    key={i}
+                    className="flex items-center gap-4 rounded-2xl border border-border/40 p-4"
+                >
+                    <Skeleton className="size-20 rounded-xl md:size-24" />
+                    <div className="flex flex-1 flex-col gap-2">
+                        <Skeleton className="h-6 w-1/3 rounded-md" />
+                        <Skeleton className="h-4 w-1/4 rounded-md" />
+                        <Skeleton className="h-3 w-1/5 rounded-md" />
                     </div>
+                    <Skeleton className="h-10 w-24 rounded-full" />
                 </div>
             ))}
         </div>
-    )
-}
-
-function Separator({
-    className,
-    orientation = "horizontal",
-}: {
-    className?: string
-    orientation?: "horizontal" | "vertical"
-}) {
-    return (
-        <div
-            className={cn(
-                "shrink-0 bg-border",
-                orientation === "horizontal"
-                    ? "h-[1px] w-full"
-                    : "h-full w-[1px]",
-                className
-            )}
-        />
     )
 }

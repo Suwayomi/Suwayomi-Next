@@ -11,6 +11,11 @@ import {
     Trash2,
     Plus,
     TagsIcon,
+    EyeIcon,
+    EyeOffIcon,
+    StickyNotePlusIcon,
+    FilePlusIcon,
+    EyeClosedIcon,
 } from "lucide-react"
 import { cn, getImageUrl } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -25,6 +30,7 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import type { CustomTag } from "@/lib/store/slices/meta"
 
 interface MangaCardProps {
     manga: any
@@ -39,6 +45,7 @@ interface MangaCardProps {
     onAddLibrary?: (id: string) => void
     page?: "library" | "source"
     onChangeCategory?: () => void
+    tags?: Set<string>
 }
 
 export function MangaCard({
@@ -54,8 +61,12 @@ export function MangaCard({
     onAddLibrary,
     onChangeCategory,
     page,
+    tags,
 }: MangaCardProps) {
     const navigate = useNavigate()
+    const matchingTags = tags
+        ? manga.genre.filter((x: string) => tags.has(x.toLowerCase())).length
+        : 0
 
     const isVip = manga.meta?.some(
         (m: any) => m.key === "next:is-favorite" && m.value === "true"
@@ -110,18 +121,33 @@ export function MangaCard({
 
                     {/* Status Badges */}
 
-                    {manga.inLibrary && isVip && (
-                        <div className="absolute top-3 left-3 z-20">
+                    <div className="absolute top-3 left-3 z-20 space-y-2">
+                        {manga.inLibrary && isVip && (
                             <div className="flex size-8 -rotate-12 transform items-center justify-center rounded-full bg-amber-500 shadow-lg shadow-black">
                                 <Star className="size-4 fill-zinc-900 text-zinc-900" />
                             </div>
-                        </div>
-                    )}
-                    {page === "source" && manga.inLibrary && (
-                        <div className="absolute top-3 left-3 z-20 rounded-md border border-white/20 bg-primary px-2 py-1 text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg">
-                            In Library
-                        </div>
-                    )}
+                        )}
+                        {page === "source" && manga.inLibrary && (
+                            <div className="rounded-md border border-black/20 bg-primary px-2 py-1 text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg dark:border-white/20">
+                                In Library
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="absolute right-3 bottom-0 z-20 flex justify-center gap-2 space-y-2">
+                        {matchingTags > 0 && (
+                            <div className="z-20 flex size-fit items-center gap-1 rounded-md border border-white/20 bg-secondary p-1 text-xs text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg">
+                                <TagsIcon className="size-4" /> {matchingTags}
+                            </div>
+                        )}
+
+                        {/* Unread Badge Count */}
+                        {manga.unreadCount > 0 && !isSelected && (
+                            <div className="flex size-fit gap-1 rounded-md border border-black/20 bg-primary px-2 py-1 text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg dark:border-white/20">
+                                {manga.unreadCount}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Selection Overlay */}
                     <div
@@ -323,15 +349,6 @@ export function MangaCard({
                                   </Button>
                               </div>
                           )}
-
-                    {/* Unread Badge Count */}
-                    {manga.unreadCount > 0 && !isSelected && (
-                        <div className="absolute right-2 bottom-2 z-10">
-                            <Badge className="border-none bg-primary font-bold text-primary-foreground shadow-sm">
-                                {manga.unreadCount}
-                            </Badge>
-                        </div>
-                    )}
                 </div>
 
                 {/* Details Area */}

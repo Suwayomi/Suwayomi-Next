@@ -8,6 +8,12 @@ A modern, responsive web client for [Suwayomi-Server](https://github.com/Suwayom
 > **This project is currently under active development and is NOT complete.** Many features are missing, unstable, or subject to breaking changes. Use at your own risk!
 
 ---
+## Features
+
+- Dashboard: the welcoming page with data and action that are common among readers.
+- Favorite List: a list of your favorite works displayed with a star on it's thumbnail.
+- Read Later: similar to Favorite in display, it's for people who don't like making a whole category for just read later work.
+- My Genre/Tags: custom defined tags in which are highlighted when visible on certain works.
 
 ## ⚙️ Getting Started
 

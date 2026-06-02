@@ -42,64 +42,31 @@ interface LibraryClientProps {}
 export default function LibraryClient({}: LibraryClientProps) {
     const [pathname, _] = useSearchParams()
     const pathFilter = pathname.get("filter")
+    const pathCategory = pathname.get("category")
 
-    let { library } = useAppStore()
+    const { library, categories: categoriesSlice } = useAppStore()
+    const mangas = (library.data ?? []) as LibraryManga[]
 
-    const [mangas, setMangas] = React.useState<LibraryManga[]>(
-        library.data || []
-    )
     const [filter, setFilter] = React.useState({
         ...defaultMangaFilter,
         favorited: (pathFilter as MangaFavorited) || "all",
         readLater: (pathFilter as MangaReadLater) || "all",
     })
     const [searchQuery, setSearchQuery] = React.useState("")
-    const [selectedCategory, setSelectedCategory] =
-        React.useState<string>("all")
     const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set())
-
-    const syncWithServer = React.useCallback(async () => {
-        try {
-            const result = await client.query({
-                mangas: {
-                    __args: { condition: { inLibrary: true } },
-                    nodes: {
-                        id: true,
-                        title: true,
-                        inLibrary: true,
-                        unreadCount: true,
-                        thumbnailUrl: true,
-                        chapters: {
-                            totalCount: true,
-                            nodes: {
-                                id: true,
-                                isRead: true,
-                                sourceOrder: true,
-                            },
-                        },
-                        categories: {
-                            nodes: { id: true, name: true },
-                        },
-                        meta: {
-                            key: true,
-                            value: true,
-                        },
-                    },
-                },
-            })
-            setMangas((result.mangas?.nodes as LibraryManga[]) || [])
-        } catch (error) {
-            console.error("Failed to re-sync library data:", error)
-        }
-    }, [])
 
     const categories = React.useMemo(() => {
         const cats = new Set<string>()
-        ;(mangas || []).forEach((manga) => {
+        mangas.forEach((manga) => {
             manga.categories?.nodes?.forEach((cat: any) => cats.add(cat.name))
         })
         return Array.from(cats).sort()
     }, [mangas])
+    const [selectedCategory, setSelectedCategory] = React.useState<string>(
+        categories.find(
+            (i) => i.toLowerCase() === pathCategory?.toLowerCase()
+        ) || "all"
+    )
 
     const filteredMangas = React.useMemo(() => {
         return applyMangaFilter(
@@ -205,7 +172,7 @@ export default function LibraryClient({}: LibraryClientProps) {
         toast.promise(promise, {
             loading: `Marking ${chaptersToMark.length} chapters as read...`,
             success: () => {
-                syncWithServer()
+                library.refresh()
                 setSelectedIds(new Set())
                 return "Marked as read"
             },
@@ -214,9 +181,6 @@ export default function LibraryClient({}: LibraryClientProps) {
     }
 
     const removeFromLibrary = async (mangaIds: number[]) => {
-        const previousMangas = mangas
-        setMangas((prev) => prev.filter((m) => !mangaIds.includes(m.id)))
-
         const promise = client.mutation({
             updateMangas: {
                 __args: {
@@ -230,13 +194,10 @@ export default function LibraryClient({}: LibraryClientProps) {
             loading: "Removing from library...",
             success: () => {
                 setSelectedIds(new Set())
-                syncWithServer()
+                library.refresh()
                 return "Removed from collection"
             },
-            error: () => {
-                setMangas(previousMangas)
-                return "Failed to remove manga"
-            },
+            error: "Failed to remove manga",
         })
     }
 
@@ -276,7 +237,7 @@ export default function LibraryClient({}: LibraryClientProps) {
                 })
             }
             toast.success("Manga added to the list")
-            syncWithServer()
+            library.refresh()
         } catch (error) {
             console.error("Failed to toggle Meta status:", error)
             toast.error("Failed to update Meta status")
@@ -286,28 +247,13 @@ export default function LibraryClient({}: LibraryClientProps) {
     const bulkToggleMeta = async (type: MangaMetaType, forceValue: boolean) => {
         const ids = Array.from(selectedIds)
 
-        // Optimistic update for all selected mangas
-        setMangas((prev) =>
-            prev.map((m) => {
-                if (!ids.includes(m.id)) return m
-                const updatedMeta = forceValue
-                    ? m.meta?.some(
-                          (x: any) => x.key === type && x.value === "true"
-                      )
-                        ? m.meta // already set, leave as-is
-                        : [...(m.meta || []), { key: type, value: "true" }]
-                    : (m.meta || []).filter((x: any) => x.key !== type)
-                return { ...m, meta: updatedMeta }
-            })
-        )
-
         const promise = Promise.all(
             ids.map((mangaId) => {
                 const manga = mangas.find((m) => m.id === mangaId)
                 const isActive = manga?.meta?.some(
                     (m: any) => m.key === type && m.value === "true"
                 )
-                if (forceValue && isActive) return Promise.resolve() // nothing to do
+                if (forceValue && isActive) return Promise.resolve()
                 if (!forceValue && !isActive) return Promise.resolve()
 
                 if (forceValue) {
@@ -335,10 +281,35 @@ export default function LibraryClient({}: LibraryClientProps) {
         toast.promise(promise, {
             loading: `Updating ${ids.length} manga(s)...`,
             success: () => {
-                setTimeout(() => syncWithServer(), 300)
+                library.refresh()
                 return "Updated"
             },
             error: "Failed to update",
+        })
+    }
+
+    const refreshLibrary = async () => {
+        const promise = client.mutation({
+            updateLibrary: {
+                __args: {
+                    input: {
+                        categories: categoriesSlice.data?.map((i) => i.id) || [
+                            0,
+                        ],
+                    },
+                },
+                clientMutationId: true,
+                __typename: true,
+            },
+        })
+
+        toast.promise(promise, {
+            loading: "Refreshing entire library in background...",
+            success: () => {
+                library.refresh()
+                return "Library update started!"
+            },
+            error: "Failed to start library refresh",
         })
     }
 
@@ -352,6 +323,7 @@ export default function LibraryClient({}: LibraryClientProps) {
             onConfigure={() => console.log("Configure")}
             filter={filter}
             setFilter={setFilter}
+            refreshLibrary={refreshLibrary}
         />
     )
 
@@ -528,7 +500,7 @@ function DisplayList({
     removeFromLibrary,
     toggleCustomMeta,
 }: DisplayListProps) {
-    const { library } = useAppStore()
+    const { library, meta } = useAppStore()
     const [targetManga, setTargetManga] = React.useState<{
         action: "category"
         manga: any
@@ -545,7 +517,7 @@ function DisplayList({
             mangaId,
             categoryIds,
             onSuccess: () => {
-                library.refresh
+                library.refresh()
             },
         })
     }
@@ -606,6 +578,13 @@ function DisplayList({
                                         action: "category",
                                         manga,
                                     })
+                                }
+                                tags={
+                                    new Set(
+                                        meta.data?.["next-custom-tags"].map(
+                                            (i) => i.name
+                                        )
+                                    )
                                 }
                             />
                         ))}
