@@ -1,0 +1,50 @@
+name: Build and Release Artifact
+
+# 1. Trigger the workflow only on pushes to the "release" branch
+on:
+  push:
+    branches:
+      - release
+
+# Give the workflow permission to write releases and contents
+permissions:
+  contents: write
+
+jobs:
+  deploy-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm' 
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Zip build files
+        run: |
+          cd dist
+          zip -r ../build-artifact.zip .
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "Release v1.0.${{ github.run_number }}"
+          body: |
+            ## Automated Release Details
+            This release was automatically generated from the `release` branch.
+            
+            **Commit Message:** ${{ github.event.head_commit.message }}
+            **Triggered By:** @${{ github.actor }}
+          files: build-artifact.zip
