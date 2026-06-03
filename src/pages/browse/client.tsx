@@ -65,6 +65,11 @@ export default function BrowseClientPage() {
         Record<string, { name: string; nodes: any[] }>
     >({})
     const [isSearchingGlobal, setIsSearchingGlobal] = React.useState(false)
+    const catalogSearchRef = React.useRef(catalogSearchQuery)
+
+    React.useEffect(() => {
+        catalogSearchRef.current = catalogSearchQuery
+    }, [catalogSearchQuery])
 
     const installedExtensions = extensionsStore.data || []
     const sourceNodes = sourcesStore.data || []
@@ -78,42 +83,55 @@ export default function BrowseClientPage() {
 
             setIsSearchingGlobal(true)
 
-            // Search all sources in parallel
-            const searchPromises = sourceNodes.map(async (source: Source) => {
-                try {
-                    const result = await client.mutation({
-                        fetchSourceManga: {
-                            __args: {
-                                input: {
-                                    source: source.id,
-                                    page: 1,
-                                    type: "SEARCH" as any,
-                                    query: query,
+            // Limit concurrency to avoid overwhelming the server/browser
+            const CONCURRENCY_LIMIT = 5
+            const results: any[] = []
+            const pool = [...sourceNodes]
+
+            const worker = async () => {
+                while (pool.length > 0) {
+                    const source = pool.shift()
+                    if (!source) continue
+
+                    try {
+                        const result = await client.mutation({
+                            fetchSourceManga: {
+                                __args: {
+                                    input: {
+                                        source: source.id,
+                                        page: 1,
+                                        type: "SEARCH" as any,
+                                        query: query,
+                                    },
+                                },
+                                mangas: {
+                                    id: true,
+                                    title: true,
+                                    thumbnailUrl: true,
+                                    inLibrary: true,
                                 },
                             },
-                            mangas: {
-                                id: true,
-                                title: true,
-                                thumbnailUrl: true,
-                                inLibrary: true,
-                            },
-                        },
-                    })
-                    return {
-                        sourceId: source.id,
-                        sourceName: source.displayName,
-                        mangas: result.fetchSourceManga?.mangas || [],
-                    }
-                } catch (err) {
-                    return {
-                        sourceId: source.id,
-                        sourceName: source.displayName,
-                        mangas: [],
+                        })
+                        results.push({
+                            sourceId: source.id,
+                            sourceName: source.displayName,
+                            mangas: result.fetchSourceManga?.mangas || [],
+                        })
+                    } catch (err) {
+                        results.push({
+                            sourceId: source.id,
+                            sourceName: source.displayName,
+                            mangas: [],
+                        })
                     }
                 }
-            })
+            }
 
-            const results = await Promise.all(searchPromises)
+            // Fire off workers
+            await Promise.all(
+                Array.from({ length: Math.min(CONCURRENCY_LIMIT, sourceNodes.length) }).map(worker)
+            )
+
             const resultMap: Record<string, { name: string; nodes: any[] }> = {}
             results.forEach((r) => {
                 if (r.mangas.length > 0) {
@@ -239,14 +257,15 @@ export default function BrowseClientPage() {
 
         if (
             isCatalogOpen &&
-            visibleAvailable.length < 10 && // If list is too short to allow scroll
+            visibleAvailable.length < 10 &&
             hasMoreExtensions &&
             !isFetchingNextExtensionPage &&
-            !isLoading
+            !isLoading &&
+            availableExtensions.length > 0 // Only auto-fetch if we already have some data
         ) {
             const nextOffset = extensionOffset + ITEMS_PER_PAGE
             setExtensionOffset(nextOffset)
-            fetchExtensions(nextOffset, catalogSearchQuery)
+            fetchExtensions(nextOffset, catalogSearchRef.current)
         }
     }, [
         availableExtensions,
@@ -254,7 +273,6 @@ export default function BrowseClientPage() {
         isFetchingNextExtensionPage,
         isLoading,
         extensionOffset,
-        catalogSearchQuery,
         fetchExtensions,
         meta.data,
         isCatalogOpen,

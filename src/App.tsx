@@ -11,6 +11,7 @@ import Cookies from "js-cookie"
 import Main from "./layout/Main"
 import LoginComponent from "./layout/Auth"
 import { LoadingScreen } from "./components/LoadingScreen"
+import { ErrorBoundary } from "./components/error-boundary"
 
 function AppRoutes() {
     const location = useLocation()
@@ -75,17 +76,19 @@ function RootLayout() {
 
     return (
         <Main>
-            <Suspense
-                fallback={
-                    <LoadingScreen
-                        message="Loading Component..."
-                        subtext="Mounting the requested page module"
-                        isOverlay={false}
-                    />
-                }
-            >
-                <AppRoutes />
-            </Suspense>
+            <ErrorBoundary>
+                <Suspense
+                    fallback={
+                        <LoadingScreen
+                            message="Loading Component..."
+                            subtext="Mounting the requested page module"
+                            isOverlay={false}
+                        />
+                    }
+                >
+                    <AppRoutes />
+                </Suspense>
+            </ErrorBoundary>
         </Main>
     )
 }
