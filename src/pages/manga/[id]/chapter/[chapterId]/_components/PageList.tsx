@@ -1,7 +1,9 @@
-import * as React from "react"
-import { ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { getImageUrl, cn } from "@/lib/utils"
+import { Virtuoso } from "react-virtuoso"
+import type { VirtuosoHandle } from "react-virtuoso"
+import React from "react"
+import { ImageIcon, ChevronRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface ReaderPageProps {
     pages: string[]
@@ -11,10 +13,12 @@ interface ReaderPageProps {
     pageGap: number
     currentPage: number
     containerRef: React.RefObject<HTMLDivElement | null>
+    virtuosoRef?: React.RefObject<VirtuosoHandle | null>
     onTap: (e: React.MouseEvent) => void
     nextChapter: any
     onMarkAsRead: () => void
     onNavigateToChapter: (id: number) => void
+    onPageChange?: (index: number) => void
     padding?: {
         top: number
         bottom: number
@@ -31,13 +35,18 @@ export function PageList({
     pageGap,
     currentPage,
     containerRef,
+    virtuosoRef,
     onTap,
     nextChapter,
     onMarkAsRead,
     onNavigateToChapter,
+    onPageChange,
     padding,
 }: ReaderPageProps) {
     const [loadedPages, setLoadedPages] = React.useState<
+        Record<number, boolean>
+    >({})
+    const [failedPages, setFailedPages] = React.useState<
         Record<number, boolean>
     >({})
 
@@ -50,133 +59,141 @@ export function PageList({
         setLoadedPages((prev) => ({ ...prev, [index]: true }))
     }
 
-    // Reference to all images to check completion on mount
-    const imgRefs = React.useRef<Record<number, HTMLImageElement | null>>({})
-
-    React.useEffect(() => {
-        // Initial check for cached images
-        Object.entries(imgRefs.current).forEach(([idx, img]) => {
-            if (img?.complete && img.naturalHeight !== 0) {
-                handleImageLoad(parseInt(idx))
-            }
-        })
-    }, [pages])
+    const handleImageError = (index: number) => {
+        setFailedPages((prev) => ({ ...prev, [index]: true }))
+    }
 
     const renderImage = (index: number) => {
         if (index < 0 || index >= pages.length) return null
 
         return (
             <div
-                key={index}
                 id={`page-${index}`}
                 className={cn(
                     "relative flex flex-col items-center justify-center",
                     readingMode === "continuous-horizontal"
-                        ? "h-auto w-auto"
+                        ? "h-full w-auto"
                         : "w-full",
                     !isScrollMode && "min-h-full min-w-full"
                 )}
+                style={{
+                    paddingBottom: isScrollMode && readingMode !== "continuous-horizontal" ? pageGap : 0,
+                    paddingRight: readingMode === "continuous-horizontal" ? pageGap : 0,
+                }}
             >
-                {!loadedPages[index] && (
-                    <div
-                        className={cn(
-                            "flex animate-pulse items-center justify-center",
-                            scaleType === "fit-width" &&
-                                (readingMode === "continuous-horizontal"
-                                    ? "h-[60vh] w-[90vw]"
-                                    : "h-[80vh] w-full md:w-[85%] lg:w-[70%]"),
-                            scaleType === "fit-height" && "h-screen w-[50vw]",
-                            scaleType === "fit-screen" && "h-screen w-full",
-                            scaleType === "original" && "h-96 w-96",
-                            !isScrollMode && "min-h-[80vh] min-w-[50vw]"
-                        )}
-                    >
-                        <div className="size-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+                {failedPages[index] ? (
+                    <div className="flex h-[50vh] w-full flex-col items-center justify-center gap-4 bg-muted/10 opacity-50">
+                        <ImageIcon className="size-12" />
+                        <p className="text-sm font-medium">Failed to load page {index + 1}</p>
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => {
+                                setFailedPages(prev => ({ ...prev, [index]: false }))
+                            }}
+                        >
+                            Retry
+                        </Button>
                     </div>
+                ) : (
+                    <>
+                        {!loadedPages[index] && (
+                            <div
+                                className={cn(
+                                    "flex items-center justify-center bg-muted/5",
+                                    scaleType === "fit-width" &&
+                                        (readingMode === "continuous-horizontal"
+                                            ? "h-full w-[60vw]"
+                                            : "h-[80vh] w-full md:w-[85%] lg:w-[70%]"),
+                                    scaleType === "fit-height" && "h-screen w-[50vw]",
+                                    scaleType === "fit-screen" && "h-screen w-full",
+                                    scaleType === "original" && "h-96 w-96",
+                                    !isScrollMode && "min-h-[80vh] min-w-[50vw]"
+                                )}
+                            >
+                                <div className="size-8 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
+                            </div>
+                        )}
+                        <img
+                            src={getImageUrl(pages[index])!}
+                            alt={`Page ${index + 1}`}
+                            onLoad={() => handleImageLoad(index)}
+                            onError={() => handleImageError(index)}
+                            className={cn(
+                                "transition-all duration-300",
+                                !loadedPages[index] ? "opacity-0" : "opacity-100",
+                                scaleType === "fit-width" &&
+                                    (readingMode === "continuous-horizontal"
+                                        ? "h-full w-auto"
+                                        : "h-auto w-full md:w-[85%] lg:w-[70%]"),
+                                scaleType === "fit-height" &&
+                                    "h-screen w-auto max-w-none",
+                                scaleType === "fit-screen" &&
+                                    "h-auto max-h-screen w-auto max-w-full object-contain",
+                                scaleType === "original" && "h-auto w-auto max-w-none",
+                                !isScrollMode && "rounded-sm object-contain shadow-2xl",
+                                !isScrollMode && !loadedPages[index] && "h-0"
+                            )}
+                        />
+                    </>
                 )}
-                <img
-                    ref={(el) => {
-                        imgRefs.current[index] = el
-                        if (el?.complete && !loadedPages[index]) {
-                            handleImageLoad(index)
-                        }
-                    }}
-                    src={getImageUrl(pages[index])!}
-                    alt={`Page ${index + 1}`}
-                    onLoad={() => handleImageLoad(index)}
-                    className={cn(
-                        "transition-all duration-700",
-                        !loadedPages[index]
-                            ? "scale-95 opacity-0"
-                            : "scale-100 opacity-100",
-                        scaleType === "fit-width" &&
-                            (readingMode === "continuous-horizontal"
-                                ? "h-auto w-[90vw]"
-                                : "h-auto w-full md:w-[85%] lg:w-[70%]"),
-                        scaleType === "fit-height" &&
-                            "h-screen w-auto max-w-none",
-                        scaleType === "fit-screen" &&
-                            "h-auto max-h-screen w-auto max-w-full object-contain",
-                        scaleType === "original" && "h-auto w-auto max-w-none",
-                        !isScrollMode && "rounded-sm object-contain shadow-2xl",
-                        !isScrollMode && !loadedPages[index] && "h-0"
-                    )}
-                />
             </div>
         )
     }
 
+    const Footer = () => (
+        <div
+            className={cn(
+                "flex flex-col items-center justify-center p-32",
+                readingMode === "continuous-horizontal"
+                    ? "h-full w-[400px]"
+                    : "w-full"
+            )}
+        >
+            <Button
+                size="lg"
+                className="h-16 rounded-2xl bg-white px-16 text-lg font-bold text-black hover:bg-white/90"
+                disabled={!nextChapter}
+                onClick={() => {
+                    onMarkAsRead()
+                    if (nextChapter) {
+                        onNavigateToChapter(nextChapter.id)
+                    }
+                }}
+            >
+                Next Chapter <ChevronRight className="ml-2" />
+            </Button>
+        </div>
+    )
+
     if (isScrollMode) {
         return (
-            <div
-                ref={containerRef}
-                className={cn(
-                    "scrollbar-hide h-full w-full flex-1 overflow-auto",
-                    readingMode === "continuous-horizontal" &&
-                        "flex flex-row items-start overflow-x-auto overflow-y-hidden"
-                )}
-                style={{
-                    paddingTop: padding?.top || 0,
-                    paddingBottom: padding?.bottom || 0,
-                    paddingLeft: padding?.left || 0,
-                    paddingRight: padding?.right || 0,
-                }}
-                onClick={onTap}
-            >
-                <div
-                    className={cn(
-                        "flex min-h-full w-full",
-                        readingMode === "continuous-horizontal"
-                            ? "h-full min-w-max flex-row items-start"
-                            : "flex h-auto flex-col items-center"
-                    )}
-                    style={{ gap: `${pageGap}px` }}
-                >
-                    {pages.map((_, index) => renderImage(index))}
-
-                    <div
-                        className={cn(
-                            "flex flex-col items-center justify-center p-32",
-                            readingMode === "continuous-horizontal"
-                                ? "h-screen w-[400px]"
-                                : "w-full"
-                        )}
-                    >
-                        <Button
-                            size="lg"
-                            className="h-16 rounded-2xl bg-white px-16 text-lg font-bold text-black"
-                            disabled={!nextChapter}
-                            onClick={() => {
-                                onMarkAsRead()
-                                if (nextChapter) {
-                                    onNavigateToChapter(nextChapter.id)
-                                }
-                            }}
-                        >
-                            Next Chapter <ChevronRight className="ml-2" />
-                        </Button>
-                    </div>
-                </div>
+            <div className="h-full w-full flex-1" onClick={onTap}>
+                <Virtuoso
+                    {...{
+                        ref: virtuosoRef,
+                        data: pages,
+                        useWindowScroll: false,
+                        initialTopMostItemIndex: currentPage,
+                        horizontal: readingMode === "continuous-horizontal",
+                        totalCount: pages.length,
+                        overscan: 2,
+                        rangeChanged: (range: any) => {
+                            onPageChange?.(range.startIndex)
+                        },
+                        style: {
+                            paddingTop: padding?.top || 0,
+                            paddingBottom: padding?.bottom || 0,
+                            paddingLeft: padding?.left || 0,
+                            paddingRight: padding?.right || 0,
+                        },
+                        itemContent: (index: number) => renderImage(index),
+                        components: {
+                            Footer,
+                        },
+                        className: "scrollbar-hide",
+                    } as any}
+                />
             </div>
         )
     }

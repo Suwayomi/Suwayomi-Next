@@ -8,6 +8,7 @@ import { ReaderSidebar } from "./_components/Sidebar"
 import { ReaderControls } from "./_components/Controls"
 import { PageList } from "./_components/PageList"
 import { useLocation, useNavigate } from "react-router-dom"
+import type { VirtuosoHandle } from "react-virtuoso"
 
 interface ReaderClientProps {
     initialPagesData: any
@@ -44,6 +45,7 @@ export default function ReaderClient({
 
     const [currentPage, setCurrentPage] = React.useState(0)
     const containerRef = React.useRef<HTMLDivElement>(null)
+    const virtuosoRef = React.useRef<VirtuosoHandle>(null)
 
     const isScrollMode =
         readingMode === "continuous-vertical" ||
@@ -115,76 +117,21 @@ export default function ReaderClient({
         const next = Math.max(0, Math.min(pages.length - 1, target))
         setCurrentPage(next)
 
-        if (!containerRef.current) return
-
         if (readingMode === "single-page" || readingMode === "double-page") {
-            containerRef.current.scrollTo(0, 0)
+            if (containerRef.current) containerRef.current.scrollTo(0, 0)
         } else {
-            const element = document.getElementById(`page-${next}`)
-            if (element) {
+            if (virtuosoRef.current) {
                 setIsNavigating(true)
-                element.scrollIntoView({
+                virtuosoRef.current.scrollToIndex({
+                    index: next,
+                    align: "start",
                     behavior: "smooth",
-                    block:
-                        readingMode === "continuous-horizontal"
-                            ? "nearest"
-                            : "start",
-                    inline:
-                        readingMode === "continuous-horizontal"
-                            ? "start"
-                            : "nearest",
                 })
                 setTimeout(() => setIsNavigating(false), 800)
             }
         }
     }
 
-    const visiblePagesRef = React.useRef<Map<number, number>>(new Map())
-    React.useEffect(() => {
-        if (isNavigating || !isScrollMode) return
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    const index = parseInt(entry.target.id.split("-")[1])
-                    if (entry.isIntersecting) {
-                        visiblePagesRef.current.set(index, entry.intersectionRatio)
-                    } else {
-                        visiblePagesRef.current.delete(index)
-                    }
-                })
-
-                if (visiblePagesRef.current.size > 0) {
-                    let bestIndex = -1
-                    let maxRatio = -1
-
-                    visiblePagesRef.current.forEach((ratio, index) => {
-                        if (ratio > maxRatio) {
-                            maxRatio = ratio
-                            bestIndex = index
-                        } else if (Math.abs(ratio - maxRatio) < 0.01 && index > bestIndex) {
-                            bestIndex = index
-                        }
-                    })
-
-                    if (bestIndex !== -1) {
-                        setCurrentPage(bestIndex)
-                    }
-                }
-            },
-            {
-                root: containerRef.current,
-                threshold: [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1],
-            }
-        )
-
-        const elements = document.querySelectorAll('[id^="page-"]')
-        elements.forEach((el) => observer.observe(el))
-        return () => {
-            observer.disconnect()
-            visiblePagesRef.current.clear()
-        }
-    }, [isNavigating, isScrollMode, pages.length])
 
     const handleTap = (e: React.MouseEvent) => {
         if (tapZone === "disabled") return
@@ -318,10 +265,14 @@ export default function ReaderClient({
                 pageGap={pageGap}
                 currentPage={currentPage}
                 containerRef={containerRef}
+                virtuosoRef={virtuosoRef}
                 onTap={handleTap}
                 nextChapter={nextChapter}
                 onMarkAsRead={markAsRead}
                 onNavigateToChapter={navigateToChapter}
+                onPageChange={(index) => {
+                    if (!isNavigating) setCurrentPage(index)
+                }}
                 padding={{
                     top:
                         !isFloating && isVerticalHud && showControls
