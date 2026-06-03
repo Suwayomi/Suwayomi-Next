@@ -49,13 +49,13 @@ function HeroSlideshow({ rawHistory }: { rawHistory: HistoryGroup[] }) {
 
     if (rawHistory.length === 0) {
         return (
-            <section className="relative flex h-[450px] w-full flex-col items-center justify-center gap-4 overflow-hidden rounded-[2.5rem] border border-white/5 bg-zinc-900/40 p-8 text-center shadow-2xl md:h-[400px]">
+            <section className="relative flex h-[450px] w-full flex-col items-center justify-center gap-4 overflow-hidden rounded-[2.5rem] border border-border/40 bg-card/40 p-8 text-center shadow-lg backdrop-blur-md md:h-[400px] dark:shadow-2xl">
                 <Sparkles className="size-16 animate-pulse text-primary" />
                 <div className="space-y-2">
                     <h3 className="font-heading text-3xl font-black">
                         No history yet
                     </h3>
-                    <p className="font-medium text-zinc-500">
+                    <p className="font-medium text-muted-foreground">
                         Start reading to see your progress here.
                     </p>
                 </div>
@@ -64,7 +64,7 @@ function HeroSlideshow({ rawHistory }: { rawHistory: HistoryGroup[] }) {
     }
 
     return (
-        <section className="relative h-[450px] w-full overflow-hidden rounded-[2.5rem] border border-white/5 bg-zinc-900/40 shadow-2xl transition-all duration-700 md:h-[400px]">
+        <section className="relative h-[450px] w-full overflow-hidden rounded-[2.5rem] border border-border/40 bg-card/40 shadow-lg transition-all duration-700 md:h-[400px] dark:shadow-2xl">
             <div className="flex h-full flex-col md:flex-row">
                 <div className="group/thumb relative h-[300px] w-full shrink-0 overflow-hidden md:h-full md:w-[300px]">
                     {rawHistory.map((item, idx) => (
@@ -82,13 +82,13 @@ function HeroSlideshow({ rawHistory }: { rawHistory: HistoryGroup[] }) {
                                 alt=""
                                 className="h-full w-full object-cover"
                             />
-                            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent" />
+                            <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-background/80 to-transparent" />
                         </div>
                     ))}
                 </div>
 
-                <div className="relative flex flex-1 flex-col justify-center gap-4 overflow-hidden bg-zinc-900 p-6 md:p-12">
-                    <div className="relative inset-0 z-0 bg-gradient-to-r from-zinc-900 via-zinc-900/40 to-transparent" />
+                <div className="relative flex flex-1 flex-col justify-center gap-4 overflow-hidden bg-card p-6 md:p-12">
+                    <div className="relative inset-0 z-0 bg-gradient-to-r from-card via-card/40 to-transparent" />
 
                     {rawHistory.map((item, idx) => (
                         <div
@@ -113,7 +113,7 @@ function HeroSlideshow({ rawHistory }: { rawHistory: HistoryGroup[] }) {
 
                                 <div className="space-y-2">
                                     <h2
-                                        className="line-clamp-2 cursor-pointer truncate font-heading text-2xl leading-[1.1] font-black tracking-tighter text-white italic hover:text-primary hover:underline md:text-5xl lg:text-6xl"
+                                        className="line-clamp-2 cursor-pointer truncate font-heading text-2xl leading-[1.1] font-black tracking-tighter text-foreground italic hover:text-primary hover:underline md:text-5xl lg:text-6xl"
                                         title={item.title}
                                         onClick={() =>
                                             navigate("/manga/" + item.id)
@@ -122,7 +122,7 @@ function HeroSlideshow({ rawHistory }: { rawHistory: HistoryGroup[] }) {
                                         {item.title}
                                     </h2>
                                     {item.description && (
-                                        <p className="line-clamp-2 max-w-xl text-xs leading-relaxed font-medium text-zinc-400 italic opacity-80 md:text-base">
+                                        <p className="line-clamp-2 max-w-xl text-xs leading-relaxed font-medium text-muted-foreground italic opacity-80 md:text-base">
                                             "
                                             {item.description.length > 150
                                                 ? item.description.substring(
@@ -162,7 +162,7 @@ function HeroSlideshow({ rawHistory }: { rawHistory: HistoryGroup[] }) {
                                     "size-2 rounded-full transition-all duration-300",
                                     idx === activeIndex
                                         ? "w-8 bg-primary"
-                                        : "bg-white/20 hover:bg-white/40"
+                                        : "bg-foreground/20 hover:bg-foreground/40"
                                 )}
                             />
                         ))}
@@ -195,7 +195,7 @@ function FavoriteShelf({ favorites }: { favorites: any[] }) {
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="gap-2 rounded-full text-xs font-black text-zinc-500 uppercase hover:text-amber-500"
+                        className="gap-2 rounded-full text-xs font-black text-muted-foreground uppercase hover:text-amber-500"
                         onClick={() => setShowVip(!showVip)}
                     >
                         {showVip ? (
@@ -228,36 +228,36 @@ function FavoriteShelf({ favorites }: { favorites: any[] }) {
                                 className="group relative cursor-pointer"
                                 onClick={() => navigate(`/manga/${m.id}`)}
                             >
-                                <div className="relative aspect-[3/4] overflow-hidden rounded-[1.5rem] border border-white/5 bg-muted/10 shadow-lg">
+                                <div className="relative aspect-[3/4] overflow-hidden rounded-[1.5rem] border border-border/40 bg-muted/10 shadow-lg">
                                     <MangaImage
                                         thumbnailUrl={m.thumbnailUrl}
                                         alt={m.title}
                                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                                     />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
                                     <div className="absolute top-3 left-3 z-20">
                                         <div className="flex size-8 -rotate-12 transform items-center justify-center rounded-full bg-amber-500 shadow-lg transition-transform group-hover:rotate-0">
-                                            <Star className="size-4 fill-zinc-900 text-zinc-900" />
+                                            <Star className="size-4 fill-white text-white" />
                                         </div>
                                     </div>
                                 </div>
                                 <div className="mt-3 px-1">
-                                    <h4 className="line-clamp-1 text-sm font-bold text-white transition-colors group-hover:text-amber-500">
+                                    <h4 className="line-clamp-1 text-sm font-bold text-foreground transition-colors group-hover:text-amber-500">
                                         {m.title}
                                     </h4>
                                 </div>
                             </div>
                         ))
                     ) : (
-                        <div className="col-span-full flex flex-col items-center justify-center gap-4 rounded-[2rem] border-2 border-dashed border-white/5 bg-muted/5 py-12 text-center">
+                        <div className="col-span-full flex flex-col items-center justify-center gap-4 rounded-[2rem] border-2 border-dashed border-border bg-muted/5 py-12 text-center">
                             <div className="flex size-16 items-center justify-center rounded-full bg-amber-500/10">
                                 <Star className="size-8 text-amber-500/20" />
                             </div>
                             <div className="space-y-1">
-                                <p className="font-bold text-zinc-400">
+                                <p className="font-bold text-muted-foreground">
                                     Your shelf is empty
                                 </p>
-                                <p className="text-xs text-zinc-500">
+                                <p className="text-xs text-muted-foreground/60">
                                     Go to your library and pin your favorite
                                     manga to see them here.
                                 </p>
@@ -299,17 +299,17 @@ function ReadLaterQueue({ readLater }: { readLater: any[] }) {
                     readLater.map((m) => (
                         <div
                             key={m.id}
-                            className="group flex cursor-pointer gap-4 rounded-3xl border border-white/5 bg-zinc-900/40 p-4 transition-all hover:bg-zinc-800/40"
+                            className="group flex cursor-pointer gap-4 rounded-3xl border border-border/40 bg-card/40 p-4 backdrop-blur-md transition-all hover:bg-card/60"
                             onClick={() => navigate(`/manga/${m.id}`)}
                         >
                             <div className="flex min-w-0 flex-col justify-center gap-1">
-                                <h4 className="truncate font-bold text-white transition-colors group-hover:text-primary">
+                                <h4 className="truncate font-bold text-foreground transition-colors group-hover:text-primary">
                                     {m.title}{" "}
                                     <span className="text-xs text-muted-foreground">
                                         {m.chapters.totalCount}
                                     </span>
                                 </h4>
-                                <p className="truncate text-xs font-medium text-zinc-500 italic">
+                                <p className="truncate text-xs font-medium text-muted-foreground italic">
                                     {m.description
                                         ? `"${m.description}"`
                                         : "Added to read later"}
@@ -318,11 +318,11 @@ function ReadLaterQueue({ readLater }: { readLater: any[] }) {
                         </div>
                     ))
                 ) : (
-                    <div className="flex flex-col items-center justify-center gap-3 rounded-[2rem] border border-dashed border-white/5 bg-muted/5 py-10 text-center">
-                        <p className="text-sm font-bold text-zinc-400">
+                    <div className="flex flex-col items-center justify-center gap-3 rounded-[2rem] border border-dashed border-border bg-muted/5 py-10 text-center">
+                        <p className="text-sm font-bold text-muted-foreground">
                             Queue is empty
                         </p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs text-muted-foreground/60">
                             Save stories here to find them later.
                         </p>
                     </div>
@@ -343,8 +343,8 @@ function CatchUpSection() {
                     Time to catch up?
                 </h2>
             </div>
-            <div className="flex items-center gap-6 rounded-[2.5rem] border border-white/5 bg-gradient-to-br from-zinc-900/50 to-zinc-900/20 p-6 backdrop-blur-sm">
-                <div className="flex size-24 shrink-0 items-center justify-center rounded-2xl border border-white/5 bg-zinc-800 text-[10px] font-black text-zinc-700 italic">
+            <div className="flex items-center gap-6 rounded-[2.5rem] border border-border/40 bg-gradient-to-br from-card/50 to-muted/20 p-6 backdrop-blur-sm">
+                <div className="flex size-24 shrink-0 items-center justify-center rounded-2xl border border-border/40 bg-muted text-[10px] font-black text-muted-foreground italic">
                     COVER Z
                 </div>
                 <div className="flex flex-col gap-3">
@@ -352,7 +352,7 @@ function CatchUpSection() {
                         <h4 className="font-heading text-xl font-black">
                             Manga Title Z
                         </h4>
-                        <p className="text-sm font-bold text-zinc-500">
+                        <p className="text-sm font-bold text-muted-foreground">
                             You haven't read in a month
                         </p>
                     </div>
@@ -392,7 +392,7 @@ function FreshReleases({ updates }: { updates: any[] }) {
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="mr-2 gap-2 rounded-full text-xs font-black text-zinc-500 uppercase hover:text-primary"
+                        className="mr-2 gap-2 rounded-full text-xs font-black text-muted-foreground uppercase hover:text-primary"
                         onClick={() => setShowUpdates(!showUpdates)}
                     >
                         {showUpdates ? (
@@ -427,29 +427,31 @@ function FreshReleases({ updates }: { updates: any[] }) {
                                       navigate(`/manga/${update.manga.id}`)
                                   }
                               >
-                                  <div className="relative aspect-[3/4] overflow-hidden rounded-[2rem] border border-white/5 shadow-2xl">
+                                  <div className="relative aspect-[3/4] overflow-hidden rounded-[2rem] border border-border/40 shadow-2xl">
                                       <MangaImage
-                                          thumbnailUrl={update.manga.thumbnailUrl}
+                                          thumbnailUrl={
+                                              update.manga.thumbnailUrl
+                                          }
                                           alt=""
                                           className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
                                       />
-                                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+                                      <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-background/20" />
                                       <div className="absolute top-4 right-4 animate-bounce">
                                           <Badge className="border-none bg-primary px-2 py-0.5 text-[9px] font-black text-primary-foreground uppercase shadow-lg">
                                               New!
                                           </Badge>
                                       </div>
                                       <div className="absolute right-4 bottom-4 left-4">
-                                          <p className="truncate text-[10px] font-black tracking-widest text-primary uppercase drop-shadow-md">
+                                          <p className="truncate text-[10px] font-black tracking-widest text-primary uppercase">
                                               {update.name}
                                           </p>
                                       </div>
                                   </div>
                                   <div className="space-y-0.5 px-1">
-                                      <h4 className="line-clamp-1 font-heading text-sm font-bold tracking-tight text-white transition-colors group-hover:text-primary">
+                                      <h4 className="line-clamp-1 font-heading text-sm font-bold tracking-tight text-foreground transition-colors group-hover:text-primary">
                                           {update.manga.title}
                                       </h4>
-                                      <p className="text-[10px] font-bold text-zinc-500 uppercase">
+                                      <p className="text-[10px] font-bold text-muted-foreground uppercase">
                                           Just Added
                                       </p>
                                   </div>
@@ -457,16 +459,16 @@ function FreshReleases({ updates }: { updates: any[] }) {
                           ))
                         : [1, 2, 3, 4, 5, 6].map((i) => (
                               <div key={i} className="min-w-[180px] space-y-3">
-                                  <div className="aspect-[3/4] animate-pulse rounded-[2rem] border border-white/5 bg-zinc-900" />
+                                  <div className="aspect-[3/4] animate-pulse rounded-[2rem] border border-border/40 bg-muted" />
                                   <div className="space-y-2">
-                                      <div className="h-4 w-3/4 animate-pulse rounded bg-zinc-900" />
-                                      <div className="h-3 w-1/2 animate-pulse rounded bg-zinc-900/60" />
+                                      <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+                                      <div className="h-3 w-1/2 animate-pulse rounded bg-muted/60" />
                                   </div>
                               </div>
                           ))}
 
                     <button
-                        className="group flex aspect-[3/4] min-w-[180px] flex-col items-center justify-center gap-4 rounded-[2rem] border-2 border-dashed border-white/5 text-zinc-600 transition-all hover:border-primary/20 hover:bg-primary/5 hover:text-primary"
+                        className="group flex aspect-[3/4] min-w-[180px] flex-col items-center justify-center gap-4 rounded-[2rem] border-2 border-dashed border-border/40 text-muted-foreground transition-all hover:border-primary/20 hover:bg-primary/5 hover:text-primary"
                         onClick={() => navigate("/updates")}
                     >
                         <div className="flex size-12 items-center justify-center rounded-full border-2 border-current transition-transform group-hover:scale-110">
