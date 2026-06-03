@@ -59,6 +59,36 @@ export default function DownloadsClientPage() {
         }
     }
 
+    const removeFromQueue = async (chapterId: number) => {
+        try {
+            await client.mutation({
+                dequeueChapterDownload: {
+                    __args: { input: { id: chapterId } },
+                    clientMutationId: true,
+                },
+            })
+            downloads.refresh()
+            toast.success("Removed from queue")
+        } catch (error) {
+            toast.error("Failed to remove from queue")
+        }
+    }
+
+    const reenqueueChapter = async (chapterId: number) => {
+        try {
+            await client.mutation({
+                enqueueChapterDownload: {
+                    __args: { input: { id: chapterId } },
+                    clientMutationId: true,
+                },
+            })
+            downloads.refresh()
+            toast.success("Added back to queue")
+        } catch (error) {
+            toast.error("Failed to re-enqueue")
+        }
+    }
+
     return (
         <PageLayout
             title="Downloads"
@@ -200,10 +230,27 @@ export default function DownloadsClientPage() {
                                     </div>
 
                                     <div className="flex shrink-0 items-center gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+                                        {item.state === "ERROR" && (
+                                            <Button
+                                                variant="secondary"
+                                                size="sm"
+                                                className="h-8 w-8 rounded-lg p-0"
+                                                onClick={() =>
+                                                    reenqueueChapter(
+                                                        item.chapter.id
+                                                    )
+                                                }
+                                            >
+                                                <RefreshCw className="size-4" />
+                                            </Button>
+                                        )}
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             className="h-8 w-8 rounded-lg p-0 text-muted-foreground hover:text-destructive"
+                                            onClick={() =>
+                                                removeFromQueue(item.chapter.id)
+                                            }
                                         >
                                             <Trash2 className="size-4" />
                                         </Button>

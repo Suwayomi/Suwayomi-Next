@@ -5,6 +5,7 @@ export type DownloadItem = {
     progress: number;
     state: "QUEUED" | "DOWNLOADING" | "DOWNLOADED" | "ERROR";
     chapter: {
+        id: number;
         name: string;
     };
     manga: {
@@ -26,7 +27,7 @@ export async function fetchDownloadStatus(): Promise<DownloadStatus> {
                 position: true,
                 progress: true,
                 state: true,
-                chapter: { name: true },
+                chapter: { id: true, name: true },
                 manga: { title: true, thumbnailUrl: true },
             },
         },
