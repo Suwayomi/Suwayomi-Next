@@ -3,7 +3,7 @@
 A modern, responsive web client for [Suwayomi-Server](https://github.com/Suwayomi/Suwayomi-Server) built with React, and Shadcn UI Flavor. 
 
 
-<img src="https://github.com/Suwayomi/Suwayomi-Next/raw/master/tmp/showcase.jpg" style="width:300px; height:300px;" />
+<img src="https://raw.githubusercontent.com/Suwayomi/Suwayomi-Next/refs/heads/main/tmp/showcase.jpg" style="width:800px;" />
 
 ---
 > ### ⚠️ WORK IN PROGRESS
