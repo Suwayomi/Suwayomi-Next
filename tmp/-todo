@@ -1,4 +1,5 @@
-1- [x] when reaching a chapter at the last page you register it to the history.
-2- [?] when changing a reading mode in a source it should be saved for that only source.
-3- [x] clicking a manga name goes to globalsearch?search=
-4- [x] randomizer button on all lists
+_= no way to disable/enable download/unread badges
+if an image fails to load it just fails, no retry button
+
+
+_= going from any page to /library takes ages because it tries to load all the thumbnails before the page changes (virtualizing the grid should fix this)
