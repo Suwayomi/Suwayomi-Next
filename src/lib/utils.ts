@@ -6,8 +6,6 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs))
 }
 
-export const SERVER_URL = "http://localhost:4567"
-
 // Assuming your token is accessible globally, via a store, or passed as an argument
 export function getImageUrl(path: string | null | undefined) {
     if (!path) return null
@@ -15,7 +13,8 @@ export function getImageUrl(path: string | null | undefined) {
     let fullUrl = path
     if (!path.startsWith("http")) {
         const normalizedPath = path.startsWith("/") ? path : `/${path}`
-        fullUrl = `${SERVER_URL}${normalizedPath}`
+        // static-port
+        fullUrl = `${import.meta.env.DEV ? "http://localhost:4567" : window.location.origin}${normalizedPath}`
     }
 
     const token = Cookies.get("suwayomi_access_token")

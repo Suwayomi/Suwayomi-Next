@@ -17,6 +17,7 @@ export default defineConfig({
             // String shorthand: any request starting with /api/graphql
             // will be sent to http://localhost:456/api/graphql
             "/api/graphql": {
+                // static-port
                 target: "http://localhost:4567",
                 changeOrigin: true,
                 // Optional: If your backend doesn't have /api/graphql in its actual path,

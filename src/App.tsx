@@ -61,7 +61,12 @@ function RootLayout() {
     }, [])
 
     if (isLoggedIn === null) {
-        return <LoadingScreen message="Checking Authentication..." subtext="Verifying your session with the Suwayomi server" />
+        return (
+            <LoadingScreen
+                message="Checking Authentication..."
+                subtext="Verifying your session with the Suwayomi server"
+            />
+        )
     }
 
     if (!isLoggedIn) {
@@ -70,7 +75,15 @@ function RootLayout() {
 
     return (
         <Main>
-            <Suspense fallback={<LoadingScreen message="Loading Component..." subtext="Mounting the requested page module" isOverlay={false} />}>
+            <Suspense
+                fallback={
+                    <LoadingScreen
+                        message="Loading Component..."
+                        subtext="Mounting the requested page module"
+                        isOverlay={false}
+                    />
+                }
+            >
                 <AppRoutes />
             </Suspense>
         </Main>
