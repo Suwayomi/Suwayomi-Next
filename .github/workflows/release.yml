@@ -27,11 +27,26 @@ jobs:
       - name: Build project
         run: npm run build
 
+      - name: Revision File
+        run: |
+          CLEAN_TAG=$(echo "${{ github.ref_name }}" | sed 's/^v//')
+          if [[ "$CLEAN_TAG" =~ "alpha" || "$CLEAN_TAG" =~ "beta" || "$CLEAN_TAG" =~ "preview" ]]; then
+            VERSION_NUMS=$(echo "$CLEAN_TAG" | tr -cd '0-9')
+            echo -n "r$VERSION_NUMS" > dist/revision
+            echo "Generated Revision: r$VERSION_NUMS"
+          else
+            VERSION_NUMS=$(echo "$CLEAN_TAG" | tr -cd '0-9')
+            echo -n "$VERSION_NUMS" > dist/revision
+            echo "Generated Revision: $VERSION_NUMS"
+          fi
+
       - name: Zip build files
         run: |
           cd dist
           zip -r ../build-artifact.zip .
           cd ..
+          md5sum build-artifact.zip > md5sum
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -43,4 +58,6 @@ jobs:
             
             ${{ github.event.head_commit.message }}
             **Triggered By:** @${{ github.actor }}
-          files: build-artifact.zip
+          files: |
+            build-artifact.zip
+            md5sum
