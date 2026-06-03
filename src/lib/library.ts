@@ -42,3 +42,36 @@ export const updateMangaCategory = async ({
         error: "Failed to update categories",
     })
 }
+
+export const fetchUnreadChapterIds = async (mangaIds: number[]) => {
+    const result = await client.query({
+        mangas: {
+            __args: { filter: { id: { in: mangaIds } } },
+            nodes: {
+                id: true,
+                chapters: {
+                    nodes: {
+                        id: true,
+                        isRead: true,
+                        sourceOrder: true,
+                    },
+                },
+            },
+        },
+    })
+
+    const chapters: { id: number; mangaId: number; sourceOrder: number }[] = []
+    result.mangas?.nodes?.forEach((m: any) => {
+        m.chapters?.nodes?.forEach((c: any) => {
+            if (!c.isRead) {
+                chapters.push({
+                    id: c.id,
+                    mangaId: m.id,
+                    sourceOrder: c.sourceOrder,
+                })
+            }
+        })
+    })
+
+    return chapters
+}

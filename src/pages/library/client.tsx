@@ -16,6 +16,7 @@ import {
     StarOff,
     ClipboardClock,
 } from "lucide-react"
+import { VirtuosoGrid } from "react-virtuoso"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -35,7 +36,7 @@ import { useSearchParams } from "react-router-dom"
 import type { MangaMetaType } from "@/lib/store/slices/meta"
 import { MangaCard } from "@/components/MangaCard"
 import { CategorySelectionDialog } from "@/components/category-selection-dialog"
-import { updateMangaCategory } from "@/lib/library"
+import { updateMangaCategory, fetchUnreadChapterIds } from "@/lib/library"
 
 interface LibraryClientProps {}
 
@@ -105,24 +106,21 @@ export default function LibraryClient({}: LibraryClientProps) {
     }
 
     const downloadChapters = async (mangaId: number, count?: number) => {
-        const manga = mangas.find((m) => m.id === mangaId)
-        if (!manga?.chapters?.nodes) return
-
-        const unread = manga.chapters.nodes
-            .filter((c: any) => !c.isRead)
-            .sort((a: any, b: any) => a.sourceOrder - b.sourceOrder)
-
-        const targetIds = count
-            ? unread.slice(0, count).map((c: any) => c.id)
-            : unread.map((c: any) => c.id)
-
-        if (targetIds.length === 0) {
-            toast.info("No unread chapters to download")
-            return
-        }
-
         const promise = (async () => {
             try {
+                const unreadChapters = await fetchUnreadChapterIds([mangaId])
+                const sorted = unreadChapters.sort(
+                    (a, b) => a.sourceOrder - b.sourceOrder
+                )
+
+                const targetIds = count
+                    ? sorted.slice(0, count).map((c) => c.id)
+                    : sorted.map((c) => c.id)
+
+                if (targetIds.length === 0) {
+                    return "No unread chapters to download"
+                }
+
                 await client.mutation({
                     enqueueChapterDownloads: {
                         __args: { input: { ids: targetIds } },
@@ -131,6 +129,7 @@ export default function LibraryClient({}: LibraryClientProps) {
                         },
                     },
                 })
+                return `Enqueued ${targetIds.length} chapter(s)`
             } catch (err) {
                 console.error("🔴 Mutation Failed:", err)
                 throw err
@@ -138,44 +137,38 @@ export default function LibraryClient({}: LibraryClientProps) {
         })()
 
         toast.promise(promise, {
-            loading: `Enqueuing ${targetIds.length} chapter(s)...`,
-            success: () => "Downloads started",
+            loading: `Fetching chapters...`,
+            success: (msg) => msg as string,
             error: "Failed to start downloads",
         })
     }
 
     const markMangaAsRead = async (mangaIds: number[]) => {
-        const chaptersToMark: number[] = []
-        mangaIds.forEach((mId) => {
-            const manga = mangas.find((m) => m.id === mId)
-            if (manga?.chapters?.nodes) {
-                manga.chapters.nodes.forEach((c: any) => {
-                    if (!c.isRead) chaptersToMark.push(c.id)
-                })
+        const promise = (async () => {
+            const chapters = await fetchUnreadChapterIds(mangaIds)
+            const targetIds = chapters.map((c) => c.id)
+
+            if (targetIds.length === 0) {
+                return "No unread chapters found"
             }
-        })
 
-        if (chaptersToMark.length === 0) {
-            toast.info("No unread chapters found")
-            return
-        }
-
-        const promise = client.mutation({
-            updateChapters: {
-                __args: {
-                    input: { ids: chaptersToMark, patch: { isRead: true } },
+            await client.mutation({
+                updateChapters: {
+                    __args: {
+                        input: { ids: targetIds, patch: { isRead: true } },
+                    },
+                    chapters: { id: true },
                 },
-                chapters: { id: true },
-            },
-        })
+            })
+
+            library.refresh()
+            setSelectedIds(new Set())
+            return `Marked ${targetIds.length} chapters as read`
+        })()
 
         toast.promise(promise, {
-            loading: `Marking ${chaptersToMark.length} chapters as read...`,
-            success: () => {
-                library.refresh()
-                setSelectedIds(new Set())
-                return "Marked as read"
-            },
+            loading: `Updating chapters...`,
+            success: (msg) => msg as string,
             error: "Failed to update chapters",
         })
     }
@@ -532,7 +525,7 @@ function DisplayList({
                 </span>
             </div>
 
-            <ScrollArea className="min-h-0 flex-1 pr-4">
+            <div className="min-h-0 flex-1 pr-4">
                 {items.length === 0 ? (
                     <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
                         <div className="flex size-16 items-center justify-center rounded-full bg-muted/30">
@@ -548,8 +541,28 @@ function DisplayList({
                         </div>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-6 pb-20 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                        {items.map((manga) => (
+                    <VirtuosoGrid
+                        style={{ height: "100%" }}
+                        data={items}
+                        totalCount={items.length}
+                        overscan={200}
+                        components={{
+                            List: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+                                ({ children, ...props }, ref) => (
+                                    <div
+                                        {...props}
+                                        ref={ref}
+                                        className="grid grid-cols-2 gap-x-4 gap-y-6 pb-20 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+                                    >
+                                        {children}
+                                    </div>
+                                )
+                            ),
+                            Item: ({ children, ...props }: any) => (
+                                <div {...props}>{children}</div>
+                            ),
+                        }}
+                        itemContent={(index, manga) => (
                             <MangaCard
                                 key={manga.id}
                                 manga={manga}
@@ -587,10 +600,10 @@ function DisplayList({
                                     )
                                 }
                             />
-                        ))}
-                    </div>
+                        )}
+                    />
                 )}
-            </ScrollArea>
+            </div>
             <CategorySelectionDialog
                 open={targetManga !== null && targetManga.action === "category"}
                 onOpenChange={() => setTargetManga(null)}

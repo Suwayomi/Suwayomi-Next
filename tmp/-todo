@@ -1,5 +1,6 @@
 _= no way to disable/enable download/unread badges
-if an image fails to load it just fails, no retry button
+
+[x]= if an image fails to load it just fails, no retry button
 
 
-_= going from any page to /library takes ages because it tries to load all the thumbnails before the page changes (virtualizing the grid should fix this)
+[x]= going from any page to /library takes ages because it tries to load all the thumbnails before the page changes (virtualizing the grid should fix this)

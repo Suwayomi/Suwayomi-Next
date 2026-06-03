@@ -16,6 +16,8 @@ import {
     StickyNotePlusIcon,
     FilePlusIcon,
     EyeClosedIcon,
+    RefreshCw,
+    ImageIcon,
 } from "lucide-react"
 import { cn, getImageUrl } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -64,6 +66,30 @@ export function MangaCard({
     tags,
 }: MangaCardProps) {
     const navigate = useNavigate()
+    const [imgError, setImgError] = useState(false)
+    const [retryCount, setRetryCount] = useState(0)
+
+    const imageUrl = React.useMemo(() => {
+        if (!manga.thumbnailUrl) return null
+        const url = getImageUrl(manga.thumbnailUrl)
+        if (retryCount > 0 && url) {
+            try {
+                const urlObj = new URL(url)
+                urlObj.searchParams.set("retry", retryCount.toString())
+                return urlObj.toString()
+            } catch (e) {
+                return url
+            }
+        }
+        return url
+    }, [manga.thumbnailUrl, retryCount])
+
+    const handleRetry = (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setImgError(false)
+        setRetryCount((prev) => prev + 1)
+    }
     const matchingTags = tags
         ? manga.genre.filter((x: string) => tags.has(x.toLowerCase())).length
         : 0
@@ -76,6 +102,9 @@ export function MangaCard({
     )
 
     const handleClick = (e: React.MouseEvent) => {
+        // If the user is clicking a button or something inside it, don't navigate
+        if ((e.target as HTMLElement).closest("button")) return
+
         if ((isSelectionMode || e.ctrlKey) && onToggle) {
             onToggle()
         } else {
@@ -104,18 +133,37 @@ export function MangaCard({
                     className={cn(
                         "relative aspect-[3/4] overflow-hidden rounded-2xl border border-border/40 bg-muted/30 shadow-sm transition-all group-hover:shadow-xl hover:ring-4 hover:ring-primary/20",
                         isSelected &&
-                            "border-4 border-primary ring-4 ring-primary/20"
+                        "border-4 border-primary ring-4 ring-primary/20"
                     )}
                 >
-                    {manga.thumbnailUrl ? (
+                    {imageUrl && !imgError ? (
                         <img
-                            src={getImageUrl(manga.thumbnailUrl)!}
+                            src={imageUrl}
                             alt={manga.title}
+                            onError={() => setImgError(true)}
                             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                         />
                     ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-muted/40 text-[10px] font-bold text-muted-foreground/30 uppercase">
-                            No Cover
+                        <div className="relative z-20 flex h-full w-full flex-col items-center justify-center gap-2 bg-muted/40 p-4 text-center" onClick={e => e.stopPropagation()}>
+                            <ImageIcon className="size-8 text-muted-foreground/20" />
+                            <div className="space-y-1">
+                                <p className="text-[10px] font-bold text-muted-foreground/40 uppercase">
+                                    {imgError ? "Load Failed" : "No Cover"}
+                                </p>
+                                {imgError && (
+                                    <Button
+                                        variant="secondary"
+                                        size="xs"
+                                        className="h-7 gap-1 rounded-full px-2 text-[10px]"
+                                        onClick={handleRetry}
+                                        onPointerDown={(e) => e.stopPropagation()}
+                                        onMouseDown={(e) => e.stopPropagation()}
+                                    >
+                                        <RefreshCw className="size-3" />
+                                        Retry
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -168,187 +216,187 @@ export function MangaCard({
                     {/* Actions Layer */}
                     {manga.inLibrary
                         ? !isSelectionMode &&
-                          hasDropdownActions && (
-                              <div className="absolute top-2 right-2 z-20 flex flex-col gap-2 opacity-100 transition-opacity group-hover:opacity-100 md:opacity-0">
-                                  <DropdownMenu>
-                                      <DropdownMenuTrigger
-                                          onClick={(e) => e.stopPropagation()}
-                                          className="flex size-8 items-center justify-center rounded-full bg-background/80 text-foreground shadow-lg backdrop-blur-sm transition-all outline-none hover:bg-background"
-                                      >
-                                          <MoreVertical className="size-4" />
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent
-                                          align="end"
-                                          className="w-64"
-                                          onClick={(e) => e.stopPropagation()}
-                                      >
-                                          {onVipToggle && (
-                                              <DropdownMenuItem
-                                                  onClick={(e) => {
-                                                      e.stopPropagation()
-                                                      onVipToggle()
-                                                  }}
-                                                  className="gap-2"
-                                              >
-                                                  {isVip ? (
-                                                      <>
-                                                          <StarOff className="size-4 text-amber-500" />
-                                                          Remove from Favorite
-                                                      </>
-                                                  ) : (
-                                                      <>
-                                                          <Star className="size-4 fill-amber-500 text-amber-500" />
-                                                          Add to Favorite
-                                                      </>
-                                                  )}
-                                              </DropdownMenuItem>
-                                          )}
+                        hasDropdownActions && (
+                            <div className="absolute top-2 right-2 z-20 flex flex-col gap-2 opacity-100 transition-opacity group-hover:opacity-100 md:opacity-0">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex size-8 items-center justify-center rounded-full bg-background/80 text-foreground shadow-lg backdrop-blur-sm transition-all outline-none hover:bg-background"
+                                    >
+                                        <MoreVertical className="size-4" />
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                        align="end"
+                                        className="w-64"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        {onVipToggle && (
+                                            <DropdownMenuItem
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    onVipToggle()
+                                                }}
+                                                className="gap-2"
+                                            >
+                                                {isVip ? (
+                                                    <>
+                                                        <StarOff className="size-4 text-amber-500" />
+                                                        Remove from Favorite
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Star className="size-4 fill-amber-500 text-amber-500" />
+                                                        Add to Favorite
+                                                    </>
+                                                )}
+                                            </DropdownMenuItem>
+                                        )}
 
-                                          {onReadLaterToggle && (
-                                              <DropdownMenuItem
-                                                  onClick={(e) => {
-                                                      e.stopPropagation()
-                                                      onReadLaterToggle()
-                                                  }}
-                                              >
-                                                  <ClipboardClock className="mr-2 size-4" />
-                                                  <span>
-                                                      {isOnReadLater
-                                                          ? 'Remove from "Read later"'
-                                                          : 'Add to "Read later"'}
-                                                  </span>
-                                              </DropdownMenuItem>
-                                          )}
+                                        {onReadLaterToggle && (
+                                            <DropdownMenuItem
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    onReadLaterToggle()
+                                                }}
+                                            >
+                                                <ClipboardClock className="mr-2 size-4" />
+                                                <span>
+                                                    {isOnReadLater
+                                                        ? 'Remove from "Read later"'
+                                                        : 'Add to "Read later"'}
+                                                </span>
+                                            </DropdownMenuItem>
+                                        )}
 
-                                          {onToggle &&
-                                              (onVipToggle ||
-                                                  onReadLaterToggle) && (
-                                                  <DropdownMenuSeparator />
-                                              )}
+                                        {onToggle &&
+                                            (onVipToggle ||
+                                                onReadLaterToggle) && (
+                                                <DropdownMenuSeparator />
+                                            )}
 
-                                          {onToggle && (
-                                              <DropdownMenuItem
-                                                  onClick={(e) => {
-                                                      e.stopPropagation()
-                                                      onToggle()
-                                                  }}
-                                              >
-                                                  <Check className="mr-2 size-4" />
-                                                  <span>Select</span>
-                                              </DropdownMenuItem>
-                                          )}
+                                        {onToggle && (
+                                            <DropdownMenuItem
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    onToggle()
+                                                }}
+                                            >
+                                                <Check className="mr-2 size-4" />
+                                                <span>Select</span>
+                                            </DropdownMenuItem>
+                                        )}
 
-                                          {onDownload && (
-                                              <>
-                                                  <DropdownMenuSeparator />
-                                                  <DropdownMenuSub>
-                                                      <DropdownMenuSubTrigger>
-                                                          <Download className="mr-2 size-4" />
-                                                          <span>Download</span>
-                                                      </DropdownMenuSubTrigger>
-                                                      <DropdownMenuSubContent className="w-56">
-                                                          <DropdownMenuItem
-                                                              onClick={() =>
-                                                                  onDownload(1)
-                                                              }
-                                                          >
-                                                              Next chapter
-                                                          </DropdownMenuItem>
-                                                          <DropdownMenuItem
-                                                              onClick={() =>
-                                                                  onDownload(5)
-                                                              }
-                                                          >
-                                                              Next 5 chapters
-                                                          </DropdownMenuItem>
-                                                          <DropdownMenuItem
-                                                              onClick={() =>
-                                                                  onDownload(10)
-                                                              }
-                                                          >
-                                                              Next 10 chapters
-                                                          </DropdownMenuItem>
-                                                          <DropdownMenuItem
-                                                              onClick={() =>
-                                                                  onDownload(25)
-                                                              }
-                                                          >
-                                                              Next 25 chapters
-                                                          </DropdownMenuItem>
-                                                          <DropdownMenuSeparator />
-                                                          <DropdownMenuItem
-                                                              onClick={() =>
-                                                                  onDownload()
-                                                              }
-                                                          >
-                                                              All unread
-                                                          </DropdownMenuItem>
-                                                      </DropdownMenuSubContent>
-                                                  </DropdownMenuSub>
-                                              </>
-                                          )}
+                                        {onDownload && (
+                                            <>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuSub>
+                                                    <DropdownMenuSubTrigger>
+                                                        <Download className="mr-2 size-4" />
+                                                        <span>Download</span>
+                                                    </DropdownMenuSubTrigger>
+                                                    <DropdownMenuSubContent className="w-56">
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                onDownload(1)
+                                                            }
+                                                        >
+                                                            Next chapter
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                onDownload(5)
+                                                            }
+                                                        >
+                                                            Next 5 chapters
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                onDownload(10)
+                                                            }
+                                                        >
+                                                            Next 10 chapters
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                onDownload(25)
+                                                            }
+                                                        >
+                                                            Next 25 chapters
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        <DropdownMenuItem
+                                                            onClick={() =>
+                                                                onDownload()
+                                                            }
+                                                        >
+                                                            All unread
+                                                        </DropdownMenuItem>
+                                                    </DropdownMenuSubContent>
+                                                </DropdownMenuSub>
+                                            </>
+                                        )}
 
-                                          {(onMarkRead || onChangeCategory) && (
-                                              <>
-                                                  <DropdownMenuSeparator />
-                                                  {onChangeCategory && (
-                                                      <DropdownMenuItem
-                                                          onClick={(e) => {
-                                                              onChangeCategory()
-                                                              e.stopPropagation()
-                                                          }}
-                                                      >
-                                                          <TagsIcon className="mr-2 size-4" />
-                                                          Change category
-                                                      </DropdownMenuItem>
-                                                  )}
-                                                  {onMarkRead && (
-                                                      <DropdownMenuItem
-                                                          onClick={onMarkRead}
-                                                      >
-                                                          <BookOpen className="mr-2 size-4" />
-                                                          <span>
-                                                              Mark unread as
-                                                              read
-                                                          </span>
-                                                      </DropdownMenuItem>
-                                                  )}
-                                              </>
-                                          )}
+                                        {(onMarkRead || onChangeCategory) && (
+                                            <>
+                                                <DropdownMenuSeparator />
+                                                {onChangeCategory && (
+                                                    <DropdownMenuItem
+                                                        onClick={(e) => {
+                                                            onChangeCategory()
+                                                            e.stopPropagation()
+                                                        }}
+                                                    >
+                                                        <TagsIcon className="mr-2 size-4" />
+                                                        Change category
+                                                    </DropdownMenuItem>
+                                                )}
+                                                {onMarkRead && (
+                                                    <DropdownMenuItem
+                                                        onClick={onMarkRead}
+                                                    >
+                                                        <BookOpen className="mr-2 size-4" />
+                                                        <span>
+                                                            Mark unread as
+                                                            read
+                                                        </span>
+                                                    </DropdownMenuItem>
+                                                )}
+                                            </>
+                                        )}
 
-                                          {onRemove && (
-                                              <>
-                                                  <DropdownMenuSeparator />
-                                                  <DropdownMenuItem
-                                                      variant="destructive"
-                                                      onClick={onRemove}
-                                                  >
-                                                      <Trash2 className="mr-2 size-4" />
-                                                      <span>
-                                                          Remove from Library
-                                                      </span>
-                                                  </DropdownMenuItem>
-                                              </>
-                                          )}
-                                      </DropdownMenuContent>
-                                  </DropdownMenu>
-                              </div>
-                          )
+                                        {onRemove && (
+                                            <>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem
+                                                    variant="destructive"
+                                                    onClick={onRemove}
+                                                >
+                                                    <Trash2 className="mr-2 size-4" />
+                                                    <span>
+                                                        Remove from Library
+                                                    </span>
+                                                </DropdownMenuItem>
+                                            </>
+                                        )}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        )
                         : /* Hover Add Button (Only renders if the onAddLibrary callback is supplied) */
-                          onAddLibrary && (
-                              <div className="absolute inset-0 z-20 flex items-end bg-gradient-to-t from-black/80 via-transparent to-transparent p-5 opacity-100 transition-opacity group-hover:opacity-100 md:opacity-0">
-                                  <Button
-                                      size="sm"
-                                      className="h-10 w-full gap-2 rounded-xl font-bold shadow-lg shadow-primary/20"
-                                      onClick={(e) => {
-                                          e.stopPropagation()
-                                          onAddLibrary(manga.id)
-                                      }}
-                                  >
-                                      <Plus className="size-4" /> Add to Library
-                                  </Button>
-                              </div>
-                          )}
+                        onAddLibrary && (
+                            <div className="absolute inset-0 z-20 flex items-end bg-gradient-to-t from-black/80 via-transparent to-transparent p-5 opacity-100 transition-opacity group-hover:opacity-100 md:opacity-0">
+                                <Button
+                                    size="sm"
+                                    className="h-10 w-full gap-2 rounded-xl font-bold shadow-lg shadow-primary/20"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        onAddLibrary(manga.id)
+                                    }}
+                                >
+                                    <Plus className="size-4" /> Add to Library
+                                </Button>
+                            </div>
+                        )}
                 </div>
 
                 {/* Details Area */}
@@ -357,7 +405,7 @@ export function MangaCard({
                         {manga.title}
                     </h3>
                     {manga.chapters?.totalCount !== undefined &&
-                    manga.chapters.totalCount > 0 ? (
+                        manga.chapters.totalCount > 0 ? (
                         <p className="text-[11px] text-muted-foreground">
                             {manga.chapters.totalCount} Chapters
                         </p>

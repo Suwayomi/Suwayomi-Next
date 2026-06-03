@@ -15,11 +15,6 @@ export type LibraryManga = {
     initialized: boolean;
     chapters: {
         totalCount: number;
-        nodes: {
-            id: number;
-            isRead: boolean;
-            sourceOrder: number;
-        }[];
     };
     categories: {
         nodes: {
@@ -62,11 +57,6 @@ export async function fetchLibrary(): Promise<LibraryManga[]> {
                 unreadCount: true,
                 chapters: {
                     totalCount: true,
-                    nodes: {
-                        id: true,
-                        isRead: true,
-                        sourceOrder: true,
-                    },
                 },
                 categories: {
                     nodes: {
