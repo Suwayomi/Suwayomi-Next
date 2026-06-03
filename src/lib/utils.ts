@@ -14,7 +14,7 @@ export function getImageUrl(path: string | null | undefined) {
     if (!path.startsWith("http")) {
         const normalizedPath = path.startsWith("/") ? path : `/${path}`
         // static-port
-        fullUrl = `${import.meta.env.DEV ? "http://localhost:4567" : window.location.origin}${normalizedPath}`
+        fullUrl = `${window.location.origin}${normalizedPath}`
     }
 
     const token = Cookies.get("suwayomi_access_token")
