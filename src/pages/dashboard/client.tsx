@@ -1,6 +1,7 @@
 import * as React from "react"
 import { PageLayout } from "@/components/page-layout"
 import { getImageUrl, cn } from "@/lib/utils"
+import { MangaImage } from "@/components/MangaImage"
 import { Button } from "@/components/ui/button"
 import {
     Play,
@@ -76,8 +77,8 @@ function HeroSlideshow({ rawHistory }: { rawHistory: HistoryGroup[] }) {
                                     : "z-0 opacity-0"
                             )}
                         >
-                            <img
-                                src={getImageUrl(item.thumbnailUrl)!}
+                            <MangaImage
+                                thumbnailUrl={item.thumbnailUrl}
                                 alt=""
                                 className="h-full w-full object-cover"
                             />
@@ -228,8 +229,8 @@ function FavoriteShelf({ favorites }: { favorites: any[] }) {
                                 onClick={() => navigate(`/manga/${m.id}`)}
                             >
                                 <div className="relative aspect-[3/4] overflow-hidden rounded-[1.5rem] border border-white/5 bg-muted/10 shadow-lg">
-                                    <img
-                                        src={getImageUrl(m.thumbnailUrl)!}
+                                    <MangaImage
+                                        thumbnailUrl={m.thumbnailUrl}
                                         alt={m.title}
                                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                                     />
@@ -427,12 +428,8 @@ function FreshReleases({ updates }: { updates: any[] }) {
                                   }
                               >
                                   <div className="relative aspect-[3/4] overflow-hidden rounded-[2rem] border border-white/5 shadow-2xl">
-                                      <img
-                                          src={
-                                              getImageUrl(
-                                                  update.manga.thumbnailUrl
-                                              )!
-                                          }
+                                      <MangaImage
+                                          thumbnailUrl={update.manga.thumbnailUrl}
                                           alt=""
                                           className="size-full object-cover transition-transform duration-700 group-hover:scale-110"
                                       />

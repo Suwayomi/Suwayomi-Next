@@ -16,10 +16,10 @@ import {
     StickyNotePlusIcon,
     FilePlusIcon,
     EyeClosedIcon,
-    RefreshCw,
     ImageIcon,
 } from "lucide-react"
-import { cn, getImageUrl } from "@/lib/utils"
+import { cn } from "@/lib/utils"
+import { MangaImage } from "./MangaImage"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -66,30 +66,7 @@ export function MangaCard({
     tags,
 }: MangaCardProps) {
     const navigate = useNavigate()
-    const [imgError, setImgError] = useState(false)
-    const [retryCount, setRetryCount] = useState(0)
 
-    const imageUrl = React.useMemo(() => {
-        if (!manga.thumbnailUrl) return null
-        const url = getImageUrl(manga.thumbnailUrl)
-        if (retryCount > 0 && url) {
-            try {
-                const urlObj = new URL(url)
-                urlObj.searchParams.set("retry", retryCount.toString())
-                return urlObj.toString()
-            } catch (e) {
-                return url
-            }
-        }
-        return url
-    }, [manga.thumbnailUrl, retryCount])
-
-    const handleRetry = (e: React.MouseEvent) => {
-        e.preventDefault()
-        e.stopPropagation()
-        setImgError(false)
-        setRetryCount((prev) => prev + 1)
-    }
     const matchingTags = tags
         ? manga.genre.filter((x: string) => tags.has(x.toLowerCase())).length
         : 0
@@ -136,36 +113,11 @@ export function MangaCard({
                         "border-4 border-primary ring-4 ring-primary/20"
                     )}
                 >
-                    {imageUrl && !imgError ? (
-                        <img
-                            src={imageUrl}
-                            alt={manga.title}
-                            onError={() => setImgError(true)}
-                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        />
-                    ) : (
-                        <div className="relative z-20 flex h-full w-full flex-col items-center justify-center gap-2 bg-muted/40 p-4 text-center" onClick={e => e.stopPropagation()}>
-                            <ImageIcon className="size-8 text-muted-foreground/20" />
-                            <div className="space-y-1">
-                                <p className="text-[10px] font-bold text-muted-foreground/40 uppercase">
-                                    {imgError ? "Load Failed" : "No Cover"}
-                                </p>
-                                {imgError && (
-                                    <Button
-                                        variant="secondary"
-                                        size="xs"
-                                        className="h-7 gap-1 rounded-full px-2 text-[10px]"
-                                        onClick={handleRetry}
-                                        onPointerDown={(e) => e.stopPropagation()}
-                                        onMouseDown={(e) => e.stopPropagation()}
-                                    >
-                                        <RefreshCw className="size-3" />
-                                        Retry
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                    )}
+                    <MangaImage
+                        thumbnailUrl={manga.thumbnailUrl}
+                        alt={manga.title}
+                        className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
 
                     {/* Status Badges */}
 
