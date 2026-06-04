@@ -13,6 +13,7 @@ export default defineConfig({
         },
     },
     server: {
+        port: 3000,
         proxy: {
             // String shorthand: any request starting with /api
             // will be sent to http://localhost:456/api

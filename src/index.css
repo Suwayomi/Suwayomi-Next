@@ -140,6 +140,7 @@ button {
 div {
 	--tw-ring-color: none;
 }
+
 @layer utilities {
 	.glass-card {
 		@apply border border-white/5 bg-muted/40;
@@ -166,9 +167,31 @@ div {
 			opacity: 0;
 			transform: translateY(10px);
 		}
+
 		to {
 			opacity: 1;
 			transform: translateY(0);
 		}
+	}
+}
+
+[data-slot="dropdown-menu-item"] {
+	cursor: pointer;
+
+	&:hover {
+		color: var(--color-primary);
+
+		svg {
+			stroke: var(--color-primary);
+		}
+	}
+}
+
+.read-later-icon {
+	fill: var(--color-primary);
+	stroke: var(--color-card);
+
+	circle {
+		stroke: var(--color-primary);
 	}
 }

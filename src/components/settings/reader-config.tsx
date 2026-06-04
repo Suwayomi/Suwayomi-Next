@@ -33,6 +33,38 @@ interface Props {
     className?: string
 }
 
+interface ConfigButtonProps {
+    isActive: boolean
+    onClick: () => void
+    children: React.ReactNode
+    layout?: "stack" | "inline"
+    className?: string
+}
+
+function ConfigButton({
+    isActive,
+    onClick,
+    children,
+    layout = "inline",
+    className,
+}: ConfigButtonProps) {
+    return (
+        <button
+            onClick={onClick}
+            className={cn(
+                "flex cursor-pointer items-center justify-center rounded-xl border p-3 transition-all",
+                layout === "stack" ? "flex-col gap-2 text-center" : "gap-3",
+                isActive
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border/40 bg-muted/10 text-muted-foreground hover:bg-muted/20",
+                className
+            )}
+        >
+            {children}
+        </button>
+    )
+}
+
 export function ReaderConfig({ className }: Props) {
     const {
         readingMode,
@@ -87,23 +119,19 @@ export function ReaderConfig({ className }: Props) {
                         },
                         { id: "webtoon", label: "Webtoon", icon: LayoutGrid },
                     ].map((mode) => (
-                        <button
+                        <ConfigButton
                             key={mode.id}
+                            isActive={readingMode === mode.id}
                             onClick={() =>
                                 setReadingMode(mode.id as ReadingMode)
                             }
-                            className={cn(
-                                "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border p-3 text-center transition-all",
-                                readingMode === mode.id
-                                    ? "border-primary bg-primary/20 text-primary"
-                                    : "border-border/40 bg-muted/10 text-muted-foreground hover:bg-muted/20"
-                            )}
+                            layout="stack"
                         >
                             <mode.icon className="size-4" />
                             <span className="text-[10px] font-bold">
                                 {mode.label}
                             </span>
-                        </button>
+                        </ConfigButton>
                     ))}
                 </div>
             </div>
@@ -118,21 +146,16 @@ export function ReaderConfig({ className }: Props) {
                         { id: "floating", label: "Floating", icon: Box },
                         { id: "static", label: "Static", icon: Square },
                     ].map((type) => (
-                        <button
+                        <ConfigButton
                             key={type.id}
+                            isActive={hudType === type.id}
                             onClick={() => setHudType(type.id as HudType)}
-                            className={cn(
-                                "flex cursor-pointer items-center justify-center gap-3 rounded-xl border p-3 transition-all",
-                                hudType === type.id
-                                    ? "border-primary bg-primary/20 text-primary"
-                                    : "border-border/40 bg-muted/10 text-muted-foreground hover:bg-muted/20"
-                            )}
                         >
                             <type.icon className="size-4" />
                             <span className="text-xs font-bold">
                                 {type.label}
                             </span>
-                        </button>
+                        </ConfigButton>
                     ))}
                 </div>
             </div>
@@ -155,23 +178,18 @@ export function ReaderConfig({ className }: Props) {
                             icon: MoveHorizontal,
                         },
                     ].map((orient) => (
-                        <button
+                        <ConfigButton
                             key={orient.id}
+                            isActive={hudOrientation === orient.id}
                             onClick={() =>
                                 setHudOrientation(orient.id as HudOrientation)
                             }
-                            className={cn(
-                                "flex cursor-pointer items-center justify-center gap-3 rounded-xl border p-3 transition-all",
-                                hudOrientation === orient.id
-                                    ? "border-primary bg-primary/20 text-primary"
-                                    : "border-border/40 bg-muted/10 text-muted-foreground hover:bg-muted/20"
-                            )}
                         >
                             <orient.icon className="size-4" />
                             <span className="text-xs font-bold">
                                 {orient.label}
                             </span>
-                        </button>
+                        </ConfigButton>
                     ))}
                 </div>
             </div>
@@ -187,24 +205,19 @@ export function ReaderConfig({ className }: Props) {
                             { id: "ltr", label: "Left to Right" },
                             { id: "rtl", label: "Right to Left" },
                         ].map((dir) => (
-                            <button
+                            <ConfigButton
                                 key={dir.id}
+                                isActive={readingDirection === dir.id}
                                 onClick={() =>
                                     setReadingDirection(
                                         dir.id as ReadingDirection
                                     )
                                 }
-                                className={cn(
-                                    "flex cursor-pointer items-center justify-center gap-3 rounded-xl border p-3 transition-all",
-                                    readingDirection === dir.id
-                                        ? "border-primary bg-primary/20 text-primary"
-                                        : "border-border/40 bg-muted/10 text-muted-foreground hover:bg-muted/20"
-                                )}
                             >
                                 <span className="text-xs font-bold">
                                     {dir.label}
                                 </span>
-                            </button>
+                            </ConfigButton>
                         ))}
                     </div>
                 </div>
@@ -223,18 +236,14 @@ export function ReaderConfig({ className }: Props) {
                         "right-left",
                         "disabled",
                     ].map((zone) => (
-                        <button
+                        <ConfigButton
                             key={zone}
+                            isActive={tapZone === zone}
                             onClick={() => setTapZone(zone as TapZone)}
-                            className={cn(
-                                "flex cursor-pointer items-center justify-center rounded-xl border p-3 text-xs font-bold capitalize transition-all",
-                                tapZone === zone
-                                    ? "border-primary bg-primary/20 text-primary"
-                                    : "border-border/40 bg-muted/10 text-muted-foreground hover:bg-muted/20"
-                            )}
+                            className="text-xs font-bold capitalize"
                         >
                             {zone.replace("-", " ")}
-                        </button>
+                        </ConfigButton>
                     ))}
                 </div>
             </div>
@@ -247,20 +256,16 @@ export function ReaderConfig({ className }: Props) {
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {["none", "horizontal", "vertical", "both"].map(
                         (invert) => (
-                            <button
+                            <ConfigButton
                                 key={invert}
+                                isActive={invertTapZone === invert}
                                 onClick={() =>
                                     setInvertTapZone(invert as InvertTapZone)
                                 }
-                                className={cn(
-                                    "flex cursor-pointer items-center justify-center rounded-xl border p-2 text-[10px] font-bold capitalize transition-all",
-                                    invertTapZone === invert
-                                        ? "border-primary bg-primary/20 text-primary"
-                                        : "border-border/40 bg-muted/10 text-muted-foreground hover:bg-muted/20"
-                                )}
+                                className="p-2 text-[10px] font-bold capitalize"
                             >
                                 {invert}
-                            </button>
+                            </ConfigButton>
                         )
                     )}
                 </div>
@@ -286,21 +291,17 @@ export function ReaderConfig({ className }: Props) {
                         { id: "fit-screen", label: "Screen", icon: Monitor },
                         { id: "original", label: "Original", icon: Gauge },
                     ].map((mode) => (
-                        <button
+                        <ConfigButton
                             key={mode.id}
+                            isActive={scaleType === mode.id}
                             onClick={() => setScaleType(mode.id as ScaleType)}
-                            className={cn(
-                                "flex cursor-pointer flex-col items-center gap-2 rounded-xl border p-3 transition-all",
-                                scaleType === mode.id
-                                    ? "border-primary bg-primary/20 text-primary"
-                                    : "border-border/40 bg-muted/10 text-muted-foreground hover:bg-muted/20"
-                            )}
+                            layout="stack"
                         >
                             <mode.icon className="size-4" />
                             <span className="text-[10px] font-bold">
                                 {mode.label}
                             </span>
-                        </button>
+                        </ConfigButton>
                     ))}
                 </div>
             </div>
@@ -334,34 +335,26 @@ export function ReaderConfig({ className }: Props) {
                     <Layers className="size-3" /> Backdrop
                 </h3>
                 <div className="flex gap-2">
-                    <button
+                    <ConfigButton
+                        isActive={background === "black"}
                         onClick={() => setBackground("black")}
-                        className={cn(
-                            "flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border p-3 transition-all",
-                            background === "black"
-                                ? "border-primary bg-primary/10"
-                                : "border-border/40 bg-muted/10"
-                        )}
+                        className={cn("flex-1")}
                     >
-                        <div className="size-2 rounded-full border border-white/20 bg-black" />
+                        <div className="size-4 rounded border border-white/20 bg-black" />
                         <span className="text-[10px] font-bold uppercase">
                             Amoled
                         </span>
-                    </button>
-                    <button
+                    </ConfigButton>
+                    <ConfigButton
+                        isActive={background === "zinc"}
                         onClick={() => setBackground("zinc")}
-                        className={cn(
-                            "flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl border p-3 transition-all",
-                            background === "zinc"
-                                ? "border-primary bg-primary/10"
-                                : "border-border/40 bg-muted/10"
-                        )}
+                        className={cn("flex-1")}
                     >
-                        <div className="size-2 rounded-full border border-white/20 bg-zinc-900" />
+                        <div className="size-4 rounded border border-white/20 bg-zinc-900" />
                         <span className="text-[10px] font-bold uppercase">
                             Obsidian
                         </span>
-                    </button>
+                    </ConfigButton>
                 </div>
             </div>
         </div>

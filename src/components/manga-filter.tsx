@@ -1,5 +1,12 @@
 import * as React from "react"
-import { SlidersHorizontal, RotateCcw, ChevronDown } from "lucide-react"
+import {
+    SlidersHorizontal,
+    RotateCcw,
+    ChevronDown,
+    StarIcon,
+    Clock9Icon,
+    ArrowDownAZIcon,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
     Sheet,
@@ -9,6 +16,11 @@ import {
     SheetFooter,
 } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from "./ui/collapsible"
 
 /**
  * Types and State
@@ -186,28 +198,37 @@ function TogglePill({
 function FilterSection({
     label,
     children,
+    icon,
     closeByDefault,
 }: {
     label: string
     children: React.ReactNode
+    icon?: React.ReactNode
     closeByDefault?: boolean
 }) {
     const [isOpen, setOpen] = React.useState(!closeByDefault)
     return (
-        <div className="flex flex-col gap-2.5">
-            <div
-                className="flex cursor-pointer items-center justify-between rounded px-2 py-1 hover:bg-secondary/50"
-                onClick={() => setOpen((p) => !p)}
-            >
-                <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                    {label}
-                </span>
-                <ChevronDown
-                    className={cn("size-3 -rotate-90", isOpen && "rotate-0")}
-                />
+        <Collapsible open={isOpen} onOpenChange={setOpen}>
+            <div className="flex flex-col gap-2.5">
+                <CollapsibleTrigger className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        {icon}
+                        <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                            {label}
+                        </span>
+                    </div>
+                    <ChevronDown
+                        className={cn(
+                            "size-3 -rotate-90",
+                            isOpen && "rotate-0"
+                        )}
+                    />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="m-0 flex flex-wrap gap-2">
+                    {children}
+                </CollapsibleContent>
             </div>
-            {isOpen && <div className="flex flex-wrap gap-2">{children}</div>}
-        </div>
+        </Collapsible>
     )
 }
 
@@ -271,6 +292,64 @@ export function MangaFilter({
                     </SheetHeader>
 
                     <div className="flex flex-1 flex-col gap-6 overflow-y-auto px-5 py-5">
+                        {/* IN */}
+                        <FilterSection
+                            icon={
+                                <StarIcon className="size-4 fill-amber-500 stroke-amber-500" />
+                            }
+                            label="Favored"
+                        >
+                            {(
+                                [
+                                    { value: "all", label: "All" },
+                                    {
+                                        value: "is_favorited",
+                                        label: "Favored",
+                                    },
+                                    {
+                                        value: "not_favorited",
+                                        label: "Not favored",
+                                    },
+                                ] as const
+                            ).map(({ value, label }) => (
+                                <TogglePill
+                                    key={value}
+                                    active={filter.favorited === value}
+                                    onClick={() => set("favorited", value)}
+                                >
+                                    {label}
+                                </TogglePill>
+                            ))}
+                        </FilterSection>
+
+                        <FilterSection
+                            icon={
+                                <Clock9Icon className="read-later-icon size-4" />
+                            }
+                            label="Read Later"
+                        >
+                            {(
+                                [
+                                    { value: "all", label: "All" },
+                                    {
+                                        value: "read_later",
+                                        label: "Only",
+                                    },
+                                    {
+                                        value: "not_read_later",
+                                        label: "Not",
+                                    },
+                                ] as const
+                            ).map(({ value, label }) => (
+                                <TogglePill
+                                    key={value}
+                                    active={filter.readLater === value}
+                                    onClick={() => set("readLater", value)}
+                                >
+                                    {label}
+                                </TogglePill>
+                            ))}
+                        </FilterSection>
                         {/* Status */}
                         <FilterSection label="Status">
                             {(
@@ -350,7 +429,12 @@ export function MangaFilter({
                         </FilterSection>
 
                         {/* Sort direction */}
-                        <FilterSection label="Sort direction">
+                        <FilterSection
+                            icon={
+                                <ArrowDownAZIcon className="size-4 stroke-primary" />
+                            }
+                            label="Sort direction"
+                        >
                             <TogglePill
                                 active={filter.sortDirection === "asc"}
                                 onClick={() => set("sortDirection", "asc")}
@@ -365,53 +449,6 @@ export function MangaFilter({
                             </TogglePill>
                         </FilterSection>
 
-                        {/* Favored - Adaptive */}
-                        <FilterSection label="Favored">
-                            {(
-                                [
-                                    { value: "all", label: "All" },
-                                    {
-                                        value: "is_favorited",
-                                        label: "Favored",
-                                    },
-                                    {
-                                        value: "not_favorited",
-                                        label: "Not favored",
-                                    },
-                                ] as const
-                            ).map(({ value, label }) => (
-                                <TogglePill
-                                    key={value}
-                                    active={filter.favorited === value}
-                                    onClick={() => set("favorited", value)}
-                                >
-                                    {label}
-                                </TogglePill>
-                            ))}
-                        </FilterSection>
-                        <FilterSection label="Read Later">
-                            {(
-                                [
-                                    { value: "all", label: "All" },
-                                    {
-                                        value: "read_later",
-                                        label: "Only",
-                                    },
-                                    {
-                                        value: "not_read_later",
-                                        label: "Not",
-                                    },
-                                ] as const
-                            ).map(({ value, label }) => (
-                                <TogglePill
-                                    key={value}
-                                    active={filter.readLater === value}
-                                    onClick={() => set("readLater", value)}
-                                >
-                                    {label}
-                                </TogglePill>
-                            ))}
-                        </FilterSection>
                         {/* Genres */}
                         {availableGenres.length > 0 && (
                             <FilterSection label="Genres" closeByDefault>

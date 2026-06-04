@@ -28,16 +28,17 @@ import { useAppStore } from "@/hooks/use-app-store"
 import { selectUpdateCount } from "@/lib/store/slices/extensions"
 import { selectActiveDownloadCount } from "@/lib/store/slices/downloads"
 import { Link, useLocation } from "react-router-dom"
-
-// ─── Nav config ──────────────────────────────────────────────────────────────
-// Items with a `getBadge` function receive a live badge from the global store.
-// To add a badge to any nav item: add `getBadge` — no provider changes needed.
+import { Collapsible } from "./ui/collapsible"
 
 type NavItem = {
     title: string
     url: string
     icon: React.ElementType
     getBadge?: (store: ReturnType<typeof useAppStore>) => number
+    subItems?: {
+        title: string
+        url: string
+    }[]
 }
 
 const navGroups: { label: string; items: NavItem[] }[] = [
@@ -45,7 +46,15 @@ const navGroups: { label: string; items: NavItem[] }[] = [
         label: "Overview",
         items: [
             { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-            { title: "Library", url: "/library", icon: Library },
+            {
+                title: "Library",
+                url: "/library",
+                icon: Library,
+                subItems: [
+                    { title: "Favorite", url: "/library?filter=is_favorited" },
+                    { title: "Read Later", url: "/library?filter=read_later" },
+                ],
+            },
         ],
     },
     {

@@ -56,22 +56,8 @@ export default function LibrarySettings({
     return (
         <div className="space-y-5">
             {/* Categories Section */}
-            <SettingsSection
-                icon={
-                    <FolderPenIcon className="size-5 text-zinc-500 dark:text-muted-foreground" />
-                }
-                title="Categories"
-            >
+            <SettingsSection>
                 <CategoryConfig initialCategories={initialCategories ?? []} />
-            </SettingsSection>
-
-            {/* Custom Tags / Genres Section */}
-            <SettingsSection
-                icon={
-                    <TagIcon className="size-5 text-zinc-500 dark:text-muted-foreground" />
-                }
-                title="Custom Tags & Genres"
-            >
                 <TagConfig />
             </SettingsSection>
 

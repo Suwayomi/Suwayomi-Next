@@ -43,7 +43,7 @@ export default function ServerSettings({
     }
 
     return (
-        <div className="flex max-w-5xl flex-col gap-12 pb-20">
+        <div className="flex flex-col gap-12 pb-20">
             {/* Client Section */}
             <SettingsSection
                 title="Client"

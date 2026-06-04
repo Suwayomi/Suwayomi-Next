@@ -41,7 +41,7 @@ export default function AppearanceSettings({
     }, [applyAccent, currentAccent])
 
     return (
-        <div className="max-w-4xl space-y-8 pb-12">
+        <div className="space-y-8 pb-12">
             <section className="flex items-center justify-between">
                 <div className="space-y-1">
                     <h2 className="text-xl font-semibold tracking-tight">

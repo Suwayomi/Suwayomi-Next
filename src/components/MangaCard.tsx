@@ -134,16 +134,16 @@ export function MangaCard({
                         )}
                     </div>
 
-                    <div className="absolute right-3 bottom-0 z-20 flex justify-center gap-2 space-y-2">
+                    <div className="absolute right-3 bottom-3 z-20 flex h-fit justify-center gap-2 space-y-2">
                         {matchingTags > 0 && (
-                            <div className="z-20 flex size-fit items-center gap-1 rounded-md border border-white/20 bg-secondary p-1 text-xs text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg">
+                            <div className="z-20 m-0 flex size-fit items-center gap-1 rounded-md border border-white/20 bg-secondary p-1 text-xs text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg">
                                 <TagsIcon className="size-4" /> {matchingTags}
                             </div>
                         )}
 
                         {/* Unread Badge Count */}
                         {manga.unreadCount > 0 && !isSelected && (
-                            <div className="flex size-fit gap-1 rounded-md border border-black/20 bg-primary px-2 py-1 text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg dark:border-white/20">
+                            <div className="m-0 flex size-fit gap-1 rounded-md border border-black/20 bg-primary px-2 py-1 text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg dark:border-white/20">
                                 {manga.unreadCount}
                             </div>
                         )}

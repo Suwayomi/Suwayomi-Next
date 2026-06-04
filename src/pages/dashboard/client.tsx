@@ -15,6 +15,7 @@ import {
     Eye,
     EyeOff,
     ClipboardClock,
+    Clock9Icon,
 } from "lucide-react"
 import { useAppStore } from "@/hooks/use-app-store"
 import { Badge } from "@/components/ui/badge"
@@ -235,11 +236,6 @@ function FavoriteShelf({ favorites }: { favorites: any[] }) {
                                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                                    <div className="absolute top-3 left-3 z-20">
-                                        <div className="flex size-8 -rotate-12 transform items-center justify-center rounded-full bg-amber-500 shadow-lg transition-transform group-hover:rotate-0">
-                                            <Star className="size-4 fill-white text-white" />
-                                        </div>
-                                    </div>
                                 </div>
                                 <div className="mt-3 px-1">
                                     <h4 className="line-clamp-1 text-sm font-bold text-foreground transition-colors group-hover:text-amber-500">
@@ -278,9 +274,9 @@ function ReadLaterQueue({ readLater }: { readLater: any[] }) {
             <div className="flex justify-between">
                 <div className="flex items-center gap-3">
                     <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10">
-                        <ClipboardClock className="size-6 text-primary" />
+                        <Clock9Icon className="read-later-icon size-6" />
                     </div>
-                    <h2 className="font-heading text-xl font-black tracking-tight uppercase">
+                    <h2 className="font-heading text-2xl font-black tracking-tight underline decoration-primary/20 underline-offset-8">
                         Read Later
                     </h2>
                 </div>
