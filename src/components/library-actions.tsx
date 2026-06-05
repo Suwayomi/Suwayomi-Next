@@ -118,19 +118,14 @@ export function LibraryActions({
 
             <DropdownMenu>
                 <DropdownMenuTrigger
-                    render={
-                        <button
-                            type="button"
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex size-8 items-center justify-center rounded-full bg-background/80 text-foreground shadow-lg backdrop-blur-sm transition-all outline-none hover:bg-background"
-                        >
-                            <MoreVertical className="size-4" />
-                        </button>
-                    }
-                />
+                    onClick={(e) => e.stopPropagation()}
+                    className="flex size-8 items-center justify-center rounded-full bg-background/80 text-foreground shadow-lg backdrop-blur-sm transition-all outline-none hover:bg-background"
+                >
+                    <MoreVertical className="size-4" />
+                </DropdownMenuTrigger>
                 <DropdownMenuContent
                     align="end"
-                    className="w-64"
+                    className="min-w-50"
                     onClick={(e) => e.stopPropagation()}
                 >
                     <DropdownMenuItem

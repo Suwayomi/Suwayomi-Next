@@ -3,6 +3,14 @@
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/inter";
 
+@font-face {
+	font-family: potta;
+	font-style: normal;
+	font-weight: 200 700;
+	font-display: swap;
+	src: url("./assets/fonts//PottaOne-Regular.ttf");
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -46,6 +54,8 @@
 	--radius-2xl: calc(var(--radius) * 1.8);
 	--radius-3xl: calc(var(--radius) * 2.2);
 	--radius-4xl: calc(var(--radius) * 2.6);
+	--font-potta: "potta", sans-serif;
+
 }
 
 :root {
@@ -179,12 +189,18 @@ div {
 	cursor: pointer;
 
 	&:hover {
-		color: var(--color-primary);
+		color: var(--foreground);
 
 		svg {
-			stroke: var(--color-primary);
+			stroke: var(--foreground);
 		}
 	}
+}
+
+[data-slot="select-content"],
+[data-slot="dropdown-menu-content"] {
+	padding: 3px;
+	border: 1px solid var(--border);
 }
 
 .read-later-icon {

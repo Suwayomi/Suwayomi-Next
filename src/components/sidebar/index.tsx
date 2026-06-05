@@ -181,7 +181,7 @@ function BarItem({
     const badge = React.useMemo(() => item.getBadge?.(store) ?? 0, store)
     const [open, setOpen] = React.useState(location.pathname === item.url)
     const isOpen = React.useMemo(
-        () => location.pathname === item.url || open,
+        () => location.pathname === item.url && open,
         [open, location.pathname]
     )
     return (

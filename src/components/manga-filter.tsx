@@ -273,10 +273,6 @@ export function MangaFilter({
                 )}
             >
                 <SlidersHorizontal className="size-4" />
-                Filter
-                {active && (
-                    <span className="size-1.5 shrink-0 rounded-full bg-primary" />
-                )}
             </Button>
 
             <Sheet open={open} onOpenChange={setOpen}>
