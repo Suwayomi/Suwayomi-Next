@@ -2,12 +2,10 @@ import * as React from "react"
 import { PageLayout } from "@/components/page-layout"
 import { LibraryActions } from "@/components/library-actions"
 import { client } from "@/lib/client"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { toast } from "sonner"
 import {
     Library,
     MoreVertical,
-    Check,
     Download,
     BookOpen,
     Trash2,
@@ -53,6 +51,13 @@ export default function LibraryClient({}: LibraryClientProps) {
         favorited: (pathFilter as MangaFavorited) || "all",
         readLater: (pathFilter as MangaReadLater) || "all",
     })
+    React.useEffect(() => {
+        setFilter((p) => ({
+            ...p,
+            favorited: (pathFilter as MangaFavorited) || "all",
+            readLater: (pathFilter as MangaReadLater) || "all",
+        }))
+    }, [pathFilter, pathCategory])
     const [searchQuery, setSearchQuery] = React.useState("")
     const [selectedIds, setSelectedIds] = React.useState<Set<number>>(new Set())
 
@@ -547,17 +552,18 @@ function DisplayList({
                         totalCount={items.length}
                         overscan={200}
                         components={{
-                            List: React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-                                ({ children, ...props }, ref) => (
-                                    <div
-                                        {...props}
-                                        ref={ref}
-                                        className="grid grid-cols-2 gap-x-4 gap-y-6 pb-20 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
-                                    >
-                                        {children}
-                                    </div>
-                                )
-                            ),
+                            List: React.forwardRef<
+                                HTMLDivElement,
+                                React.HTMLAttributes<HTMLDivElement>
+                            >(({ children, ...props }, ref) => (
+                                <div
+                                    {...props}
+                                    ref={ref}
+                                    className="grid grid-cols-2 gap-x-4 gap-y-6 pb-20 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+                                >
+                                    {children}
+                                </div>
+                            )),
                             Item: ({ children, ...props }: any) => (
                                 <div {...props}>{children}</div>
                             ),

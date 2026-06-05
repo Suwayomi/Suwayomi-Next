@@ -8,6 +8,12 @@ import {
     Download,
     Settings2,
     Info,
+    Plus,
+    Star,
+    BookA,
+    ChevronsLeft,
+    ChevronLeft,
+    ChevronRight,
 } from "lucide-react"
 
 import {
@@ -23,22 +29,23 @@ import {
     SidebarGroupLabel,
     SidebarGroupContent,
     SidebarMenuBadge,
+    SidebarMenuSub,
+    SidebarMenuSubItem,
+    SidebarMenuSubButton,
+    SidebarMenuAction,
 } from "@/components/ui/sidebar"
 import { useAppStore } from "@/hooks/use-app-store"
 import { selectUpdateCount } from "@/lib/store/slices/extensions"
 import { selectActiveDownloadCount } from "@/lib/store/slices/downloads"
-import { Link, useLocation } from "react-router-dom"
-import { Collapsible } from "./ui/collapsible"
+import { Link, useLocation, type Location } from "react-router-dom"
+import { cn } from "@/lib/utils"
 
 type NavItem = {
     title: string
     url: string
     icon: React.ElementType
     getBadge?: (store: ReturnType<typeof useAppStore>) => number
-    subItems?: {
-        title: string
-        url: string
-    }[]
+    subItems?: Omit<NavItem, "subItems">[]
 }
 
 const navGroups: { label: string; items: NavItem[] }[] = [
@@ -51,8 +58,16 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                 url: "/library",
                 icon: Library,
                 subItems: [
-                    { title: "Favorite", url: "/library?filter=is_favorited" },
-                    { title: "Read Later", url: "/library?filter=read_later" },
+                    {
+                        title: "Favorite",
+                        url: "/library?filter=is_favorited",
+                        icon: Star,
+                    },
+                    {
+                        title: "Read Later",
+                        url: "/library?filter=read_later",
+                        icon: BookA,
+                    },
                 ],
             },
         ],
@@ -89,10 +104,10 @@ const navSecondary = [
     { title: "About", url: "/about", icon: Info },
 ]
 
-// ─── Component ───────────────────────────────────────────────────────────────
-
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-    const { pathname } = useLocation()
+export default function AppSidebar({
+    ...props
+}: React.ComponentProps<typeof Sidebar>) {
+    const location = useLocation()
     const store = useAppStore()
 
     return (
@@ -118,28 +133,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 {navGroups.map((group) => (
                     <SidebarGroup key={group.label}>
                         <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+
                         <SidebarGroupContent>
                             <SidebarMenu>
-                                {group.items.map((item) => {
-                                    const badge = item.getBadge?.(store) ?? 0
-                                    return (
-                                        <SidebarMenuItem key={item.title}>
-                                            <SidebarMenuButton
-                                                render={<Link to={item.url} />}
-                                                tooltip={item.title}
-                                                isActive={pathname === item.url}
-                                            >
-                                                <item.icon className="size-4" />
-                                                <span>{item.title}</span>
-                                            </SidebarMenuButton>
-                                            {badge > 0 && (
-                                                <SidebarMenuBadge>
-                                                    {badge}
-                                                </SidebarMenuBadge>
-                                            )}
-                                        </SidebarMenuItem>
-                                    )
-                                })}
+                                {group.items.map((item) => (
+                                    <BarItem
+                                        item={item}
+                                        store={store}
+                                        location={location}
+                                    />
+                                ))}
                             </SidebarMenu>
                         </SidebarGroupContent>
                     </SidebarGroup>
@@ -152,7 +155,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                             <SidebarMenuButton
                                 render={<Link to={item.url} />}
                                 tooltip={item.title}
-                                isActive={pathname === item.url}
+                                isActive={location.pathname === item.url}
                             >
                                 <item.icon className="size-4" />
                                 <span>{item.title}</span>
@@ -163,5 +166,60 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarFooter>
             <SidebarRail />
         </Sidebar>
+    )
+}
+
+function BarItem({
+    item,
+    store,
+    location,
+}: {
+    item: NavItem
+    store: any
+    location: Location<any>
+}) {
+    const badge = React.useMemo(() => item.getBadge?.(store) ?? 0, store)
+    const [open, setOpen] = React.useState(location.pathname === item.url)
+    const isOpen = React.useMemo(
+        () => location.pathname === item.url || open,
+        [open, location.pathname]
+    )
+    return (
+        <SidebarMenuItem key={item.title}>
+            <SidebarMenuButton
+                render={<Link to={item.url} />}
+                tooltip={item.title}
+                isActive={location.pathname === item.url}
+            >
+                <item.icon className="size-4" />
+                <span>{item.title}</span>
+            </SidebarMenuButton>
+            {badge > 0 && <SidebarMenuBadge>{badge}</SidebarMenuBadge>}
+            {item.subItems && (
+                <>
+                    <SidebarMenuAction onClick={() => setOpen((p) => !p)}>
+                        <ChevronRight className={cn(isOpen && "rotate-90")} />
+                    </SidebarMenuAction>
+                    {isOpen && (
+                        <SidebarMenuSub>
+                            {item.subItems.map((subItem) => (
+                                <SidebarMenuSubItem>
+                                    <SidebarMenuSubButton
+                                        render={<Link to={subItem.url} />}
+                                        isActive={
+                                            subItem.url ===
+                                            item.url + location.search
+                                        }
+                                    >
+                                        <subItem.icon className="size-4" />
+                                        <span>{subItem.title}</span>
+                                    </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                            ))}
+                        </SidebarMenuSub>
+                    )}
+                </>
+            )}
+        </SidebarMenuItem>
     )
 }

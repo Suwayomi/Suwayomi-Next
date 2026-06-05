@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils"
 import * as React from "react"
 import { Button } from "./ui/button"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, PanelRightOpen } from "lucide-react"
+import { SidebarTrigger } from "./ui/sidebar"
 
 interface Props {
     title?: string
@@ -37,6 +38,11 @@ export function PageLayout({
                             <ArrowLeft className="size-4" />
                         </Button>
                     )}
+                    <SidebarTrigger className={"md:hidden"}>
+                        <Button variant={"ghost"} size={"icon"}>
+                            <PanelRightOpen />
+                        </Button>
+                    </SidebarTrigger>
                     <div className="flex flex-col">
                         {title && (
                             <h1 className="text-2xl font-black tracking-tight text-foreground uppercase sm:text-3xl">

@@ -1,5 +1,5 @@
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
+import AppSidebar from "@/components/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ReaderSettingsProvider } from "@/hooks/use-reader-settings"
 import { AppStoreProvider } from "@/hooks/use-app-store"
