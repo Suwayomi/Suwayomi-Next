@@ -7,7 +7,6 @@ import * as React from "react"
 import { useLocation } from "react-router-dom"
 import Struct from "./Struct"
 import { WelcomeScreen } from "@/components/WelcomeScreen"
-import { CategorySelectionDialog } from "@/components/category-selection-dialog"
 
 export default function MainClient({
     children,

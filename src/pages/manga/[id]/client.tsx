@@ -1,5 +1,6 @@
 import * as React from "react"
 import { PageLayout } from "@/components/page-layout"
+import { ChapterRow } from "./_components/ChapterRow"
 import { client } from "@/lib/client"
 import { getImageUrl, cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -11,8 +12,6 @@ import { useAppStore } from "@/hooks/use-app-store"
 import {
     Play,
     Library,
-    Plus,
-    Check,
     ChevronDown,
     ChevronUp,
     ExternalLink,
@@ -20,24 +19,11 @@ import {
     Info,
     Clock,
     Download,
-    Bookmark,
-    CheckCircle2,
-    Calendar,
-    MoreVertical,
-    ArrowUpToLine,
     X,
     Trash2,
     Layers,
-    History,
     RefreshCw,
 } from "lucide-react"
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { type QueryResult } from "@/generated"
 import { CategorySelectionDialog } from "@/components/category-selection-dialog"
 import { MangaStatsBar } from "@/components/manga/manga-stats-bar"
@@ -460,7 +446,7 @@ export default function MangaDetailClient({
 
     return (
         <PageLayout
-            title="Manga Details"
+            title="Details"
             actions={
                 <Button
                     variant="secondary"
@@ -475,9 +461,8 @@ export default function MangaDetailClient({
         >
             <div className="flex flex-1 flex-col gap-10 overflow-hidden overflow-y-auto scroll-smooth pb-24">
                 {/* Hero Section */}
-                <div className="grid gap-8 md:grid-cols-[2fr_1fr]">
+                <div className="grid gap-8 md:relative md:grid-cols-[2fr_1fr] md:items-start">
                     <div className="flex flex-col items-start gap-8 md:flex-row">
-                        {/* Cover Image */}
                         <div className="w-full shrink-0 md:w-64 lg:w-72">
                             <div className="aspect-[3/4] overflow-hidden rounded-2xl border border-border/50 bg-muted/30 shadow-2xl">
                                 {manga.thumbnailUrl ? (
@@ -494,7 +479,6 @@ export default function MangaDetailClient({
                             </div>
                         </div>
 
-                        {/* Main Info */}
                         <div className="flex flex-1 flex-col gap-6 pt-2">
                             <div className="flex flex-col gap-3">
                                 <div className="flex items-center gap-2">
@@ -503,7 +487,6 @@ export default function MangaDetailClient({
                                             <span className="h-fit items-center gap-1 rounded border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-bold tracking-wider text-primary uppercase">
                                                 {manga.status}
                                             </span>
-
                                             <span className="inline items-center gap-1 px-1 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
                                                 {manga.source?.displayName ||
                                                     manga.source?.name}
@@ -579,15 +562,17 @@ export default function MangaDetailClient({
                             </div>
                         </div>
                     </div>
-                    {/* Synopsis */}
-                    <div className="flex max-w-4xl flex-col gap-4">
-                        <div className="flex items-center gap-2 font-bold text-foreground">
+
+                    <div className="flex w-full max-w-4xl flex-col gap-4 md:absolute md:top-0 md:right-0 md:bottom-0 md:w-[calc(33.333333%-1.333333rem)]">
+                        <div className="flex shrink-0 items-center gap-2 font-bold text-foreground">
                             <Info className="size-4 text-primary" />
                             <h2 className="text-xs tracking-widest uppercase">
                                 Synopsis
                             </h2>
                         </div>
-                        <div className="max-h-90 overflow-hidden overflow-y-auto">
+
+                        {/* Scrollable area adjusts automatically */}
+                        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
                             <div
                                 className={cn(
                                     "text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground transition-all md:text-base",
@@ -598,34 +583,36 @@ export default function MangaDetailClient({
                                     "No description available."}
                             </div>
                         </div>
+
                         {manga.description &&
                             manga.description.length > 200 && (
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() =>
-                                        setIsDescriptionExpanded(
-                                            !isDescriptionExpanded
-                                        )
-                                    }
-                                    className="-ml-2 w-fit gap-1 text-primary hover:bg-primary/10 hover:text-primary"
-                                >
-                                    {isDescriptionExpanded ? (
-                                        <>
-                                            Show Less{" "}
-                                            <ChevronUp className="size-4" />
-                                        </>
-                                    ) : (
-                                        <>
-                                            Read More{" "}
-                                            <ChevronDown className="size-4" />
-                                        </>
-                                    )}
-                                </Button>
+                                <div className="shrink-0 bg-background pt-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() =>
+                                            setIsDescriptionExpanded(
+                                                !isDescriptionExpanded
+                                            )
+                                        }
+                                        className="-ml-2 w-fit gap-1 text-primary hover:bg-primary/10 hover:text-primary"
+                                    >
+                                        {isDescriptionExpanded ? (
+                                            <>
+                                                Show Less{" "}
+                                                <ChevronUp className="size-4" />
+                                            </>
+                                        ) : (
+                                            <>
+                                                Read More{" "}
+                                                <ChevronDown className="size-4" />
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
                             )}
                     </div>
                 </div>
-
                 <Separator className="bg-border/30" />
 
                 {/* Content Section */}
@@ -712,200 +699,22 @@ export default function MangaDetailClient({
                                 </div>
                             ) : (
                                 chapters.map((chapter) => (
-                                    <div
+                                    <ChapterRow
                                         key={chapter.id}
-                                        className={cn(
-                                            "group relative flex cursor-pointer items-center justify-between p-4 transition-all hover:bg-muted/30",
-                                            chapter.isRead && "opacity-60",
-                                            selectedChapterIds.has(
-                                                chapter.id
-                                            ) &&
-                                                "bg-primary/5 opacity-100 ring-1 ring-primary/20 ring-inset"
-                                        )}
-                                        onClick={() => {
-                                            if (selectedChapterIds.size > 0) {
-                                                toggleChapterSelection(
-                                                    chapter.id
-                                                )
-                                            } else {
-                                                navigate(
-                                                    `/manga/${id}/chapter/${chapter.id}`
-                                                )
-                                            }
-                                        }}
-                                    >
-                                        <div className="flex min-w-0 flex-1 items-center gap-4">
-                                            {selectedChapterIds.size > 0 && (
-                                                <div
-                                                    className={cn(
-                                                        "flex size-5 shrink-0 items-center justify-center rounded border border-border shadow-sm transition-colors",
-                                                        selectedChapterIds.has(
-                                                            chapter.id
-                                                        )
-                                                            ? "border-primary bg-primary"
-                                                            : "bg-muted"
-                                                    )}
-                                                >
-                                                    {selectedChapterIds.has(
-                                                        chapter.id
-                                                    ) && (
-                                                        <Check className="size-3 stroke-[3px] text-primary-foreground" />
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            <div className="flex min-w-0 flex-col gap-1">
-                                                <div className="flex items-center gap-2">
-                                                    {chapter.isRead &&
-                                                        !selectedChapterIds.has(
-                                                            chapter.id
-                                                        ) && (
-                                                            <CheckCircle2 className="size-4 text-primary" />
-                                                        )}
-                                                    <span
-                                                        className={cn(
-                                                            "truncate font-bold text-foreground",
-                                                            chapter.isRead &&
-                                                                !selectedChapterIds.has(
-                                                                    chapter.id
-                                                                ) &&
-                                                                "font-medium text-muted-foreground"
-                                                        )}
-                                                    >
-                                                        {chapter.name}
-                                                    </span>
-                                                </div>
-                                                <div className="flex items-center gap-3 text-[11px] font-medium text-muted-foreground">
-                                                    <span className="flex items-center gap-1">
-                                                        <Calendar className="size-3" />
-                                                        {formatDate(
-                                                            chapter.uploadDate
-                                                        )}
-                                                    </span>
-                                                    {chapter.scanlator && (
-                                                        <>
-                                                            <Separator
-                                                                orientation="vertical"
-                                                                className="h-2 bg-border/60"
-                                                            />
-                                                            <span className="max-w-[150px] truncate">
-                                                                {
-                                                                    chapter.scanlator
-                                                                }
-                                                            </span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="ml-4 flex items-center gap-3">
-                                            {chapter.isBookmarked && (
-                                                <Bookmark className="size-4 fill-primary text-primary" />
-                                            )}
-                                            {chapter.isDownloaded && (
-                                                <Download className="size-4 font-bold text-primary" />
-                                            )}
-
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger
-                                                    render={
-                                                        <button
-                                                            type="button"
-                                                            onClick={(e) =>
-                                                                e.stopPropagation()
-                                                            }
-                                                            className="flex size-9 items-center justify-center rounded-full text-muted-foreground opacity-0 ring-offset-background transition-all outline-none group-hover:opacity-100 hover:bg-muted/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 data-[state=open]:opacity-100"
-                                                        >
-                                                            <MoreVertical className="size-4" />
-                                                        </button>
-                                                    }
-                                                />
-                                                <DropdownMenuContent
-                                                    align="end"
-                                                    className="w-56"
-                                                    onClick={(e) =>
-                                                        e.stopPropagation()
-                                                    }
-                                                >
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            toggleChapterSelection(
-                                                                chapter.id
-                                                            )
-                                                        }
-                                                    >
-                                                        <Check className="mr-2 size-4" />
-                                                        <span>Select</span>
-                                                    </DropdownMenuItem>
-
-                                                    <DropdownMenuSeparator />
-
-                                                    {!chapter.isDownloaded ? (
-                                                        <DropdownMenuItem
-                                                            onClick={() =>
-                                                                downloadChapters(
-                                                                    [chapter.id]
-                                                                )
-                                                            }
-                                                        >
-                                                            <Download className="mr-2 size-4" />
-                                                            <span>
-                                                                Download
-                                                            </span>
-                                                        </DropdownMenuItem>
-                                                    ) : (
-                                                        <DropdownMenuItem
-                                                            onClick={() =>
-                                                                deleteDownloadedChapters(
-                                                                    [chapter.id]
-                                                                )
-                                                            }
-                                                            className="text-destructive"
-                                                        >
-                                                            <Trash2 className="mr-2 size-4" />
-                                                            <span>
-                                                                Delete Download
-                                                            </span>
-                                                        </DropdownMenuItem>
-                                                    )}
-
-                                                    <DropdownMenuSeparator />
-
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            markAsRead(
-                                                                [chapter.id],
-                                                                !chapter.isRead
-                                                            )
-                                                        }
-                                                    >
-                                                        <History className="mr-2 size-4" />
-                                                        <span>
-                                                            Mark as{" "}
-                                                            {chapter.isRead
-                                                                ? "unread"
-                                                                : "read"}
-                                                        </span>
-                                                    </DropdownMenuItem>
-
-                                                    <DropdownMenuItem
-                                                        onClick={() =>
-                                                            markPreviousAsRead(
-                                                                chapter.sourceOrder
-                                                            )
-                                                        }
-                                                    >
-                                                        <ArrowUpToLine className="mr-2 size-4" />
-                                                        <span>
-                                                            Mark previous as
-                                                            read
-                                                        </span>
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        </div>
-                                    </div>
+                                        chapter={chapter}
+                                        mangaId={id}
+                                        selectedChapterIds={selectedChapterIds}
+                                        onToggleSelection={
+                                            toggleChapterSelection
+                                        }
+                                        onDownload={downloadChapters}
+                                        onDelete={deleteDownloadedChapters}
+                                        onMarkAsRead={markAsRead}
+                                        onMarkPreviousAsRead={
+                                            markPreviousAsRead
+                                        }
+                                        formatDate={formatDate}
+                                    />
                                 ))
                             )}
                         </div>

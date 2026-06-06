@@ -1,8 +1,8 @@
 import { SettingsSection } from "@/components/SettingsSection"
-import { CategoryContent } from "../category-content"
 import { CategoryConfig } from "./CategoryConfig"
 import { TagConfig } from "./TagConfig"
 import { Switch } from "@/components/ui/switch"
+import { useMeta } from "@/hooks/use-meta"
 
 interface LibraryCategory {
     id: number
@@ -20,21 +20,28 @@ export default function LibrarySettings({
     settings: any
     initialCategories?: LibraryCategory[] | null
 }) {
+    const [uiConfig, setUIConfigs] = useMeta("next-ui-configs")
     return (
         <div className="space-y-8">
             <SettingsSection title="General">
                 <section className="flex items-center justify-between">
                     <div className="space-y-1">
                         <h2 className="text-xl font-semibold tracking-tight">
-                            Disable Unread Chapters
+                            Disable Cover Stats
                         </h2>
                         <p className="text-sm text-muted-foreground">
-                            Enable Dark mode
+                            Disables the stats displayed on the manga covers
                         </p>
                     </div>
                     <Switch
-                        id="theme-change-switch"
-                        onCheckedChange={(e) => {}}
+                        id="cover-stats-change-switch"
+                        checked={uiConfig.disable_cover_state}
+                        onCheckedChange={(e) => {
+                            setUIConfigs({
+                                ...uiConfig,
+                                disable_cover_state: e,
+                            })
+                        }}
                     />
                 </section>
             </SettingsSection>

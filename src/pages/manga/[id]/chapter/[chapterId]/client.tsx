@@ -7,6 +7,7 @@ import { ReaderLoader } from "./_components/Loader"
 import { ReaderSidebar } from "./_components/Sidebar"
 import { ReaderControls } from "./_components/Controls"
 import { PageList } from "./_components/PageList"
+import { ReaderOverlay } from "./_components/ReaderOverlay"
 import { useLocation, useNavigate } from "react-router-dom"
 import type { VirtuosoHandle } from "react-virtuoso"
 
@@ -28,7 +29,6 @@ export default function ReaderClient({
 
     const [data, setData] = React.useState<any>(initialPagesData)
     const [mangaData, setMangaData] = React.useState<any>(initialMangaData)
-    const [isLoading, setIsLoading] = React.useState(!initialPagesData)
     const [showControls, setShowControls] = React.useState(true)
 
     const {
@@ -53,62 +53,16 @@ export default function ReaderClient({
         readingMode === "continuous-horizontal"
     const [isNavigating, setIsNavigating] = React.useState(false)
 
-    const fetchData = React.useCallback(async () => {
-        try {
-            const [pagesResult, mangaResult] = await Promise.all([
-                client.mutation({
-                    fetchChapterPages: {
-                        __args: { input: { chapterId } },
-                        chapter: {
-                            id: true,
-                            name: true,
-                            pageCount: true,
-                            chapterNumber: true,
-                            isRead: true,
-                        },
-                        pages: true,
-                    },
-                }),
-                client.query({
-                    manga: {
-                        __args: { id: mangaId },
-                        chapters: {
-                            nodes: {
-                                id: true,
-                                sourceOrder: true,
-                                chapterNumber: true,
-                                name: true,
-                            },
-                        },
-                    },
-                }),
-            ])
-            setData(pagesResult)
-            setMangaData(mangaResult)
-        } catch (error) {
-            console.error("Failed to fetch reader data:", error)
-        } finally {
-            setIsLoading(false)
-        }
-    }, [chapterId, mangaId])
-
     React.useEffect(() => {
-        if (!initialPagesData) {
-            fetchData()
-        }
-    }, [fetchData, initialPagesData])
+        setData(initialPagesData)
+        setMangaData(initialMangaData)
+    }, [initialPagesData, initialMangaData])
 
     React.useEffect(() => {
         if (hudType === "static") {
             setShowControls(true)
-            return
         }
-        let timer: any
-        if (showControls) {
-            timer = setTimeout(() => setShowControls(false), 3000)
-        }
-        return () => clearTimeout(timer)
-    }, [showControls, hudType])
+    }, [hudType])
 
     const pages = data?.fetchChapterPages?.pages || []
     const chapter = data?.fetchChapterPages?.chapter
@@ -132,51 +86,13 @@ export default function ReaderClient({
         }
     }
 
+    const handleNextPage = React.useCallback(() => {
+        navigateToPage(currentPage + (readingMode === "double-page" ? 2 : 1))
+    }, [currentPage, readingMode, navigateToPage])
 
-    const handleTap = (e: React.MouseEvent) => {
-        if (tapZone === "disabled") return
-
-        const x = e.clientX
-        const y = e.clientY
-        const width = window.innerWidth
-        const height = window.innerHeight
-
-        if (
-            x > width * 0.3 &&
-            x < width * 0.7 &&
-            y > height * 0.3 &&
-            y < height * 0.7
-        ) {
-            if (hudType === "floating") setShowControls(!showControls)
-            return
-        }
-
-        let isNext = x > width * 0.5
-        if (tapZone === "edge") {
-            if (x < width * 0.2) isNext = false
-            else if (x > width * 0.8) isNext = true
-            else return
-        } else if (tapZone === "kindle") {
-            isNext = x > width * 0.2
-        } else if (tapZone === "l-shape") {
-            isNext = x > width * 0.3 || y > height * 0.7
-        } else if (tapZone === "right-left") {
-            isNext = x > width * 0.5
-        }
-
-        if (invertTapZone === "horizontal" || invertTapZone === "both")
-            isNext = !isNext
-        const directionalNext = readingDirection === "rtl" ? !isNext : isNext
-
-        if (directionalNext)
-            navigateToPage(
-                currentPage + (readingMode === "double-page" ? 2 : 1)
-            )
-        else
-            navigateToPage(
-                currentPage - (readingMode === "double-page" ? 2 : 1)
-            )
-    }
+    const handlePrevPage = React.useCallback(() => {
+        navigateToPage(currentPage - (readingMode === "double-page" ? 2 : 1))
+    }, [currentPage, readingMode, navigateToPage])
 
     const chapters = React.useMemo(() => {
         return (mangaData?.manga?.chapters?.nodes || []).sort(
@@ -190,8 +106,10 @@ export default function ReaderClient({
         currentIndex < chapters.length - 1 ? chapters[currentIndex + 1] : null
 
     const navigateToChapter = (id: number) => {
-        navigate(`/manga/${mangaId}/chapter/${id}`)
-        setIsLoading(true)
+        const chapter = chapters.find((c: any) => c.id === id)
+        if (chapter) {
+            navigate(`/manga/${mangaId}/chapter/${chapter.chapterNumber}`)
+        }
     }
 
     const markAsRead = React.useCallback(async () => {
@@ -222,7 +140,7 @@ export default function ReaderClient({
         }
     }, [currentPage, pages.length, markAsRead])
 
-    if (isLoading) {
+    if (!data) {
         return <ReaderLoader />
     }
 
@@ -236,9 +154,7 @@ export default function ReaderClient({
                 isVerticalHud ? "flex-col" : "flex-row",
                 background === "black" ? "bg-black" : "bg-zinc-950"
             )}
-            onMouseMove={() =>
-                hudType === "floating" && !showControls && setShowControls(true)
-            }
+            onMouseMove={() => {}}
         >
             <ReaderSidebar
                 showControls={showControls}
@@ -254,7 +170,6 @@ export default function ReaderClient({
                     navigate(pathname.split("/chapter")[0], { replace: true })
                 }
                 onNavigateToChapter={navigateToChapter}
-                chapterId={chapterId}
             />
 
             <PageList
@@ -266,7 +181,7 @@ export default function ReaderClient({
                 currentPage={currentPage}
                 containerRef={containerRef}
                 virtuosoRef={virtuosoRef}
-                onTap={handleTap}
+                onTap={() => {}}
                 nextChapter={nextChapter}
                 onMarkAsRead={markAsRead}
                 onNavigateToChapter={navigateToChapter}
@@ -296,6 +211,15 @@ export default function ReaderClient({
                 currentPage={currentPage}
                 pagesCount={pages.length}
                 onNavigateToPage={navigateToPage}
+            />
+
+            <ReaderOverlay
+                showControls={showControls}
+                onToggleControls={() => hudType !== "static" && setShowControls(!showControls)}
+                onNext={readingDirection === "rtl" ? handlePrevPage : handleNextPage}
+                onPrev={readingDirection === "rtl" ? handleNextPage : handlePrevPage}
+                tapZoneType={tapZone}
+                invertTapZone={invertTapZone}
             />
         </div>
     )

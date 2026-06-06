@@ -81,7 +81,7 @@ export function CategorySelectionDialog({
                                         <label
                                             key={category.id}
                                             className={cn(
-                                                "group flex cursor-pointer items-center justify-between rounded-xl border p-3 text-left transition-all select-none",
+                                                "group flex cursor-pointer items-center justify-between rounded-xl border-2 p-3 text-left transition-all select-none",
                                                 isChecked
                                                     ? "border-primary bg-primary/10 shadow-[0_0_15px_rgba(var(--primary),0.1)]"
                                                     : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900"
@@ -133,7 +133,7 @@ export function CategorySelectionDialog({
                         onClick={handleConfirm}
                         className="bg-primary px-8 font-bold text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90"
                     >
-                        Add to Library
+                        {title}
                     </Button>
                 </DialogFooter>
             </DialogContent>

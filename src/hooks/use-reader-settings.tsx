@@ -43,7 +43,7 @@ const DEFAULT_SETTINGS: ReaderSettings = {
     readingDirection: "ltr",
     tapZone: "edge",
     invertTapZone: "none",
-    scaleType: "fit-width",
+    scaleType: "original",
     hudType: "floating",
     hudOrientation: "vertical",
     pageGap: 0,

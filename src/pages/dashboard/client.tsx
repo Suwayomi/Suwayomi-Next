@@ -327,7 +327,13 @@ function ReadLaterQueue({ readLater }: { readLater: any[] }) {
     )
 }
 
-function FreshReleases({ updates }: { updates: any[] }) {
+function FreshReleases({
+    updates,
+    favorites,
+}: {
+    updates: any[]
+    favorites: Set<string>
+}) {
     const navigate = useNavigate()
     const [showUpdates, setShowUpdates] = React.useState(true)
 
@@ -344,12 +350,30 @@ function FreshReleases({ updates }: { updates: any[] }) {
                     ? updates.map((update) => (
                           <div
                               key={update.id}
-                              className="group flex min-w-[180px] cursor-pointer flex-col gap-3 md:min-w-[200px]"
+                              className={
+                                  "group flex min-w-[180px] cursor-pointer flex-col gap-3 md:min-w-[200px]"
+                              }
                               onClick={() =>
                                   navigate(`/manga/${update.manga.id}`)
                               }
                           >
-                              <div className="relative aspect-[3/4] overflow-hidden rounded-[2rem] border border-border/40 shadow-2xl">
+                              <div
+                                  className={cn(
+                                      "relative aspect-[3/4] overflow-hidden rounded-[2rem] border-2 border-border/40 shadow-2xl",
+
+                                      favorites.has(update.manga.id) &&
+                                          "border-amber-500"
+                                  )}
+                                  style={
+                                      {
+                                          "--color": favorites.has(
+                                              update.manga.id
+                                          )
+                                              ? "var(--color-amber-500)"
+                                              : "var(--primary)",
+                                      } as React.CSSProperties
+                                  }
+                              >
                                   <MangaImage
                                       thumbnailUrl={update.manga.thumbnailUrl}
                                       alt=""
@@ -357,12 +381,12 @@ function FreshReleases({ updates }: { updates: any[] }) {
                                   />
                                   <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-background/20" />
                                   <div className="absolute top-4 right-4 animate-bounce">
-                                      <Badge className="border-none bg-primary px-2 py-0.5 text-[9px] font-black text-primary-foreground uppercase shadow-lg">
+                                      <Badge className="border-none bg-[var(--color)] px-2 py-0.5 text-[9px] font-black text-primary-foreground uppercase shadow-lg">
                                           New!
                                       </Badge>
                                   </div>
                                   <div className="absolute right-4 bottom-4 left-4">
-                                      <p className="truncate text-[10px] font-black tracking-widest text-primary uppercase">
+                                      <p className="truncate text-[10px] font-black tracking-widest text-[var(--color)] uppercase">
                                           {update.name}
                                       </p>
                                   </div>
@@ -452,7 +476,10 @@ export default function DashboardClient() {
                         <ReadLaterQueue readLater={readLater} />
                     </div>
 
-                    <FreshReleases updates={updates} />
+                    <FreshReleases
+                        updates={updates}
+                        favorites={new Set(favorites.map((i) => i.id))}
+                    />
                 </div>
             </ScrollArea>
         </PageLayout>

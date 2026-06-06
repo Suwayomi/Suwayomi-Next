@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils"
 import * as React from "react"
 import { Button } from "./ui/button"
-import { ArrowLeft, PanelRightOpen } from "lucide-react"
+import { PanelRightOpen } from "lucide-react"
 import { SidebarTrigger } from "./ui/sidebar"
 
 interface Props {
@@ -28,21 +28,25 @@ export function PageLayout({
         >
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-2">
-                    {onBack && (
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={onBack}
-                            className="h-10 gap-2 rounded-full bg-muted/20 px-4"
-                        >
-                            <ArrowLeft className="size-4" />
-                        </Button>
-                    )}
-                    <SidebarTrigger className={"md:hidden"}>
-                        <Button variant={"ghost"} size={"icon"}>
-                            <PanelRightOpen />
-                        </Button>
-                    </SidebarTrigger>
+                    <SidebarTrigger
+                        className={"md:hidden"}
+                        render={
+                            <Button size={"icon"} variant={"ghost"}>
+                                <PanelRightOpen />
+                            </Button>
+                        }
+                    />
+
+                    {/* {(onBack || true) && ( */}
+                    {/*     <Button */}
+                    {/*         variant="ghost" */}
+                    {/*         size="sm" */}
+                    {/*         onClick={onBack} */}
+                    {/*         className="h-10 gap-2 rounded-full bg-muted/20 px-4" */}
+                    {/*     > */}
+                    {/*         <ArrowLeft className="size-4" /> */}
+                    {/*     </Button> */}
+                    {/* )} */}
                     <div className="flex flex-col">
                         {title && (
                             <h1 className="text-2xl font-black tracking-tight text-foreground uppercase sm:text-3xl">

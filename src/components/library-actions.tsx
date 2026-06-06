@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select"
 import { MangaFilter, type MangaFilterState } from "./manga-filter"
 import { useAppStore } from "@/lib/store"
-import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import {
     DropdownMenu,
     DropdownMenuContent,

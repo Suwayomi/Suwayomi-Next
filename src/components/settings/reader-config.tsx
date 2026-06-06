@@ -1,3 +1,4 @@
+import * as React from "react"
 import {
     Rows,
     Columns,
@@ -16,6 +17,15 @@ import {
     Box,
     PanelTop,
     Square,
+    Bookmark,
+    Save,
+    Trash2,
+    Plus,
+    File,
+    GalleryVertical,
+    GalleryHorizontal,
+    StretchVertical,
+    StretchHorizontal,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -28,6 +38,16 @@ import {
     type HudType,
     type HudOrientation,
 } from "@/hooks/use-reader-settings"
+import { useMeta } from "@/hooks/use-meta"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import { Button } from "../ui/button"
+import { Input } from "../ui/input"
 
 interface Props {
     className?: string
@@ -69,12 +89,12 @@ export function ReaderConfig({ className }: Props) {
     const {
         readingMode,
         readingDirection,
+        scaleType,
+        pageGap,
         tapZone,
         invertTapZone,
-        scaleType,
         hudType,
         hudOrientation,
-        pageGap,
         background,
         setReadingMode,
         setReadingDirection,
@@ -85,7 +105,60 @@ export function ReaderConfig({ className }: Props) {
         setHudOrientation,
         setPageGap,
         setBackground,
+        updateSettings,
     } = useReaderSettings()
+
+    const [presets, setPresets] = useMeta("next-reader")
+    const [selectedPresetName, setSelectedPresetName] =
+        React.useState<string>("Manga")
+    const [newPresetName, setNewPresetName] = React.useState("")
+
+    const selectedPreset =
+        presets.find((p) => p.name === selectedPresetName) || presets[0]
+
+    const saveCurrentToPreset = () => {
+        if (!selectedPreset) return
+        const updatedPresets = presets.map((p) =>
+            p.name === selectedPresetName
+                ? {
+                      ...p,
+                      settings: {
+                          readingMode,
+                          readingDirection,
+                          scaleType,
+                          pageGap,
+                      },
+                  }
+                : p
+        )
+        setPresets(updatedPresets)
+    }
+
+    const createNewPreset = () => {
+        if (!newPresetName.trim()) return
+        const newPreset = {
+            name: newPresetName.trim(),
+            settings: {
+                readingMode,
+                readingDirection,
+                scaleType,
+                pageGap,
+            },
+        }
+        const updatedPresets = [...presets, newPreset]
+        setPresets(updatedPresets)
+        setNewPresetName("")
+        setSelectedPresetName(newPreset.name)
+    }
+
+    const deletePreset = (name: string) => {
+        if (presets.length <= 1) return
+        const updatedPresets = presets.filter((p) => p.name !== name)
+        setPresets(updatedPresets)
+        if (selectedPresetName === name) {
+            setSelectedPresetName(updatedPresets[0].name)
+        }
+    }
 
     const isScrollableMode =
         readingMode === "continuous-vertical" ||
@@ -94,6 +167,80 @@ export function ReaderConfig({ className }: Props) {
 
     return (
         <div className={cn("flex flex-col gap-10", className)}>
+            {/* Presets */}
+            <div className="flex flex-col gap-4">
+                <h3 className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
+                    <Bookmark className="size-3" /> Presets
+                </h3>
+                <div className="flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                        <Select
+                            value={selectedPresetName}
+                            onValueChange={(val) => {
+                                if (!val) return
+                                setSelectedPresetName(val)
+                                const preset = presets.find(
+                                    (p) => p.name === val
+                                )
+                                if (preset)
+                                    updateSettings(preset.settings as any)
+                            }}
+                        >
+                            <SelectTrigger className="flex-1">
+                                <SelectValue placeholder="Select preset..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {presets.map((preset) => (
+                                    <SelectItem
+                                        key={preset.name}
+                                        value={preset.name}
+                                    >
+                                        {preset.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button
+                            onClick={saveCurrentToPreset}
+                            title="Save current settings to selected preset"
+                            size={"icon"}
+                            variant={"ghost"}
+                        >
+                            <Save className="size-4" />
+                        </Button>
+                        <Button
+                            onClick={() => deletePreset(selectedPresetName)}
+                            title="Delete selected preset"
+                            disabled={presets.length <= 1}
+                            size={"icon"}
+                            variant={"ghost"}
+                        >
+                            <Trash2 className="size-4" />
+                        </Button>
+                    </div>
+                    <div className="flex items-center gap-2 border-t border-border/10 pt-2">
+                        <Input
+                            placeholder="New preset name..."
+                            type="text"
+                            value={newPresetName}
+                            onChange={(e) => setNewPresetName(e.target.value)}
+                            className="flex-1"
+                            onKeyDown={(e) =>
+                                e.key === "Enter" && createNewPreset()
+                            }
+                        />
+                        <Button
+                            onClick={createNewPreset}
+                            disabled={!newPresetName.trim()}
+                            size={"icon"}
+                            variant={"default"}
+                        >
+                            <Plus className="size-4" />
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
             {/* Global: Reading Mode */}
             <div className="flex flex-col gap-4">
                 <h3 className="flex items-center gap-2 text-[10px] font-bold tracking-widest text-zinc-500 uppercase">
@@ -104,20 +251,28 @@ export function ReaderConfig({ className }: Props) {
                         {
                             id: "single-page",
                             label: "Single",
-                            icon: Smartphone,
+                            icon: File,
                         },
-                        { id: "double-page", label: "Double", icon: AppWindow },
+                        {
+                            id: "double-page",
+                            label: "Double",
+                            icon: StretchVertical,
+                        },
                         {
                             id: "continuous-vertical",
                             label: "Vertical",
-                            icon: Rows,
+                            icon: GalleryVertical,
                         },
                         {
                             id: "continuous-horizontal",
                             label: "Horizontal",
-                            icon: Columns,
+                            icon: GalleryHorizontal,
                         },
-                        { id: "webtoon", label: "Webtoon", icon: LayoutGrid },
+                        {
+                            id: "webtoon",
+                            label: "Webtoon",
+                            icon: StretchHorizontal,
+                        },
                     ].map((mode) => (
                         <ConfigButton
                             key={mode.id}

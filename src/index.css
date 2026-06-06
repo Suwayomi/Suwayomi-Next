@@ -211,3 +211,10 @@ div {
 		stroke: var(--color-primary);
 	}
 }
+
+@media (max-width: 500px) {
+	[data-slot="dialog-content"] {
+		border-radius: 0;
+		border-inline: 0;
+	}
+}

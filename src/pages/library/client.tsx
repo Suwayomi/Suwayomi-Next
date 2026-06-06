@@ -624,6 +624,7 @@ function DisplayList({
                 previousIds={targetManga?.manga.categories.nodes.map(
                     (i: any) => i.id
                 )}
+                title="Change Category"
             />
         </div>
     )

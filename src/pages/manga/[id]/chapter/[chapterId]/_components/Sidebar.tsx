@@ -25,7 +25,6 @@ interface ReaderSidebarProps {
     nextChapter: any
     onBack: () => void
     onNavigateToChapter: (id: number) => void
-    chapterId: number
 }
 
 export function ReaderSidebar({
@@ -40,7 +39,6 @@ export function ReaderSidebar({
     nextChapter,
     onBack,
     onNavigateToChapter,
-    chapterId,
 }: ReaderSidebarProps) {
     return (
         <div
@@ -136,7 +134,7 @@ export function ReaderSidebar({
                             onValueChange={(val) =>
                                 onNavigateToChapter(parseInt(val))
                             }
-                            defaultValue={chapter?.id}
+                            defaultValue={chapter?.chapterNumber}
                         >
                             <SelectTrigger className="h-9 w-[180px]">
                                 <SelectValue placeholder={chapter?.name} />
@@ -199,7 +197,7 @@ export function ReaderSidebar({
                                 updateChapter: {
                                     __args: {
                                         input: {
-                                            id: chapterId,
+                                            id: chapter.id,
                                             patch: { isRead: true },
                                         },
                                     },

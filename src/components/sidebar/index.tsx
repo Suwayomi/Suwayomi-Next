@@ -8,12 +8,10 @@ import {
     Download,
     Settings2,
     Info,
-    Plus,
     Star,
     BookA,
-    ChevronsLeft,
-    ChevronLeft,
     ChevronRight,
+    Clock9,
 } from "lucide-react"
 
 import {
@@ -66,7 +64,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                     {
                         title: "Read Later",
                         url: "/library?filter=read_later",
-                        icon: BookA,
+                        icon: Clock9,
                     },
                 ],
             },
@@ -136,8 +134,9 @@ export default function AppSidebar({
 
                         <SidebarGroupContent>
                             <SidebarMenu>
-                                {group.items.map((item) => (
+                                {group.items.map((item, index) => (
                                     <BarItem
+                                        key={index}
                                         item={item}
                                         store={store}
                                         location={location}
@@ -178,7 +177,7 @@ function BarItem({
     store: any
     location: Location<any>
 }) {
-    const badge = React.useMemo(() => item.getBadge?.(store) ?? 0, store)
+    const badge = React.useMemo(() => item.getBadge?.(store) ?? 0, [store])
     const [open, setOpen] = React.useState(location.pathname === item.url)
     const isOpen = React.useMemo(
         () => location.pathname === item.url && open,

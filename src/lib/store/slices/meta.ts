@@ -4,12 +4,47 @@ export interface CustomTag {
     id: number
     name: string
 }
+export interface UIConfig {
+    disable_cover_state: boolean
+}
+export interface ReaderPreset {
+    name: string
+    settings: {
+        readingMode: string
+        readingDirection: string
+        scaleType: string
+        pageGap: number
+    }
+}
 
 export const META_REGISTRY = {
     "next-show-nsfw": { default: false },
     "next-theme": { default: "dark" as "dark" | "light" | "system" },
     "next-accent-color": { default: "oklch(0.53 0.23 250)" as string },
     "next-custom-tags": { default: [] as CustomTag[] },
+    "next-ui-configs": { default: { disable_cover_state: true } as UIConfig },
+    "next-reader": {
+        default: [
+            {
+                name: "Manga",
+                settings: {
+                    readingMode: "single-page",
+                    readingDirection: "rtl",
+                    scaleType: "fit-screen",
+                    pageGap: 0,
+                },
+            },
+            {
+                name: "Manhwa",
+                settings: {
+                    readingMode: "webtoon",
+                    readingDirection: "ltr",
+                    scaleType: "original",
+                    pageGap: 0,
+                },
+            },
+        ] as ReaderPreset[],
+    },
 } as const satisfies MetaRegistryShape
 export type MangaMetaType = "next:is-favorite" | "next:read-later"
 

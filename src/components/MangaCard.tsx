@@ -11,17 +11,11 @@ import {
     Trash2,
     Plus,
     TagsIcon,
-    EyeIcon,
-    EyeOffIcon,
-    StickyNotePlusIcon,
-    FilePlusIcon,
-    EyeClosedIcon,
-    ImageIcon,
+    Clock9,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MangaImage } from "./MangaImage"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -32,7 +26,7 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import type { CustomTag } from "@/lib/store/slices/meta"
+import { useAppStore } from "@/lib/store"
 
 interface MangaCardProps {
     manga: any
@@ -65,6 +59,7 @@ export function MangaCard({
     page,
     tags,
 }: MangaCardProps) {
+    const { meta } = useAppStore()
     const navigate = useNavigate()
 
     const matchingTags = tags
@@ -134,20 +129,23 @@ export function MangaCard({
                         )}
                     </div>
 
-                    <div className="absolute right-3 bottom-3 z-20 flex h-fit justify-center gap-2 space-y-2">
-                        {matchingTags > 0 && (
-                            <div className="z-20 m-0 flex size-fit items-center gap-1 rounded-md border border-white/20 bg-secondary p-1 text-xs text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg">
-                                <TagsIcon className="size-4" /> {matchingTags}
-                            </div>
-                        )}
+                    {meta.data?.["next-ui-configs"].disable_cover_state && (
+                        <div className="absolute right-3 bottom-3 z-20 flex h-fit justify-center gap-2 space-y-2">
+                            {matchingTags > 0 && (
+                                <div className="z-20 m-0 flex size-fit items-center gap-1 rounded-md border border-white/20 bg-secondary p-1 text-xs text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg">
+                                    <TagsIcon className="size-4" />{" "}
+                                    {matchingTags}
+                                </div>
+                            )}
 
-                        {/* Unread Badge Count */}
-                        {manga.unreadCount > 0 && !isSelected && (
-                            <div className="m-0 flex size-fit gap-1 rounded-md border border-black/20 bg-primary px-2 py-1 text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg dark:border-white/20">
-                                {manga.unreadCount}
-                            </div>
-                        )}
-                    </div>
+                            {/* Unread Badge Count */}
+                            {manga.unreadCount > 0 && !isSelected && (
+                                <div className="m-0 flex size-fit gap-1 rounded-md border border-black/20 bg-primary px-2 py-1 text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg dark:border-white/20">
+                                    {manga.unreadCount}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Selection Overlay */}
                     <div
@@ -211,7 +209,7 @@ export function MangaCard({
                                                       onReadLaterToggle()
                                                   }}
                                               >
-                                                  <ClipboardClock className="mr-2 size-4" />
+                                                  <Clock9 className="size-4" />
                                                   <span>
                                                       {isOnReadLater
                                                           ? 'Remove from "Read later"'
@@ -233,7 +231,7 @@ export function MangaCard({
                                                       onToggle()
                                                   }}
                                               >
-                                                  <Check className="mr-2 size-4" />
+                                                  <Check className="size-4" />
                                                   <span>Select</span>
                                               </DropdownMenuItem>
                                           )}
@@ -243,7 +241,7 @@ export function MangaCard({
                                                   <DropdownMenuSeparator />
                                                   <DropdownMenuSub>
                                                       <DropdownMenuSubTrigger>
-                                                          <Download className="mr-2 size-4" />
+                                                          <Download className="size-4" />
                                                           <span>Download</span>
                                                       </DropdownMenuSubTrigger>
                                                       <DropdownMenuSubContent className="w-56">
@@ -298,7 +296,7 @@ export function MangaCard({
                                                               e.stopPropagation()
                                                           }}
                                                       >
-                                                          <TagsIcon className="mr-2 size-4" />
+                                                          <TagsIcon className="size-4" />
                                                           Change category
                                                       </DropdownMenuItem>
                                                   )}
@@ -306,7 +304,7 @@ export function MangaCard({
                                                       <DropdownMenuItem
                                                           onClick={onMarkRead}
                                                       >
-                                                          <BookOpen className="mr-2 size-4" />
+                                                          <BookOpen className="size-4" />
                                                           <span>
                                                               Mark unread as
                                                               read
@@ -323,7 +321,7 @@ export function MangaCard({
                                                       variant="destructive"
                                                       onClick={onRemove}
                                                   >
-                                                      <Trash2 className="mr-2 size-4" />
+                                                      <Trash2 className="size-4" />
                                                       <span>
                                                           Remove from Library
                                                       </span>

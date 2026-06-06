@@ -77,19 +77,28 @@ export function PageList({
                     !isScrollMode && "min-h-full min-w-full"
                 )}
                 style={{
-                    paddingBottom: isScrollMode && readingMode !== "continuous-horizontal" ? pageGap : 0,
-                    paddingRight: readingMode === "continuous-horizontal" ? pageGap : 0,
+                    paddingBottom:
+                        isScrollMode && readingMode !== "continuous-horizontal"
+                            ? pageGap
+                            : 0,
+                    paddingRight:
+                        readingMode === "continuous-horizontal" ? pageGap : 0,
                 }}
             >
                 {failedPages[index] ? (
                     <div className="flex h-[50vh] w-full flex-col items-center justify-center gap-4 bg-muted/10 opacity-50">
                         <ImageIcon className="size-12" />
-                        <p className="text-sm font-medium">Failed to load page {index + 1}</p>
-                        <Button 
-                            variant="outline" 
+                        <p className="text-sm font-medium">
+                            Failed to load page {index + 1}
+                        </p>
+                        <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => {
-                                setFailedPages(prev => ({ ...prev, [index]: false }))
+                                setFailedPages((prev) => ({
+                                    ...prev,
+                                    [index]: false,
+                                }))
                             }}
                         >
                             Retry
@@ -105,8 +114,10 @@ export function PageList({
                                         (readingMode === "continuous-horizontal"
                                             ? "h-full w-[60vw]"
                                             : "h-[80vh] w-full md:w-[85%] lg:w-[70%]"),
-                                    scaleType === "fit-height" && "h-screen w-[50vw]",
-                                    scaleType === "fit-screen" && "h-screen w-full",
+                                    scaleType === "fit-height" &&
+                                        "h-screen w-[50vw]",
+                                    scaleType === "fit-screen" &&
+                                        "h-screen w-full",
                                     scaleType === "original" && "h-96 w-96",
                                     !isScrollMode && "min-h-[80vh] min-w-[50vw]"
                                 )}
@@ -121,7 +132,9 @@ export function PageList({
                             onError={() => handleImageError(index)}
                             className={cn(
                                 "transition-all duration-300",
-                                !loadedPages[index] ? "opacity-0" : "opacity-100",
+                                !loadedPages[index]
+                                    ? "opacity-0"
+                                    : "opacity-100",
                                 scaleType === "fit-width" &&
                                     (readingMode === "continuous-horizontal"
                                         ? "h-full w-auto"
@@ -130,8 +143,10 @@ export function PageList({
                                     "h-screen w-auto max-w-none",
                                 scaleType === "fit-screen" &&
                                     "h-auto max-h-screen w-auto max-w-full object-contain",
-                                scaleType === "original" && "h-auto w-auto max-w-none",
-                                !isScrollMode && "rounded-sm object-contain shadow-2xl",
+                                scaleType === "original" &&
+                                    "h-auto w-auto max-w-none",
+                                !isScrollMode &&
+                                    "rounded-sm object-contain shadow-2xl",
                                 !isScrollMode && !loadedPages[index] && "h-0"
                             )}
                         />
@@ -170,12 +185,14 @@ export function PageList({
         return (
             <div className="h-full w-full flex-1" onClick={onTap}>
                 <Virtuoso
-                    {...{
+                    {...({
                         ref: virtuosoRef,
                         data: pages,
                         useWindowScroll: false,
                         initialTopMostItemIndex: currentPage,
-                        horizontal: readingMode === "continuous-horizontal",
+                        horizontal: JSON.stringify(
+                            readingMode === "continuous-horizontal"
+                        ),
                         totalCount: pages.length,
                         overscan: 2,
                         rangeChanged: (range: any) => {
@@ -192,7 +209,7 @@ export function PageList({
                             Footer,
                         },
                         className: "scrollbar-hide",
-                    } as any}
+                    } as any)}
                 />
             </div>
         )
