@@ -18,6 +18,8 @@ import {
     MoreVertical,
     Filter,
     ShieldCheck,
+    Pin,
+    PinOff,
 } from "lucide-react"
 import {
     DropdownMenu,
@@ -39,6 +41,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { useNavigate, useSearchParams } from "react-router-dom"
+import { setGlobalMeta } from "@/lib/store"
 
 const INITIAL_VISIBLE_COUNT = 30
 const FETCH_LIMIT = 1000
@@ -50,6 +53,33 @@ export default function BrowseClientPage() {
         sources: sourcesStore,
     } = useAppStore()
     const navigate = useNavigate()
+
+    const pinnedSources = meta.data?.["next-pinned-sources"] || []
+
+    const togglePin = async (sourceId: string) => {
+        let newPinned = [...pinnedSources]
+        const isPinned = newPinned.includes(sourceId)
+
+        if (isPinned) {
+            newPinned = newPinned.filter((id) => id !== sourceId)
+        } else {
+            if (newPinned.length >= 3) {
+                toast.error("You can only pin up to 3 sources")
+                return
+            }
+            newPinned.push(sourceId)
+        }
+
+        try {
+            await setGlobalMeta("next-pinned-sources", newPinned)
+            await meta.refresh()
+            toast.success(
+                isPinned ? "Source unpinned" : "Source pinned"
+            )
+        } catch (error) {
+            toast.error("Failed to update pinned sources")
+        }
+    }
 
     const [availableExtensions, setAvailableExtensions] = React.useState<
         Extension[]
@@ -465,6 +495,8 @@ export default function BrowseClientPage() {
                                                             `/sources/${id}`
                                                         )
                                                     }
+                                                    pinnedSources={pinnedSources}
+                                                    onTogglePin={togglePin}
                                                 />
                                             ))}
                                         </div>
@@ -520,7 +552,42 @@ export default function BrowseClientPage() {
                                                                         </span>
                                                                     </div>
                                                                 </div>
-                                                                <ChevronRight className="size-4 text-muted-foreground/20 transition-all group-hover:translate-x-1 group-hover:text-primary" />
+                                                                <div className="flex items-center gap-2">
+                                                                    <DropdownMenu>
+                                                                        <DropdownMenuTrigger
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                            render={
+                                                                                <Button
+                                                                                    variant="ghost"
+                                                                                    size="icon"
+                                                                                    className="size-8 rounded-lg text-muted-foreground transition-all hover:bg-muted/10 hover:text-foreground"
+                                                                                >
+                                                                                    <MoreVertical className="size-4" />
+                                                                                </Button>
+                                                                            }
+                                                                        />
+                                                                        <DropdownMenuContent align="end" className="w-48 p-1 font-bold">
+                                                                            <DropdownMenuItem
+                                                                                className="gap-2"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation()
+                                                                                    togglePin(source.id)
+                                                                                }}
+                                                                            >
+                                                                                {pinnedSources.includes(source.id) ? (
+                                                                                    <>
+                                                                                        <PinOff className="size-4" /> Unpin Source
+                                                                                    </>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        <Pin className="size-4" /> Pin Source
+                                                                                    </>
+                                                                                )}
+                                                                            </DropdownMenuItem>
+                                                                        </DropdownMenuContent>
+                                                                    </DropdownMenu>
+                                                                    <ChevronRight className="size-4 text-muted-foreground/20 transition-all group-hover:translate-x-1 group-hover:text-primary" />
+                                                                </div>
                                                             </div>
                                                         )
                                                     )}
@@ -677,11 +744,15 @@ function ExtensionCard({
     sources = [],
     onAction,
     onEnter,
+    pinnedSources,
+    onTogglePin,
 }: {
     ext: Extension
     sources?: Source[]
     onAction: (p: string, a: any) => void
     onEnter?: (id: string) => void
+    pinnedSources?: string[]
+    onTogglePin?: (id: string) => void
 }) {
     const handleCardClick = () => {
         if (ext.isInstalled && onEnter && sources.length > 0) {
@@ -773,6 +844,31 @@ function ExtensionCard({
                                 >
                                     <Trash2 className="size-4" /> Uninstall
                                 </DropdownMenuItem>
+                                {sources.length > 0 && onTogglePin && pinnedSources && (
+                                    <>
+                                        <div className="my-1 h-px bg-border/40" />
+                                        {sources.map((source) => (
+                                            <DropdownMenuItem
+                                                key={source.id}
+                                                className="gap-2"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    onTogglePin(source.id)
+                                                }}
+                                            >
+                                                {pinnedSources.includes(source.id) ? (
+                                                    <>
+                                                        <PinOff className="size-4" /> Unpin {source.displayName}
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Pin className="size-4" /> Pin {source.displayName}
+                                                    </>
+                                                )}
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </>
+                                )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     ) : (

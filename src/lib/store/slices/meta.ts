@@ -45,6 +45,7 @@ export const META_REGISTRY = {
             },
         ] as ReaderPreset[],
     },
+    "next-pinned-sources": { default: [] as string[] },
 } as const satisfies MetaRegistryShape
 export type MangaMetaType = "next:is-favorite" | "next:read-later"
 

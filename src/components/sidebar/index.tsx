@@ -12,6 +12,7 @@ import {
     BookA,
     ChevronRight,
     Clock9,
+    Globe,
 } from "lucide-react"
 
 import {
@@ -33,10 +34,9 @@ import {
     SidebarMenuAction,
 } from "@/components/ui/sidebar"
 import { useAppStore } from "@/hooks/use-app-store"
-import { selectUpdateCount } from "@/lib/store/slices/extensions"
 import { selectActiveDownloadCount } from "@/lib/store/slices/downloads"
 import { Link, useLocation, type Location } from "react-router-dom"
-import { cn } from "@/lib/utils"
+import { cn, getImageUrl } from "@/lib/utils"
 
 type NavItem = {
     title: string
@@ -44,6 +44,12 @@ type NavItem = {
     icon: React.ElementType
     getBadge?: (store: ReturnType<typeof useAppStore>) => number
     subItems?: Omit<NavItem, "subItems">[]
+}
+
+const ImageIcon = ({ url }: { url: string | null }) => {
+    return ({ className }: { className: string }) => (
+        <img src={getImageUrl(url)!} className={className} />
+    )
 }
 
 const navGroups: { label: string; items: NavItem[] }[] = [
@@ -77,7 +83,7 @@ const navGroups: { label: string; items: NavItem[] }[] = [
                 title: "Browse",
                 url: "/browse",
                 icon: Search,
-                getBadge: (store) => selectUpdateCount(store.extensions.data),
+                // getBadge: (store) => selectUpdateCount(store.extensions.data),
             },
         ],
     },
@@ -107,6 +113,31 @@ export default function AppSidebar({
 }: React.ComponentProps<typeof Sidebar>) {
     const location = useLocation()
     const store = useAppStore()
+    const options = React.useMemo(() => {
+        const pinnedSubItems = store.meta.data?.["next-pinned-sources"]
+            .map((id) => {
+                const source = store.sources.data?.find((s: any) => s.id === id)
+                if (!source) return null
+                return {
+                    title: source.displayName,
+                    url: `/sources/${id}`,
+                    icon: ImageIcon({ url: source.iconUrl }),
+                }
+            })
+            .filter(Boolean) as NavItem["subItems"]
+        return navGroups.map((i) =>
+            i.label === "Discover"
+                ? {
+                      ...i,
+                      items: i.items.map((j) =>
+                          j.title === "Browse"
+                              ? { ...j, subItems: pinnedSubItems }
+                              : j
+                      ),
+                  }
+                : i
+        )
+    }, [store.meta, store.sources])
 
     return (
         <Sidebar collapsible="icon" {...props}>
@@ -128,24 +159,25 @@ export default function AppSidebar({
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
-                {navGroups.map((group) => (
-                    <SidebarGroup key={group.label}>
-                        <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-
-                        <SidebarGroupContent>
-                            <SidebarMenu>
-                                {group.items.map((item, index) => (
-                                    <BarItem
-                                        key={index}
-                                        item={item}
-                                        store={store}
-                                        location={location}
-                                    />
-                                ))}
-                            </SidebarMenu>
-                        </SidebarGroupContent>
-                    </SidebarGroup>
-                ))}
+                {options.map((group) => {
+                    return (
+                        <SidebarGroup key={group.label}>
+                            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+                            <SidebarGroupContent>
+                                <SidebarMenu>
+                                    {group.items.map((item, index) => (
+                                        <BarItem
+                                            key={index}
+                                            item={item}
+                                            store={store}
+                                            location={location}
+                                        />
+                                    ))}
+                                </SidebarMenu>
+                            </SidebarGroupContent>
+                        </SidebarGroup>
+                    )
+                })}
             </SidebarContent>
             <SidebarFooter>
                 <SidebarMenu>
@@ -186,9 +218,10 @@ function BarItem({
     }, [location.pathname, item.url])
 
     const isOpen = React.useMemo(
-        () => location.pathname.startsWith(item.url) && open,
+        () => location.pathname.startsWith(item.url) || open,
         [open, location.pathname, item.url]
     )
+
     return (
         <SidebarMenuItem key={item.title}>
             <SidebarMenuButton
