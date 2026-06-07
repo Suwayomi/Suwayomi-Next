@@ -179,9 +179,15 @@ function BarItem({
 }) {
     const badge = React.useMemo(() => item.getBadge?.(store) ?? 0, [store])
     const [open, setOpen] = React.useState(location.pathname === item.url)
+    React.useEffect(() => {
+        if (location.pathname === item.url) {
+            setOpen(true)
+        }
+    }, [location.pathname, item.url])
+
     const isOpen = React.useMemo(
-        () => location.pathname === item.url && open,
-        [open, location.pathname]
+        () => location.pathname.startsWith(item.url) && open,
+        [open, location.pathname, item.url]
     )
     return (
         <SidebarMenuItem key={item.title}>

@@ -3,7 +3,6 @@ import { client } from "@/lib/client"
 import { cn } from "@/lib/utils"
 
 import { useReaderSettings } from "@/hooks/use-reader-settings"
-import { ReaderLoader } from "./_components/Loader"
 import { ReaderSidebar } from "./_components/Sidebar"
 import { ReaderControls } from "./_components/Controls"
 import { PageList } from "./_components/PageList"
@@ -27,9 +26,16 @@ export default function ReaderClient({
     const { pathname } = useLocation()
     const navigate = useNavigate()
 
-    const [data, setData] = React.useState<any>(initialPagesData)
     const [mangaData, setMangaData] = React.useState<any>(initialMangaData)
     const [showControls, setShowControls] = React.useState(true)
+    const [loadedChapters, setLoadedChapters] = React.useState<any[]>([
+        {
+            id: chapterId,
+            pages: initialPagesData.fetchChapterPages.pages,
+            chapter: initialPagesData.fetchChapterPages.chapter,
+        },
+    ])
+    const [isLoadingMore, setIsLoadingMore] = React.useState(false)
 
     const {
         readingMode,
@@ -53,25 +59,111 @@ export default function ReaderClient({
         readingMode === "continuous-horizontal"
     const [isNavigating, setIsNavigating] = React.useState(false)
 
+    // Ensure we sync manga data if it changes
     React.useEffect(() => {
-        setData(initialPagesData)
         setMangaData(initialMangaData)
-    }, [initialPagesData, initialMangaData])
+    }, [initialMangaData])
 
+    // Handle static HUD
     React.useEffect(() => {
         if (hudType === "static") {
             setShowControls(true)
         }
     }, [hudType])
 
-    const pages = data?.fetchChapterPages?.pages || []
-    const chapter = data?.fetchChapterPages?.chapter
+    const chapters = React.useMemo(() => {
+        return (mangaData?.manga?.chapters?.nodes || []).sort(
+            (a: any, b: any) => b.sourceOrder - a.sourceOrder
+        )
+    }, [mangaData])
+
+    // Flatten pages and inject dividers
+    const allItems = React.useMemo(() => {
+        const items: any[] = []
+        loadedChapters.forEach((ch, chIdx) => {
+            // Add pages
+            ch.pages.forEach((p: string, pIdx: number) => {
+                items.push({
+                    type: "page",
+                    url: p,
+                    pageIndex: pIdx,
+                    chapterId: ch.id,
+                    chapter: ch.chapter,
+                })
+            })
+            // Add divider if there's a next chapter loaded
+            if (chIdx < loadedChapters.length - 1) {
+                items.push({
+                    type: "divider",
+                    chapter: loadedChapters[chIdx + 1].chapter,
+                })
+            }
+        })
+        return items
+    }, [loadedChapters])
+
+    const activeItem = allItems[currentPage] || allItems[0]
+    const activeChapter = activeItem?.chapter
+
+    const [currentSyncedChapterId, setCurrentSyncedChapterId] = React.useState(chapterId)
+
+    // Sync URL when chapter changes
+    React.useEffect(() => {
+        if (activeChapter && activeChapter.id !== currentSyncedChapterId) {
+            const path = pathname.split("/chapter/")[0]
+            window.history.replaceState(null, "", `${path}/chapter/${activeChapter.chapterNumber}`)
+            setCurrentSyncedChapterId(activeChapter.id)
+        }
+    }, [activeChapter, pathname, currentSyncedChapterId])
+
+    const fetchChapterData = async (targetId: number) => {
+        if (isLoadingMore) return null
+        setIsLoadingMore(true)
+        try {
+            const pagesResult = await client.mutation({
+                fetchChapterPages: {
+                    __args: { input: { chapterId: targetId } },
+                    chapter: {
+                        id: true,
+                        name: true,
+                        pageCount: true,
+                        chapterNumber: true,
+                        isRead: true,
+                    },
+                    pages: true,
+                },
+            })
+            return pagesResult.fetchChapterPages
+        } catch (error) {
+            console.error("Failed to fetch next chapter:", error)
+            return null
+        } finally {
+            setIsLoadingMore(false)
+        }
+    }
+
+    const loadMore = async () => {
+        const lastLoaded = loadedChapters[loadedChapters.length - 1]
+        const currentIndex = chapters.findIndex((c: any) => c.id === lastLoaded.id)
+        const next = currentIndex > 0 ? chapters[currentIndex - 1] : null
+
+        if (next && !loadedChapters.find(c => c.id === next.id)) {
+            const data = await fetchChapterData(next.id)
+            if (data) {
+                setLoadedChapters(prev => [...prev, {
+                    id: next.id,
+                    pages: data.pages,
+                    chapter: data.chapter
+                }])
+            }
+        }
+    }
 
     const navigateToPage = (target: number) => {
-        const next = Math.max(0, Math.min(pages.length - 1, target))
+        const next = Math.max(0, Math.min(allItems.length - 1, target))
         setCurrentPage(next)
 
-        if (readingMode === "single-page" || readingMode === "double-page") {
+        if (!isScrollMode) {
             if (containerRef.current) containerRef.current.scrollTo(0, 0)
         } else {
             if (virtuosoRef.current) {
@@ -79,7 +171,7 @@ export default function ReaderClient({
                 virtuosoRef.current.scrollToIndex({
                     index: next,
                     align: "start",
-                    behavior: "smooth",
+                    behavior: "auto",
                 })
                 setTimeout(() => setIsNavigating(false), 800)
             }
@@ -94,12 +186,6 @@ export default function ReaderClient({
         navigateToPage(currentPage - (readingMode === "double-page" ? 2 : 1))
     }, [currentPage, readingMode, navigateToPage])
 
-    const chapters = React.useMemo(() => {
-        return (mangaData?.manga?.chapters?.nodes || []).sort(
-            (a: any, b: any) => b.sourceOrder - a.sourceOrder
-        )
-    }, [mangaData])
-
     const currentIndex = chapters.findIndex((c: any) => c.id === chapterId)
     const nextChapter = currentIndex > 0 ? chapters[currentIndex - 1] : null
     const prevChapter =
@@ -112,13 +198,15 @@ export default function ReaderClient({
         }
     }
 
-    const markAsRead = React.useCallback(async () => {
+    const markAsRead = React.useCallback(async (targetId?: number) => {
+        const id = targetId || activeChapter?.id
+        if (!id) return
         try {
             await client.mutation({
                 updateChapter: {
                     __args: {
                         input: {
-                            id: chapterId,
+                            id,
                             patch: {
                                 isRead: true,
                             },
@@ -132,17 +220,13 @@ export default function ReaderClient({
         } catch (err) {
             console.error("Failed to mark chapter as read:", err)
         }
-    }, [chapterId])
+    }, [activeChapter])
 
     React.useEffect(() => {
-        if (currentPage === pages.length - 1 && pages.length > 0) {
-            markAsRead()
+        if (activeItem?.type === "page" && activeItem.pageIndex === activeItem.chapter.pageCount - 1) {
+            markAsRead(activeItem.chapter.id)
         }
-    }, [currentPage, pages.length, markAsRead])
-
-    if (!data) {
-        return <ReaderLoader />
-    }
+    }, [activeItem, markAsRead])
 
     const isVerticalHud = hudOrientation === "vertical"
     const isFloating = hudType === "floating"
@@ -160,9 +244,9 @@ export default function ReaderClient({
                 showControls={showControls}
                 isVerticalHud={isVerticalHud}
                 isFloating={isFloating}
-                chapter={chapter}
-                currentPage={currentPage}
-                pagesCount={pages.length}
+                chapter={activeChapter}
+                currentPage={activeItem?.type === "page" ? activeItem.pageIndex : 0}
+                pagesCount={activeChapter?.pageCount || 1}
                 chapters={chapters}
                 prevChapter={prevChapter}
                 nextChapter={nextChapter}
@@ -173,7 +257,7 @@ export default function ReaderClient({
             />
 
             <PageList
-                pages={pages}
+                items={allItems}
                 readingMode={readingMode}
                 readingDirection={readingDirection}
                 scaleType={scaleType}
@@ -183,8 +267,9 @@ export default function ReaderClient({
                 virtuosoRef={virtuosoRef}
                 onTap={() => {}}
                 nextChapter={nextChapter}
-                onMarkAsRead={markAsRead}
+                onMarkAsRead={() => markAsRead()}
                 onNavigateToChapter={navigateToChapter}
+                onLoadMore={loadMore}
                 onPageChange={(index) => {
                     if (!isNavigating) setCurrentPage(index)
                 }}
@@ -208,9 +293,12 @@ export default function ReaderClient({
                 showControls={showControls}
                 isVerticalHud={isVerticalHud}
                 isFloating={isFloating}
-                currentPage={currentPage}
-                pagesCount={pages.length}
-                onNavigateToPage={navigateToPage}
+                currentPage={activeItem?.type === "page" ? activeItem.pageIndex : 0}
+                pagesCount={activeChapter?.pageCount || 1}
+                onNavigateToPage={(idx) => {
+                    const firstGlobalIdx = allItems.findIndex(item => item.chapterId === activeChapter?.id && item.type === "page")
+                    if (firstGlobalIdx !== -1) navigateToPage(firstGlobalIdx + idx)
+                }}
             />
 
             <ReaderOverlay

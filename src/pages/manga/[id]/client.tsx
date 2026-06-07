@@ -1,6 +1,7 @@
 import * as React from "react"
 import { PageLayout } from "@/components/page-layout"
 import { ChapterRow } from "./_components/ChapterRow"
+import { ChaptersSection } from "./_components/ChaptersSection"
 import { client } from "@/lib/client"
 import { getImageUrl, cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
@@ -88,7 +89,7 @@ export default function MangaDetailClient({
     id,
 }: MangaDetailClientProps) {
     const navigate = useNavigate()
-    const { downloads, library } = useAppStore()
+    const { downloads, library, sources } = useAppStore()
 
     const [data, setData] = React.useState<MangaDetail | null>(initialData)
     const [isLoading, setIsLoading] = React.useState(!initialData)
@@ -487,28 +488,37 @@ export default function MangaDetailClient({
                                             <span className="h-fit items-center gap-1 rounded border border-primary/20 bg-primary/10 px-2 py-1 text-[10px] font-bold tracking-wider text-primary uppercase">
                                                 {manga.status}
                                             </span>
-                                            <span className="inline items-center gap-1 px-1 text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
+                                            <Link
+                                                to={
+                                                    "/sources/" +
+                                                    sources.data?.find(
+                                                        (i) =>
+                                                            i.name ===
+                                                            manga.source?.name
+                                                    )?.id
+                                                }
+                                                className="inline items-center gap-1 px-1 text-[10px] font-bold tracking-widest text-muted-foreground uppercase hover:underline"
+                                            >
                                                 {manga.source?.displayName ||
                                                     manga.source?.name}
-                                            </span>
+                                            </Link>
                                         </div>
                                     </div>
                                 </div>
-                                <h1
+                                <Link
                                     className={cn(
-                                        "cursor-pointer leading-tight font-black tracking-tight text-foreground transition-all duration-500 hover:text-primary hover:underline",
+                                        "cursor-pointer leading-tight font-black tracking-tight text-foreground hover:text-primary hover:underline",
                                         manga.title.length > 30
                                             ? "text-2xl md:text-3xl lg:text-4xl"
                                             : "text-4xl md:text-5xl lg:text-6xl"
                                     )}
-                                    onClick={() =>
-                                        navigate(
-                                            `/browse?search=${encodeURIComponent(manga.title)}`
-                                        )
+                                    to={
+                                        "/browse?search=" +
+                                        encodeURIComponent(manga.title)
                                     }
                                 >
                                     {manga.title}
-                                </h1>
+                                </Link>
                                 <p className="text-lg font-medium text-muted-foreground">
                                     {manga.author || "Unknown Author"}
                                 </p>
@@ -616,110 +626,21 @@ export default function MangaDetailClient({
                 <Separator className="bg-border/30" />
 
                 {/* Content Section */}
-                <div className="flex flex-col gap-12">
-                    {/* Chapters */}
-                    <div className="flex flex-col gap-6">
-                        <div className="sticky top-0 z-30 -mx-4 flex items-center justify-between bg-background/80 px-4 py-4 backdrop-blur-md">
-                            <div className="flex items-center gap-3">
-                                <Layers className="size-5 text-primary" />
-                                <h2 className="text-xl font-bold tracking-tight">
-                                    Chapters
-                                </h2>
-                                <Badge
-                                    variant="outline"
-                                    className="border-border/60 text-[10px]"
-                                >
-                                    {manga.unreadCount} /{" "}
-                                    {manga.chapters.totalCount}
-                                </Badge>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() =>
-                                        setChaptersSort(
-                                            chaptersSort === "asc"
-                                                ? "desc"
-                                                : "asc"
-                                        )
-                                    }
-                                    className="h-9 gap-2 text-xs"
-                                >
-                                    <Clock className="size-4" />
-                                    {chaptersSort === "desc"
-                                        ? "Newest"
-                                        : "Oldest"}
-                                </Button>
-                            </div>
-                        </div>
-
-                        <div className="divide-y divide-border/50 overflow-hidden rounded-2xl border border-border/50 bg-muted/5 shadow-sm">
-                            {isChaptersRefreshing && chapters.length === 0 ? (
-                                <>
-                                    {[...Array(5)].map((_, i) => (
-                                        <div
-                                            key={i}
-                                            className="animate-pulse space-y-3 p-4"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <Skeleton className="size-4 rounded-full" />
-                                                <Skeleton className="h-5 w-1/3 rounded-md" />
-                                            </div>
-                                            <div className="ml-7 flex gap-2">
-                                                <Skeleton className="h-3 w-20 rounded-md" />
-                                                <Skeleton className="h-3 w-16 rounded-md" />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </>
-                            ) : chapters.length === 0 ? (
-                                <div className="flex flex-col items-center gap-3 p-12 text-center">
-                                    <div className="flex size-16 items-center justify-center rounded-full bg-muted/30">
-                                        <Layers className="size-8 text-muted-foreground/20" />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="font-bold text-foreground">
-                                            No chapters found
-                                        </p>
-                                        <p className="max-w-[200px] text-xs text-muted-foreground">
-                                            This manga might not have any
-                                            chapters or they haven't been
-                                            fetched yet.
-                                        </p>
-                                    </div>
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={refreshManga}
-                                        className="mt-2 rounded-full font-bold"
-                                    >
-                                        Try Refreshing
-                                    </Button>
-                                </div>
-                            ) : (
-                                chapters.map((chapter) => (
-                                    <ChapterRow
-                                        key={chapter.id}
-                                        chapter={chapter}
-                                        mangaId={id}
-                                        selectedChapterIds={selectedChapterIds}
-                                        onToggleSelection={
-                                            toggleChapterSelection
-                                        }
-                                        onDownload={downloadChapters}
-                                        onDelete={deleteDownloadedChapters}
-                                        onMarkAsRead={markAsRead}
-                                        onMarkPreviousAsRead={
-                                            markPreviousAsRead
-                                        }
-                                        formatDate={formatDate}
-                                    />
-                                ))
-                            )}
-                        </div>
-                    </div>
-                </div>
+                <ChaptersSection
+                    manga={manga}
+                    chaptersSort={chaptersSort}
+                    setChaptersSort={setChaptersSort}
+                    chapters={chapters}
+                    refreshManga={refreshManga}
+                    isChaptersRefreshing={isChaptersRefreshing}
+                    selectedChapterIds={selectedChapterIds}
+                    onToggleSelection={toggleChapterSelection}
+                    onDownload={downloadChapters}
+                    onDelete={deleteDownloadedChapters}
+                    onMarkAsRead={markAsRead}
+                    onMarkPreviousAsRead={markPreviousAsRead}
+                    formatDate={formatDate}
+                />
             </div>
 
             {/* Chapter Selection Toolbar */}

@@ -12,6 +12,7 @@ import {
     Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useAppStore } from "@/hooks/use-app-store"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -20,6 +21,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
+import { Loader2, RefreshCw } from "lucide-react"
 
 interface ChapterRowProps {
     chapter: any
@@ -45,7 +47,12 @@ export function ChapterRow({
     formatDate,
 }: ChapterRowProps) {
     const navigate = useNavigate()
+    const { downloads } = useAppStore()
     const isSelected = selectedChapterIds.has(chapter.id)
+
+    const downloadItem = downloads.data?.queue?.find(
+        (i) => i.chapter.id === chapter.id
+    )
 
     return (
         <div
@@ -118,6 +125,16 @@ export function ChapterRow({
             </div>
 
             <div className="ml-4 flex items-center gap-3">
+                {downloadItem && (
+                    <div className="flex items-center gap-2 rounded-full bg-primary/10 px-2 py-1 text-[10px] font-black text-primary">
+                        {downloadItem.state === "DOWNLOADING" ? (
+                            <Loader2 className="size-3 animate-spin" />
+                        ) : (
+                            <RefreshCw className="size-3" />
+                        )}
+                        <span>{Math.round(downloadItem.progress * 100)}%</span>
+                    </div>
+                )}
                 {chapter.isBookmarked && (
                     <Bookmark className="size-4 fill-primary text-primary" />
                 )}

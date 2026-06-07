@@ -18,7 +18,10 @@ export function ReaderControls({
     pagesCount,
     onNavigateToPage,
 }: ReaderControlsProps) {
-    const pages = Array.from({ length: pagesCount })
+    const maxSegments = 26
+    const displayCount = Math.min(pagesCount, maxSegments)
+    const ratio = pagesCount / displayCount
+    const activeSegment = Math.floor(currentPage / ratio)
 
     return (
         <div
@@ -70,43 +73,28 @@ export function ReaderControls({
                     </span>
                     <div
                         className={cn(
-                            "group relative flex flex-1 items-center",
+                            "group relative flex flex-1 animate-in fade-in duration-500",
                             isVerticalHud
-                                ? "h-3 min-w-[100px] flex-row gap-[2px] px-1"
-                                : "h-full min-h-[100px] w-3 flex-col gap-[2px] py-1"
+                                ? "h-4 min-w-[150px] flex-row items-center gap-[2px] px-1"
+                                : "h-full min-h-[150px] w-4 flex-col items-center gap-[2px] py-1"
                         )}
                     >
-                        {pages.map((_, i) => (
+                        {Array.from({ length: displayCount }).map((_, i) => (
                             <div
                                 key={i}
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    onNavigateToPage(Math.floor(i * ratio))
+                                }}
                                 className={cn(
-                                    "rounded-full transition-all duration-300",
+                                    "rounded-full transition-all duration-300 cursor-pointer",
                                     isVerticalHud ? "h-2 flex-1" : "w-2 flex-1",
-                                    i <= currentPage
+                                    i <= activeSegment
                                         ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.4)]"
-                                        : "bg-white/10 group-hover:bg-white/20"
+                                        : "bg-white/10 hover:bg-white/40 group-hover:bg-white/20"
                                 )}
                             />
                         ))}
-                        <input
-                            type="range"
-                            min={0}
-                            max={pagesCount - 1}
-                            value={currentPage}
-                            onChange={(e) =>
-                                onNavigateToPage(parseInt(e.target.value))
-                            }
-                            className={cn(
-                                "absolute inset-0 z-10 cursor-pointer opacity-0",
-                                !isVerticalHud &&
-                                    "appearance-slider-vertical h-full w-full"
-                            )}
-                            style={
-                                !isVerticalHud
-                                    ? ({ writingMode: "bt-lr" } as any)
-                                    : {}
-                            }
-                        />
                     </div>
                     <span
                         className={cn(

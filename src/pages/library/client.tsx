@@ -35,6 +35,7 @@ import type { MangaMetaType } from "@/lib/store/slices/meta"
 import { MangaCard } from "@/components/MangaCard"
 import { CategorySelectionDialog } from "@/components/category-selection-dialog"
 import { updateMangaCategory, fetchUnreadChapterIds } from "@/lib/library"
+import { downloadChaptersAction, markMangasAsReadAction } from "@/lib/manga-actions"
 
 interface LibraryClientProps {}
 
@@ -110,71 +111,14 @@ export default function LibraryClient({}: LibraryClientProps) {
         }
     }
 
-    const downloadChapters = async (mangaId: number, count?: number) => {
-        const promise = (async () => {
-            try {
-                const unreadChapters = await fetchUnreadChapterIds([mangaId])
-                const sorted = unreadChapters.sort(
-                    (a, b) => a.sourceOrder - b.sourceOrder
-                )
-
-                const targetIds = count
-                    ? sorted.slice(0, count).map((c) => c.id)
-                    : sorted.map((c) => c.id)
-
-                if (targetIds.length === 0) {
-                    return "No unread chapters to download"
-                }
-
-                await client.mutation({
-                    enqueueChapterDownloads: {
-                        __args: { input: { ids: targetIds } },
-                        downloadStatus: {
-                            state: true,
-                        },
-                    },
-                })
-                return `Enqueued ${targetIds.length} chapter(s)`
-            } catch (err) {
-                console.error("🔴 Mutation Failed:", err)
-                throw err
-            }
-        })()
-
-        toast.promise(promise, {
-            loading: `Fetching chapters...`,
-            success: (msg) => msg as string,
-            error: "Failed to start downloads",
-        })
+    const downloadChapters = (mangaId: number, count?: number) => {
+        downloadChaptersAction(mangaId, count)
     }
 
-    const markMangaAsRead = async (mangaIds: number[]) => {
-        const promise = (async () => {
-            const chapters = await fetchUnreadChapterIds(mangaIds)
-            const targetIds = chapters.map((c) => c.id)
-
-            if (targetIds.length === 0) {
-                return "No unread chapters found"
-            }
-
-            await client.mutation({
-                updateChapters: {
-                    __args: {
-                        input: { ids: targetIds, patch: { isRead: true } },
-                    },
-                    chapters: { id: true },
-                },
-            })
-
+    const markMangaAsRead = (mangaIds: number[]) => {
+        markMangasAsReadAction(mangaIds, () => {
             library.refresh()
             setSelectedIds(new Set())
-            return `Marked ${targetIds.length} chapters as read`
-        })()
-
-        toast.promise(promise, {
-            loading: `Updating chapters...`,
-            success: (msg) => msg as string,
-            error: "Failed to update chapters",
         })
     }
 
