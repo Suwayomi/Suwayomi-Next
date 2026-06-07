@@ -16,6 +16,7 @@ A modern, responsive web client for [Suwayomi-Server](https://github.com/Suwayom
 - Favorite List: a list of your favorite works displayed with a star on it's thumbnail.
 - Read Later: similar to Favorite in display, it's for people who don't like making a whole category for just read later work.
 - My Genre/Tags: custom defined tags in which are highlighted when visible on certain works.
+- Better history and updates page.
 
 ## ⚙️ Getting Started
 

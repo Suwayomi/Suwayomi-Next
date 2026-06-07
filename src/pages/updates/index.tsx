@@ -1,15 +1,18 @@
+import * as React from "react"
 import { PageLayout } from "@/components/page-layout"
 import { useAppStore } from "@/hooks/use-app-store"
-import { getImageUrl } from "@/lib/utils"
-import { Clock, Calendar, ChevronRight } from "lucide-react"
+import {
+    Clock,
+    Bell
+} from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Badge } from "@/components/ui/badge"
-import { useNavigate } from "react-router-dom"
+import { Skeleton } from "@/components/ui/skeleton"
+import { MangaGroupCard } from "@/components/MangaGroupCard"
 
 export default function UpdatesPage() {
     const { updates: updatesSlice } = useAppStore()
-    const navigate = useNavigate()
-    const updates = updatesSlice.data?.nodes || []
+    const groups = updatesSlice.data?.groups || []
+    const isLoading = updatesSlice.loading
 
     return (
         <PageLayout title="Recent Updates">
@@ -37,64 +40,67 @@ export default function UpdatesPage() {
                     </div>
 
                     <div className="flex flex-col gap-4">
-                        {updates.length > 0
-                            ? updates.map((update) => (
-                                  <div
-                                      key={update.id}
-                                      className="group flex cursor-pointer items-center gap-6 rounded-3xl border border-white/5 bg-zinc-900/40 p-4 transition-all hover:bg-zinc-800/80"
-                                      onClick={() =>
-                                          navigate(`/manga/${update.manga.id}`)
-                                      }
-                                  >
-                                      <div className="size-20 shrink-0 overflow-hidden rounded-2xl border border-white/10 shadow-lg md:size-24">
-                                          <img
-                                              src={
-                                                  getImageUrl(
-                                                      update.manga.thumbnailUrl
-                                                  )!
-                                              }
-                                              alt=""
-                                              className="size-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                          />
-                                      </div>
-
-                                      <div className="min-w-0 flex-1 space-y-1">
-                                          <div className="flex items-center gap-3">
-                                              <Badge
-                                                  variant="secondary"
-                                                  className="h-5 rounded-lg border-none bg-primary/10 px-2 py-0 text-[10px] font-black text-primary uppercase"
-                                              >
-                                                  Chapter
-                                              </Badge>
-                                              <span className="flex items-center gap-1 text-xs font-bold text-muted-foreground">
-                                                  <Calendar className="size-3" />
-                                                  {new Date(
-                                                      parseInt(update.fetchedAt)
-                                                  ).toLocaleDateString()}
-                                              </span>
-                                          </div>
-                                          <h3 className="line-clamp-1 font-heading text-lg font-black tracking-tight text-white transition-colors group-hover:text-primary md:text-xl">
-                                              {update.manga.title}
-                                          </h3>
-                                          <p className="text-sm font-bold text-primary italic opacity-80">
-                                              {update.name}
-                                          </p>
-                                      </div>
-
-                                      <div className="flex size-10 items-center justify-center rounded-full bg-white/5 text-muted-foreground transition-all group-hover:bg-primary group-hover:text-primary-foreground">
-                                          <ChevronRight className="size-5" />
-                                      </div>
-                                  </div>
-                              ))
-                            : [1, 2, 3, 4, 5].map((i) => (
-                                  <div
-                                      key={i}
-                                      className="h-24 animate-pulse rounded-3xl border border-white/5 bg-zinc-900/60"
-                                  />
-                              ))}
+                        {isLoading ? (
+                            <UpdatesSkeleton />
+                        ) : groups.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center gap-6 py-32 text-center">
+                                <div className="flex size-20 items-center justify-center rounded-full bg-muted/30">
+                                    <Bell className="size-10 text-muted-foreground/30" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h3 className="font-heading text-xl font-bold">
+                                        No new updates
+                                    </h3>
+                                    <p className="mx-auto max-w-xs text-muted-foreground">
+                                        When your library is updated, new chapters will appear here.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            groups.map((group) => (
+                                <MangaGroupCard
+                                    key={group.id}
+                                    type="updates"
+                                    manga={{
+                                        id: group.id,
+                                        title: group.title,
+                                        thumbnailUrl: group.thumbnailUrl,
+                                        unreadCount: group.unreadCount,
+                                    }}
+                                    chapters={group.chapters.map(c => ({
+                                        id: c.id,
+                                        name: c.name,
+                                        timestamp: c.fetchedAt
+                                    }))}
+                                />
+                            ))
+                        )}
                     </div>
                 </div>
             </ScrollArea>
         </PageLayout>
     )
 }
+
+function UpdatesSkeleton() {
+    return (
+        <div className="flex flex-col gap-4">
+            {[...Array(4)].map((_, i) => (
+                <div
+                    key={i}
+                    className="flex items-center gap-4 rounded-2xl border border-border/40 p-4"
+                >
+                    <Skeleton className="size-20 rounded-xl md:size-24" />
+                    <div className="flex flex-1 flex-col gap-2">
+                        <Skeleton className="h-6 w-1/3 rounded-md" />
+                        <Skeleton className="h-4 w-1/4 rounded-md" />
+                        <Skeleton className="h-3 w-1/5 rounded-md" />
+                    </div>
+                    <Skeleton className="h-10 w-24 rounded-full" />
+                </div>
+            ))}
+        </div>
+    )
+}
+
+
