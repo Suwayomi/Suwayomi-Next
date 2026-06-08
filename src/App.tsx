@@ -12,6 +12,9 @@ import Main from "./layout/Main"
 import LoginComponent from "./layout/Auth"
 import { LoadingScreen } from "./components/LoadingScreen"
 import { ErrorBoundary } from "./components/error-boundary"
+import { QueryClientProvider } from "@tanstack/react-query"
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
+import { queryClient } from "@/lib/query-client"
 
 function AppRoutes() {
     const location = useLocation()
@@ -95,8 +98,11 @@ function RootLayout() {
 
 export default function App() {
     return (
-        <Router>
-            <RootLayout />
-        </Router>
+        <QueryClientProvider client={queryClient}>
+            <Router>
+                <RootLayout />
+            </Router>
+            <ReactQueryDevtools initialIsOpen={false} />
+        </QueryClientProvider>
     )
 }

@@ -31,7 +31,7 @@ export async function fetchDownloadStatus(): Promise<DownloadStatus> {
                 manga: { title: true, thumbnailUrl: true },
             },
         },
-    });
+    }, { staleTime: 0 });
 
     return {
         state: (result.downloadStatus?.state as "STARTED" | "STOPPED") ?? "STOPPED",

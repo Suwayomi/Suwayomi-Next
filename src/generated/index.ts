@@ -40,7 +40,6 @@ export const createClient = function (options?: ClientOptions): Client {
 
     return createClientOriginal({
         url: targetUrl,
-
         ...options,
         queryRoot: typeMap.Query!,
         mutationRoot: typeMap.Mutation!,
