@@ -2,7 +2,7 @@ import * as React from "react"
 import { PageLayout } from "@/components/page-layout"
 import { ChapterRow } from "./_components/ChapterRow"
 import { ChaptersSection } from "./_components/ChaptersSection"
-import { client } from "@/lib/client"
+import { useSuwayomiQuery, useSuwayomiMutation, client } from "@/lib/client"
 import { getImageUrl, cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -91,8 +91,59 @@ export default function MangaDetailClient({
     const navigate = useNavigate()
     const { downloads, library, sources } = useAppStore()
 
-    const [data, setData] = React.useState<MangaDetail | null>(initialData)
-    const [isLoading, setIsLoading] = React.useState(!initialData)
+    const { data: qData, isLoading: isQueryLoading, refetch: refetchMangaInfo } = useSuwayomiQuery({
+        manga: {
+            __args: { id },
+            id: true,
+            title: true,
+            description: true,
+            thumbnailUrl: true,
+            status: true,
+            author: true,
+            artist: true,
+            genre: true,
+            inLibrary: true,
+            initialized: true,
+            unreadCount: true,
+            chapters: {
+                totalCount: true,
+                nodes: {
+                    id: true,
+                    name: true,
+                    mangaId: true,
+                    scanlator: true,
+                    realUrl: true,
+                    sourceOrder: true,
+                    chapterNumber: true,
+                    isRead: true,
+                    isDownloaded: true,
+                    isBookmarked: true,
+                    fetchedAt: true,
+                    uploadDate: true,
+                    lastReadAt: true,
+                },
+            },
+            meta: {
+                key: true,
+                value: true,
+            },
+            source: {
+                name: true,
+                displayName: true,
+                lang: true,
+            },
+            firstUnreadChapter: {
+                id: true,
+                name: true,
+            },
+            realUrl: true,
+        },
+    }, {
+        initialData: initialData as any,
+        enabled: !!id
+    })
+
+    const mangaData = qData as MangaDetail | null
     const [isDescriptionExpanded, setIsDescriptionExpanded] =
         React.useState(false)
     const [chaptersSort, setChaptersSort] = React.useState<"asc" | "desc">(
@@ -106,109 +157,38 @@ export default function MangaDetailClient({
     const [isChaptersRefreshing, setIsChaptersRefreshing] =
         React.useState(false)
 
-    const fetchData = React.useCallback(
-        async (skipRetry = false) => {
-            try {
-                const result = await client.query({
-                    manga: {
-                        __args: { id },
-                        id: true,
-                        title: true,
-                        description: true,
-                        thumbnailUrl: true,
-                        status: true,
-                        author: true,
-                        artist: true,
-                        genre: true,
-                        inLibrary: true,
-                        initialized: true,
-                        unreadCount: true,
-                        chapters: {
-                            totalCount: true,
-                            nodes: {
-                                id: true,
-                                name: true,
-                                mangaId: true,
-                                scanlator: true,
-                                realUrl: true,
-                                sourceOrder: true,
-                                chapterNumber: true,
-                                isRead: true,
-                                isDownloaded: true,
-                                isBookmarked: true,
-                                fetchedAt: true,
-                                uploadDate: true,
-                                lastReadAt: true,
-                            },
-                        },
-                        meta: {
-                            key: true,
-                            value: true,
-                        },
-                        source: {
-                            name: true,
-                            displayName: true,
-                            lang: true,
-                        },
-                        firstUnreadChapter: {
-                            id: true,
-                            name: true,
-                        },
-                        realUrl: true,
-                    },
-                })
-
-                const fetchedData = result as MangaDetail
-                setData(fetchedData)
-
-                // If the manga is not initialized or has no chapters, trigger a background metadata fetch
-                if (
-                    !skipRetry &&
-                    fetchedData.manga &&
-                    (!fetchedData.manga.initialized ||
-                        fetchedData.manga.chapters.totalCount === 0)
-                ) {
-                    try {
-                        setIsChaptersRefreshing(true)
-                        // Call both fetchChapters and fetchManga in parallel as the web UI does
-                        await client.mutation({
-                            fetchChapters: {
-                                __args: { input: { mangaId: id } },
-                                chapters: { id: true },
-                            },
-                            fetchManga: {
-                                __args: { input: { id } },
-                                manga: { id: true },
-                            },
-                        })
-                        // Refresh data after initialization, but don't retry again
-                        fetchData(true)
-                    } catch (err) {
-                        console.error("Failed to initialize manga:", err)
-                        toast.error("Failed to fetch full manga details")
-                    } finally {
-                        setIsChaptersRefreshing(false)
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to fetch manga details:", error)
-            } finally {
-                setIsLoading(false)
-            }
-        },
-        [id]
-    )
-
+    // Background initialization if needed
     React.useEffect(() => {
         if (
-            !initialData ||
-            (initialData?.manga &&
-                (!initialData.manga.initialized ||
-                    initialData.manga.chapters.totalCount === 0))
+            mangaData?.manga &&
+            (!mangaData.manga.initialized ||
+                mangaData.manga.chapters.totalCount === 0) &&
+            !isChaptersRefreshing
         ) {
-            fetchData()
+            const initializeManga = async () => {
+                setIsChaptersRefreshing(true)
+                try {
+                    await client.mutation({
+                        fetchChapters: {
+                            __args: { input: { mangaId: id } },
+                            chapters: { id: true },
+                        },
+                        fetchManga: {
+                            __args: { input: { id } },
+                            manga: { id: true },
+                        },
+                    })
+                    refetchMangaInfo()
+                } catch (err) {
+                    console.error("Failed to initialize manga:", err)
+                    toast.error("Failed to fetch full manga details")
+                } finally {
+                    setIsChaptersRefreshing(false)
+                }
+            }
+            initializeManga()
         }
-    }, [fetchData, initialData])
+    }, [mangaData?.manga?.initialized, mangaData?.manga?.chapters.totalCount, id, refetchMangaInfo])
 
     const toggleChapterSelection = (chapterId: number) => {
         setSelectedChapterIds((prev) => {
@@ -220,27 +200,36 @@ export default function MangaDetailClient({
     }
 
     // Mutations
-    const markAsRead = async (ids: number[], isRead: boolean) => {
-        const promise = client.mutation({
+    const markAsReadMutation = useSuwayomiMutation({
+        onSuccess: () => {
+            refetchMangaInfo()
+            setSelectedChapterIds(new Set())
+            toast.success("Successfully updated chapter(s)")
+        },
+        onError: () => toast.error("Failed to update chapters")
+    })
+
+    const markAsRead = (ids: number[], isRead: boolean) => {
+        markAsReadMutation.mutate({
             updateChapters: {
                 __args: { input: { ids, patch: { isRead } } },
                 chapters: { id: true },
             },
         })
-
-        toast.promise(promise, {
-            loading: `Marking ${ids.length} chapter(s) as ${isRead ? "read" : "unread"}...`,
-            success: () => {
-                fetchData(true)
-                if (ids.length > 1) setSelectedChapterIds(new Set())
-                return `Successfully updated chapter(s)`
-            },
-            error: "Failed to update chapters",
-        })
     }
 
-    const downloadChapters = async (ids: number[]) => {
-        const promise = client.mutation({
+    const downloadMutation = useSuwayomiMutation({
+        onSuccess: () => {
+            refetchMangaInfo()
+            downloads.refresh()
+            setSelectedChapterIds(new Set())
+            toast.success("Download started")
+        },
+        onError: () => toast.error("Failed to start download")
+    })
+
+    const downloadChapters = (ids: number[]) => {
+        downloadMutation.mutate({
             enqueueChapterDownloads: {
                 __args: { input: { ids } },
                 downloadStatus: {
@@ -248,54 +237,51 @@ export default function MangaDetailClient({
                 },
             },
         })
-
-        toast.promise(promise, {
-            loading: `Enqueuing ${ids.length} chapter(s) for download...`,
-            success: () => {
-                fetchData(true)
-                downloads.refresh()
-                if (ids.length > 1) setSelectedChapterIds(new Set())
-                return `Download started for ${ids.length} chapter(s)`
-            },
-            error: "Failed to start download",
-        })
     }
 
-    const deleteDownloadedChapters = async (ids: number[]) => {
-        const promise = client.mutation({
+    const deleteMutation = useSuwayomiMutation({
+        onSuccess: () => {
+            refetchMangaInfo()
+            downloads.refresh()
+            setSelectedChapterIds(new Set())
+            toast.success("Successfully deleted chapter(s)")
+        },
+        onError: () => toast.error("Failed to delete chapters")
+    })
+
+    const deleteDownloadedChapters = (ids: number[]) => {
+        deleteMutation.mutate({
             deleteDownloadedChapters: {
                 __args: { input: { ids } },
                 chapters: { id: true },
             },
         })
-
-        toast.promise(promise, {
-            loading: `Deleting ${ids.length} downloaded chapter(s)...`,
-            success: () => {
-                fetchData(true)
-                downloads.refresh()
-                if (ids.length > 1) setSelectedChapterIds(new Set())
-                return `Successfully deleted chapter(s)`
-            },
-            error: "Failed to delete chapters",
-        })
     }
 
     const markPreviousAsRead = async (order: number) => {
         const chaptersToMark =
-            data?.manga?.chapters.nodes
-                .filter((c) => c.sourceOrder <= order && !c.isRead)
-                .map((c) => c.id) || []
+            mangaData?.manga?.chapters.nodes
+                .filter((c: any) => c.sourceOrder <= order && !c.isRead)
+                .map((c: any) => c.id) || []
 
         if (chaptersToMark.length > 0) {
-            await markAsRead(chaptersToMark, true)
+            markAsRead(chaptersToMark, true)
         } else {
             toast.info("All previous chapters are already marked as read")
         }
     }
 
+    const libraryMutation = useSuwayomiMutation({
+        onSuccess: () => {
+            refetchMangaInfo()
+            library.refresh()
+            toast.success("Updated library status")
+        },
+        onError: () => toast.error("Failed to update library status")
+    })
+
     const addToLibrary = async (categoryId?: number[]) => {
-        const promise = client.mutation({
+        libraryMutation.mutate({
             updateMangaCategories: {
                 __args: {
                     input: {
@@ -312,20 +298,10 @@ export default function MangaDetailClient({
                 mangas: { id: true },
             },
         })
-
-        toast.promise(promise, {
-            loading: "Adding to library...",
-            success: () => {
-                fetchData(true)
-                library.refresh()
-                return "Added to collection"
-            },
-            error: "Failed to add to library",
-        })
     }
 
     const removeFromLibrary = async () => {
-        const promise = client.mutation({
+        libraryMutation.mutate({
             updateMangas: {
                 __args: {
                     input: { ids: [id], patch: { inLibrary: false } },
@@ -333,93 +309,80 @@ export default function MangaDetailClient({
                 mangas: { id: true },
             },
         })
-
-        toast.promise(promise, {
-            loading: "Removing from library...",
-            success: () => {
-                fetchData(true)
-                library.refresh()
-                return "Removed from collection"
-            },
-            error: "Failed to remove from library",
-        })
     }
 
+    const favoriteMutation = useSuwayomiMutation({
+        onSuccess: (_, variables) => {
+            refetchMangaInfo()
+            const isAdding = !!(variables as any).setMangaMeta
+            toast.success(isAdding ? "Added to favorites" : "Removed from favorites")
+        }
+    })
+
     const addToFavorite = async () => {
-        if (!data?.manga) return
-        const isVip = data.manga.meta?.some(
+        if (!mangaData?.manga) return
+        const isVip = mangaData.manga.meta?.some(
             (m: any) => m.key === "next:is-favorite" && m.value === "true"
         )
-        try {
-            if (isVip) {
-                await client.mutation({
-                    deleteMangaMeta: {
-                        __args: {
-                            input: {
+        if (isVip) {
+            favoriteMutation.mutate({
+                deleteMangaMeta: {
+                    __args: {
+                        input: {
+                            key: "next:is-favorite",
+                            mangaId: id,
+                        },
+                    },
+                    clientMutationId: true,
+                },
+            })
+        } else {
+            favoriteMutation.mutate({
+                setMangaMeta: {
+                    __args: {
+                        input: {
+                            meta: {
                                 key: "next:is-favorite",
                                 mangaId: id,
+                                value: "true",
                             },
                         },
-                        clientMutationId: true,
                     },
-                })
-            } else {
-                await client.mutation({
-                    setMangaMeta: {
-                        __args: {
-                            input: {
-                                meta: {
-                                    key: "next:is-favorite",
-                                    mangaId: id,
-                                    value: "true",
-                                },
-                            },
-                        },
-                        meta: {
-                            key: true,
-                        },
+                    meta: {
+                        key: true,
                     },
-                })
-            }
-            fetchData(true)
-            toast.success(
-                isVip
-                    ? "Removed from the favorite list."
-                    : "Added to the favorite list."
-            )
-        } catch (error) {
-            console.error("Failed to toggle Favorite status", error)
-            toast.error("Failed to toggle Favorite status.")
+                },
+            })
         }
     }
 
     const refreshManga = async () => {
-        const promise = client.mutation({
-            fetchChapters: {
-                __args: { input: { mangaId: id } },
-                chapters: { id: true },
-            },
-            fetchManga: {
-                __args: { input: { id } },
-                manga: { id: true },
-            },
-        })
-
-        toast.promise(promise, {
-            loading: "Refreshing manga and chapters...",
-            success: () => {
-                fetchData(true)
-                return "Manga updated"
-            },
-            error: "Failed to refresh manga",
-        })
+        setIsChaptersRefreshing(true)
+        try {
+            await client.mutation({
+                fetchChapters: {
+                    __args: { input: { mangaId: id } },
+                    chapters: { id: true },
+                },
+                fetchManga: {
+                    __args: { input: { id } },
+                    manga: { id: true },
+                },
+            })
+            refetchMangaInfo()
+            toast.success("Manga updated")
+        } catch (err) {
+            toast.error("Failed to refresh manga")
+        } finally {
+            setIsChaptersRefreshing(false)
+        }
     }
 
-    if (isLoading) {
+    if (isQueryLoading) {
         return <MangaDetailSkeleton />
     }
 
-    if (!data?.manga) {
+    if (!mangaData?.manga) {
         return (
             <PageLayout title="Not Found">
                 <div className="flex flex-col items-center justify-center py-20">
@@ -432,7 +395,7 @@ export default function MangaDetailClient({
         )
     }
 
-    const manga = data.manga
+    const manga = mangaData.manga
     const chapters = [...(manga.chapters.nodes || [])].sort((a, b) => {
         return chaptersSort === "desc"
             ? b.sourceOrder - a.sourceOrder

@@ -1,6 +1,6 @@
 import * as React from "react"
 import { PageLayout } from "@/components/page-layout"
-import { client } from "@/lib/client"
+import { useSuwayomiQuery, useSuwayomiMutation, client } from "@/lib/client"
 import { getImageUrl, cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,12 +27,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-    Tabs,
-    TabsContent,
-    TabsList,
-    TabsTrigger,
-} from "@/components/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     Select,
     SelectContent,
@@ -42,6 +37,7 @@ import {
 } from "@/components/ui/select"
 import { useNavigate, useSearchParams } from "react-router-dom"
 import { setGlobalMeta } from "@/lib/store"
+import { MangaImage } from "@/components/MangaImage"
 
 const INITIAL_VISIBLE_COUNT = 30
 const FETCH_LIMIT = 1000
@@ -73,27 +69,50 @@ export default function BrowseClientPage() {
         try {
             await setGlobalMeta("next-pinned-sources", newPinned)
             await meta.refresh()
-            toast.success(
-                isPinned ? "Source unpinned" : "Source pinned"
-            )
+            toast.success(isPinned ? "Source unpinned" : "Source pinned")
         } catch (error) {
             toast.error("Failed to update pinned sources")
         }
     }
 
-    const [availableExtensions, setAvailableExtensions] = React.useState<
-        Extension[]
-    >([])
     const [activeTab, setActiveTab] = React.useState<"installed" | "catalog">(
         "installed"
     )
+
+    const { data: availableExtensions = [] as Extension[], isLoading } =
+        useSuwayomiQuery(
+            {
+                extensions: {
+                    __args: {
+                        condition: { isInstalled: false },
+                        first: FETCH_LIMIT,
+                    },
+                    nodes: {
+                        pkgName: true,
+                        name: true,
+                        lang: true,
+                        versionName: true,
+                        iconUrl: true,
+                        isNsfw: true,
+                        isInstalled: true,
+                        hasUpdate: true,
+                        isObsolete: true,
+                    },
+                },
+            },
+            {
+                select: (data: any) =>
+                    (data.extensions?.nodes || []) as Extension[],
+            }
+        )
 
     const [searchParams] = useSearchParams()
     const [installedSearchQuery, setInstalledSearchQuery] = React.useState(
         searchParams.get("search") || ""
     )
     const [catalogSearchQuery, setCatalogSearchQuery] = React.useState("")
-    const [selectedLanguage, setSelectedLanguage] = React.useState<string>("all")
+    const [selectedLanguage, setSelectedLanguage] =
+        React.useState<string>("all")
 
     React.useEffect(() => {
         const query = searchParams.get("search")
@@ -115,6 +134,8 @@ export default function BrowseClientPage() {
     const installedExtensions = extensionsStore.data || []
     const sourceNodes = sourcesStore.data || []
 
+    const { mutateAsync: fetchSourceManga } = useSuwayomiMutation()
+
     const performGlobalSearch = React.useCallback(
         async (query: string) => {
             if (!query.trim()) {
@@ -135,7 +156,7 @@ export default function BrowseClientPage() {
                     if (!source) continue
 
                     try {
-                        const result = await client.mutation({
+                        const result = await fetchSourceManga({
                             fetchSourceManga: {
                                 __args: {
                                     input: {
@@ -156,7 +177,8 @@ export default function BrowseClientPage() {
                         results.push({
                             sourceId: source.id,
                             sourceName: source.displayName,
-                            mangas: result.fetchSourceManga?.mangas || [],
+                            mangas:
+                                (result.fetchSourceManga as any)?.mangas || [],
                         })
                     } catch (err) {
                         results.push({
@@ -188,7 +210,7 @@ export default function BrowseClientPage() {
             setGlobalSearchResults(resultMap)
             setIsSearchingGlobal(false)
         },
-        [sourceNodes]
+        [sourceNodes, fetchSourceManga]
     )
 
     // Group sources by their extension pkgName for easier access
@@ -206,8 +228,10 @@ export default function BrowseClientPage() {
 
     const availableLanguages = React.useMemo(() => {
         const langs = new Set([
-            ...availableExtensions.map((e) => e.lang.toLowerCase()),
-            ...installedExtensions.map((e) => e.lang.toLowerCase()),
+            ...(availableExtensions as Extension[]).map((e: Extension) =>
+                e.lang.toLowerCase()
+            ),
+            ...installedExtensions.map((e: Extension) => e.lang.toLowerCase()),
         ])
         // Remove 'all' or empty strings to avoid duplicates with the 'All Languages' option
         langs.delete("all")
@@ -219,14 +243,28 @@ export default function BrowseClientPage() {
         let list = installedExtensions.filter((e) =>
             e.name.toLowerCase().includes(installedSearchQuery.toLowerCase())
         )
-        return list
-    }, [installedExtensions, installedSearchQuery])
 
-    const [visibleCount, setVisibleCount] = React.useState(INITIAL_VISIBLE_COUNT)
+        // Sort: Extensions with pinned sources first
+        return list.sort((a, b) => {
+            const aPinned = sourcesByPkg[a.pkgName]?.some((s) =>
+                pinnedSources.includes(s.id)
+            )
+            const bPinned = sourcesByPkg[b.pkgName]?.some((s) =>
+                pinnedSources.includes(s.id)
+            )
+            if (aPinned && !bPinned) return -1
+            if (!aPinned && bPinned) return 1
+            return a.name.localeCompare(b.name)
+        })
+    }, [installedExtensions, installedSearchQuery, sourcesByPkg, pinnedSources])
+
+    const [visibleCount, setVisibleCount] = React.useState(
+        INITIAL_VISIBLE_COUNT
+    )
 
     const filteredCatalog = React.useMemo(() => {
         const showNsfw = meta.data?.["next-show-nsfw"]
-        return availableExtensions.filter((ext) => {
+        return (availableExtensions as Extension[]).filter((ext: Extension) => {
             const matchesNsfw = showNsfw || !ext.isNsfw
             const matchesLang =
                 selectedLanguage === "all" ||
@@ -244,50 +282,8 @@ export default function BrowseClientPage() {
         return filteredCatalog.slice(0, visibleCount)
     }, [filteredCatalog, visibleCount])
 
-    // Pagination & Loading States
-    const [isLoading, setIsLoading] = React.useState(false)
     const [isRefreshingExtensions, setIsRefreshingExtensions] =
         React.useState(false)
-
-    // Fetch logic for the "Extensions" tab (Available packages)
-    const fetchExtensions = React.useCallback(async () => {
-        setIsLoading(true)
-        try {
-            const availableResult = await client.query({
-                extensions: {
-                    __args: {
-                        condition: { isInstalled: false },
-                        first: FETCH_LIMIT,
-                    },
-                    nodes: {
-                        pkgName: true,
-                        name: true,
-                        lang: true,
-                        versionName: true,
-                        iconUrl: true,
-                        isNsfw: true,
-                        isInstalled: true,
-                        hasUpdate: true,
-                        isObsolete: true,
-                    },
-                },
-            })
-
-            const newAvailable = (availableResult.extensions?.nodes ||
-                []) as Extension[]
-            setAvailableExtensions(newAvailable)
-        } catch (error) {
-            console.error("Failed to fetch extensions:", error)
-            toast.error("Failed to load catalog")
-        } finally {
-            setIsLoading(false)
-        }
-    }, [client])
-
-    // Initial fetch for available extensions (since server only sent installed ones)
-    React.useEffect(() => {
-        fetchExtensions()
-    }, [fetchExtensions])
 
     // Search Debounce for Global Search
     React.useEffect(() => {
@@ -310,34 +306,52 @@ export default function BrowseClientPage() {
         }
     }
 
-    const refreshExtensions = async () => {
+    const { mutate: refreshExtensionsMutation } = useSuwayomiMutation({
+        onSuccess: () => {
+            setIsRefreshingExtensions(false)
+            toast.success("Repository updated")
+        },
+        onError: () => {
+            setIsRefreshingExtensions(false)
+            toast.error("Failed to update repository")
+        },
+    })
+
+    const refreshExtensions = () => {
         setIsRefreshingExtensions(true)
-        const promise = client.mutation({
+        refreshExtensionsMutation({
             fetchExtensions: {
                 __args: { input: {} },
-                fetchExtensions: { __typename: true },
-            },
-        })
-
-        toast.promise(promise, {
-            loading: "Updating extension repository...",
-            success: () => {
-                fetchExtensions()
-                setIsRefreshingExtensions(false)
-                return "Repository updated"
-            },
-            error: () => {
-                setIsRefreshingExtensions(false)
-                return "Failed to update repository"
+                clientMutationId: true,
             },
         })
     }
 
-    const updateExtensionState = async (
+    const { mutate: updateExtensionMutation } = useSuwayomiMutation({
+        onSuccess: async (_, variables) => {
+            // Refresh the local list and the global stores
+            await Promise.all([
+                extensionsStore.refresh(),
+                sourcesStore.refresh(),
+            ])
+            const action = Object.keys(
+                (variables as any).updateExtension.__args.input.patch
+            )[0]
+            toast.success(`Successfully ${action}ed`)
+        },
+        onError: (_, variables) => {
+            const action = Object.keys(
+                (variables as any).updateExtension.__args.input.patch
+            )[0]
+            toast.error(`Failed to ${action} extension`)
+        },
+    })
+
+    const updateExtensionState = (
         pkgName: string,
         action: "install" | "uninstall" | "update"
     ) => {
-        const promise = client.mutation({
+        updateExtensionMutation({
             updateExtension: {
                 __args: {
                     input: {
@@ -347,20 +361,6 @@ export default function BrowseClientPage() {
                 },
                 clientMutationId: true,
             },
-        })
-
-        toast.promise(promise, {
-            loading: `${action.charAt(0).toUpperCase() + action.slice(1)}ing extension...`,
-            success: async () => {
-                // Refresh the local list and the global stores
-                fetchExtensions()
-                await Promise.all([
-                    extensionsStore.refresh(),
-                    sourcesStore.refresh(),
-                ])
-                return `Successfully ${action}ed`
-            },
-            error: `Failed to ${action} extension`,
         })
     }
 
@@ -410,7 +410,7 @@ export default function BrowseClientPage() {
                                 <SelectTrigger className="h-10 w-[140px] border-muted-foreground/10 bg-muted/20 font-bold">
                                     <SelectValue placeholder="Select Language" />
                                 </SelectTrigger>
-                                <SelectContent className=" border-border/40 bg-background font-bold shadow-2xl">
+                                <SelectContent className="border-border/40 bg-background font-bold shadow-2xl">
                                     <SelectItem value="all">
                                         All Languages
                                     </SelectItem>
@@ -431,8 +431,7 @@ export default function BrowseClientPage() {
                                 <RefreshCw
                                     className={cn(
                                         "size-4",
-                                        isRefreshingExtensions &&
-                                        "animate-spin"
+                                        isRefreshingExtensions && "animate-spin"
                                     )}
                                 />
                             </Button>
@@ -484,7 +483,7 @@ export default function BrowseClientPage() {
                                                     ext={ext}
                                                     sources={
                                                         sourcesByPkg[
-                                                        ext.pkgName
+                                                            ext.pkgName
                                                         ] || []
                                                     }
                                                     onAction={
@@ -495,7 +494,9 @@ export default function BrowseClientPage() {
                                                             `/sources/${id}`
                                                         )
                                                     }
-                                                    pinnedSources={pinnedSources}
+                                                    pinnedSources={
+                                                        pinnedSources
+                                                    }
                                                     onTogglePin={togglePin}
                                                 />
                                             ))}
@@ -514,7 +515,7 @@ export default function BrowseClientPage() {
                                                         (source: Source) => (
                                                             <div
                                                                 key={source.id}
-                                                                className="group flex cursor-pointer items-center justify-between rounded-2xl border border-border/40 bg-muted/5 p-4  hover:border-primary/20 hover:bg-primary/5 "
+                                                                className="group flex cursor-pointer items-center justify-between rounded-2xl border border-border/40 bg-muted/5 p-4 hover:border-primary/20 hover:bg-primary/5"
                                                                 onClick={() =>
                                                                     navigate(
                                                                         `/sources/${source.id}`
@@ -522,7 +523,7 @@ export default function BrowseClientPage() {
                                                                 }
                                                             >
                                                                 <div className="flex items-center gap-3">
-                                                                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border/40 bg-background p-2.5 shadow-sm ">
+                                                                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border/40 bg-background p-2.5 shadow-sm">
                                                                         {source.iconUrl ? (
                                                                             <img
                                                                                 src={
@@ -555,7 +556,11 @@ export default function BrowseClientPage() {
                                                                 <div className="flex items-center gap-2">
                                                                     <DropdownMenu>
                                                                         <DropdownMenuTrigger
-                                                                            onClick={(e) => e.stopPropagation()}
+                                                                            onClick={(
+                                                                                e
+                                                                            ) =>
+                                                                                e.stopPropagation()
+                                                                            }
                                                                             render={
                                                                                 <Button
                                                                                     variant="ghost"
@@ -566,21 +571,34 @@ export default function BrowseClientPage() {
                                                                                 </Button>
                                                                             }
                                                                         />
-                                                                        <DropdownMenuContent align="end" className="w-48 p-1 font-bold">
+                                                                        <DropdownMenuContent
+                                                                            align="end"
+                                                                            className="w-48 p-1 font-bold"
+                                                                        >
                                                                             <DropdownMenuItem
                                                                                 className="gap-2"
-                                                                                onClick={(e) => {
+                                                                                onClick={(
+                                                                                    e
+                                                                                ) => {
                                                                                     e.stopPropagation()
-                                                                                    togglePin(source.id)
+                                                                                    togglePin(
+                                                                                        source.id
+                                                                                    )
                                                                                 }}
                                                                             >
-                                                                                {pinnedSources.includes(source.id) ? (
+                                                                                {pinnedSources.includes(
+                                                                                    source.id
+                                                                                ) ? (
                                                                                     <>
-                                                                                        <PinOff className="size-4" /> Unpin Source
+                                                                                        <PinOff className="size-4" />{" "}
+                                                                                        Unpin
+                                                                                        Source
                                                                                     </>
                                                                                 ) : (
                                                                                     <>
-                                                                                        <Pin className="size-4" /> Pin Source
+                                                                                        <Pin className="size-4" />{" "}
+                                                                                        Pin
+                                                                                        Source
                                                                                     </>
                                                                                 )}
                                                                             </DropdownMenuItem>
@@ -606,89 +624,149 @@ export default function BrowseClientPage() {
                                             </div>
                                         )}
 
-                                        {Object.entries(
-                                            globalSearchResults
-                                        ).map(([sourceId, results]) => (
-                                            <div
-                                                key={sourceId}
-                                                className="flex flex-col gap-4"
-                                            >
-                                                <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-border/5 bg-background/80 px-2 py-2 backdrop-blur-md">
-                                                    <span className="rounded bg-primary/10 px-2 py-0.5 text-xs font-black tracking-widest text-primary uppercase">
-                                                        {results.name}
-                                                    </span>
-                                                    <span className="text-[10px] font-bold text-muted-foreground">
-                                                        {results.nodes.length}{" "}
-                                                        results
-                                                    </span>
-                                                </div>
-
-                                                <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7">
-                                                    {results.nodes
-                                                        .slice(0, 6)
-                                                        .map((manga: any) => (
-                                                            <div
-                                                                key={manga.id}
-                                                                className="group flex cursor-pointer flex-col gap-2"
+                                        {Object.entries(globalSearchResults)
+                                            .sort(([idA], [idB]) => {
+                                                const aPinned =
+                                                    pinnedSources.includes(idA)
+                                                const bPinned =
+                                                    pinnedSources.includes(idB)
+                                                if (aPinned && !bPinned)
+                                                    return -1
+                                                if (!aPinned && bPinned)
+                                                    return 1
+                                                return 0
+                                            })
+                                            .map(([sourceId, results]) => {
+                                                const isPinned =
+                                                    pinnedSources.includes(
+                                                        sourceId
+                                                    )
+                                                return (
+                                                    <div
+                                                        key={sourceId}
+                                                        className={cn(
+                                                            "flex flex-col gap-4 rounded-3xl transition-all duration-500",
+                                                            isPinned
+                                                                ? "border border-primary/20 bg-primary/5 p-6 shadow-[0_0_50px_-12px_rgba(var(--primary),0.1)]"
+                                                                : "p-2"
+                                                        )}
+                                                    >
+                                                        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border/5 bg-background/80 px-2 py-2 backdrop-blur-md">
+                                                            <div className="flex items-center gap-2">
+                                                                <span
+                                                                    className={cn(
+                                                                        "rounded px-2 py-0.5 text-xs font-black tracking-widest uppercase",
+                                                                        isPinned
+                                                                            ? "bg-primary text-primary-foreground"
+                                                                            : "bg-primary/10 text-primary"
+                                                                    )}
+                                                                >
+                                                                    {
+                                                                        results.name
+                                                                    }
+                                                                </span>
+                                                                {isPinned && (
+                                                                    <div className="flex items-center gap-1 text-[10px] font-black tracking-tighter text-primary">
+                                                                        <Pin className="size-3 fill-primary" />
+                                                                        PINNED
+                                                                    </div>
+                                                                )}
+                                                                <span className="text-[10px] font-bold text-muted-foreground">
+                                                                    {
+                                                                        results
+                                                                            .nodes
+                                                                            .length
+                                                                    }{" "}
+                                                                    results
+                                                                </span>
+                                                            </div>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-8 text-[10px] font-black tracking-widest text-primary/60 uppercase hover:text-primary"
                                                                 onClick={() =>
                                                                     navigate(
-                                                                        `/manga/${manga.id}`
+                                                                        `/sources/${sourceId}?search=${encodeURIComponent(installedSearchQuery)}`
                                                                     )
                                                                 }
                                                             >
-                                                                <div className="relative aspect-[3/4] overflow-hidden rounded-xl border border-border/40 bg-muted/30 shadow-sm transition-all group-hover:shadow-lg hover:ring-2 hover:ring-primary/40">
-                                                                    {manga.thumbnailUrl ? (
-                                                                        <img
-                                                                            src={
-                                                                                getImageUrl(
-                                                                                    manga.thumbnailUrl
-                                                                                )!
-                                                                            }
-                                                                            alt={
-                                                                                manga.title
-                                                                            }
-                                                                            className="h-full w-full object-cover  "
-                                                                        />
-                                                                    ) : (
-                                                                        <div className="flex h-full w-full items-center justify-center bg-muted/40 text-[10px] font-bold text-muted-foreground/30">
-                                                                            No
-                                                                            Cover
-                                                                        </div>
-                                                                    )}
-                                                                    {manga.inLibrary && (
-                                                                        <div className="absolute top-2 left-2 rounded bg-primary px-1.5 py-0.5 text-[8px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg">
-                                                                            Library
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                                <h3 className="line-clamp-2 text-center text-xs leading-tight font-bold transition-colors group-hover:text-primary">
-                                                                    {
-                                                                        manga.title
-                                                                    }
-                                                                </h3>
-                                                            </div>
-                                                        ))}
+                                                                View All Source
+                                                                Results
+                                                            </Button>
+                                                        </div>
 
-                                                    <div
-                                                        className="group flex cursor-pointer flex-col gap-2"
-                                                        onClick={() =>
-                                                            navigate(
-                                                                `/sources/${sourceId}?search=${encodeURIComponent(installedSearchQuery)}`
-                                                            )
-                                                        }
-                                                    >
-                                                        <div className="relative flex aspect-[3/4] flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-dashed border-primary/30 bg-primary/5 shadow-sm transition-all group-hover:shadow-lg hover:border-primary/50 hover:bg-primary/10">
-                                                            <div className="flex size-10 items-center justify-center rounded-full bg-primary/20 transition-transform group-hover:scale-110">
-                                                                <ChevronRight className="size-5 text-primary" />
+                                                        <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7">
+                                                            {results.nodes
+                                                                .slice(0, 6)
+                                                                .map(
+                                                                    (
+                                                                        manga: any
+                                                                    ) => (
+                                                                        <div
+                                                                            key={
+                                                                                manga.id
+                                                                            }
+                                                                            className="group flex cursor-pointer flex-col gap-2"
+                                                                            onClick={() =>
+                                                                                navigate(
+                                                                                    `/manga/${manga.id}`
+                                                                                )
+                                                                            }
+                                                                        >
+                                                                            <div className="relative aspect-[3/4] overflow-hidden rounded-xl border border-border/40 bg-muted/30 shadow-sm transition-all group-hover:shadow-lg hover:ring-2 hover:ring-primary/40">
+                                                                                {manga.thumbnailUrl ? (
+                                                                                    <MangaImage
+                                                                                        thumbnailUrl={
+                                                                                            manga.thumbnailUrl
+                                                                                        }
+                                                                                        alt={
+                                                                                            manga.title
+                                                                                        }
+                                                                                        className="size-full object-cover"
+                                                                                    />
+                                                                                ) : (
+                                                                                    <div className="flex h-full w-full items-center justify-center bg-muted/40 text-[10px] font-bold text-muted-foreground/30">
+                                                                                        No
+                                                                                        Cover
+                                                                                    </div>
+                                                                                )}
+                                                                                {manga.inLibrary && (
+                                                                                    <div className="absolute top-2 left-2 rounded bg-primary px-1.5 py-0.5 text-[8px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg">
+                                                                                        Library
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                            <h3 className="line-clamp-2 text-center text-xs leading-tight font-bold transition-colors group-hover:text-primary">
+                                                                                {
+                                                                                    manga.title
+                                                                                }
+                                                                            </h3>
+                                                                        </div>
+                                                                    )
+                                                                )}
+
+                                                            <div
+                                                                className="group flex cursor-pointer flex-col gap-2"
+                                                                onClick={() =>
+                                                                    navigate(
+                                                                        `/sources/${sourceId}?search=${encodeURIComponent(installedSearchQuery)}`
+                                                                    )
+                                                                }
+                                                            >
+                                                                <div className="relative flex aspect-[3/4] flex-col items-center justify-center gap-2 overflow-hidden rounded-xl border border-dashed border-primary/30 bg-primary/5 shadow-sm transition-all group-hover:shadow-lg hover:border-primary/50 hover:bg-primary/10">
+                                                                    <div className="flex size-10 items-center justify-center rounded-full bg-primary/20 transition-transform group-hover:scale-110">
+                                                                        <ChevronRight className="size-5 text-primary" />
+                                                                    </div>
+                                                                    <span className="text-[10px] font-black tracking-widest text-primary uppercase">
+                                                                        View
+                                                                        More
+                                                                    </span>
+                                                                </div>
                                                             </div>
-                                                            <span className="text-[10px] font-black tracking-widest text-primary uppercase">
-                                                                View More
-                                                            </span>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
-                                        ))}
+                                                )
+                                            })}
                                     </div>
                                 )}
                             </div>
@@ -700,13 +778,15 @@ export default function BrowseClientPage() {
                             onScroll={handleExtensionScroll}
                         >
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                                {visibleCatalog.map((ext, index) => (
-                                    <ExtensionCard
-                                        key={ext.pkgName + index}
-                                        ext={ext}
-                                        onAction={updateExtensionState}
-                                    />
-                                ))}
+                                {visibleCatalog.map(
+                                    (ext: any, index: number) => (
+                                        <ExtensionCard
+                                            key={ext.pkgName + index}
+                                            ext={ext}
+                                            onAction={updateExtensionState}
+                                        />
+                                    )
+                                )}
                             </div>
                             {visibleCount < filteredCatalog.length && (
                                 <div className="flex items-center justify-center py-20">
@@ -774,17 +854,25 @@ function ExtensionCard({
         langColors[ext.lang.toLowerCase()] ||
         "bg-muted/30 text-muted-foreground border-border/50"
 
+    const hasPinnedSource = React.useMemo(() => {
+        return (pinnedSources || []).some((id) =>
+            sources.some((s) => s.id === id)
+        )
+    }, [pinnedSources, sources])
+
     return (
         <div
             className={cn(
-                "group relative flex flex-col gap-4 rounded-2xl border border-border/40 bg-muted/5 p-4  hover:border-primary/20 hover:bg-muted/10 ",
-                ext.isInstalled ? "cursor-pointer" : ""
+                "group relative flex flex-col gap-4 rounded-2xl border border-border/40 bg-muted/5 p-4 transition-all duration-300 hover:border-primary/20",
+                ext.isInstalled ? "cursor-pointer" : "",
+                hasPinnedSource &&
+                    "border-primary/30 bg-primary/[0.03] shadow-[0_0_30px_-12px_rgba(var(--primary),0.2)]"
             )}
             onClick={handleCardClick}
         >
             <div className="flex items-start justify-between">
                 <div className="relative shrink-0">
-                    <div className="flex size-14 items-center justify-center rounded-xl border border-border/40 bg-background p-2.5 shadow-sm ">
+                    <div className="flex size-14 items-center justify-center rounded-xl border border-border/40 bg-background p-2.5 shadow-sm">
                         {ext.iconUrl ? (
                             <img
                                 src={getImageUrl(ext.iconUrl)!}
@@ -821,7 +909,7 @@ function ExtensionCard({
                             />
                             <DropdownMenuContent
                                 align="end"
-                                className="w-48  p-1 font-bold "
+                                className="w-48 p-1 font-bold"
                             >
                                 {ext.hasUpdate && (
                                     <DropdownMenuItem
@@ -844,38 +932,46 @@ function ExtensionCard({
                                 >
                                     <Trash2 className="size-4" /> Uninstall
                                 </DropdownMenuItem>
-                                {sources.length > 0 && onTogglePin && pinnedSources && (
-                                    <>
-                                        <div className="my-1 h-px bg-border/40" />
-                                        {sources.map((source) => (
-                                            <DropdownMenuItem
-                                                key={source.id}
-                                                className="gap-2"
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    onTogglePin(source.id)
-                                                }}
-                                            >
-                                                {pinnedSources.includes(source.id) ? (
-                                                    <>
-                                                        <PinOff className="size-4" /> Unpin {source.displayName}
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Pin className="size-4" /> Pin {source.displayName}
-                                                    </>
-                                                )}
-                                            </DropdownMenuItem>
-                                        ))}
-                                    </>
-                                )}
+                                {sources.length > 0 &&
+                                    onTogglePin &&
+                                    pinnedSources && (
+                                        <>
+                                            <div className="my-1 h-px bg-border/40" />
+                                            {sources.map((source) => (
+                                                <DropdownMenuItem
+                                                    key={source.id}
+                                                    className="gap-2"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        onTogglePin(source.id)
+                                                    }}
+                                                >
+                                                    {pinnedSources.includes(
+                                                        source.id
+                                                    ) ? (
+                                                        <>
+                                                            <PinOff className="size-4" />{" "}
+                                                            Unpin{" "}
+                                                            {source.displayName}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Pin className="size-4" />{" "}
+                                                            Pin{" "}
+                                                            {source.displayName}
+                                                        </>
+                                                    )}
+                                                </DropdownMenuItem>
+                                            ))}
+                                        </>
+                                    )}
                             </DropdownMenuContent>
                         </DropdownMenu>
                     ) : (
                         <Button
                             variant="secondary"
                             size="sm"
-                            className=" font-bold tracking-tight "
+                            className="font-bold tracking-tight"
                             onClick={(e) => {
                                 e.stopPropagation()
                                 onAction(ext.pkgName, "install")
@@ -941,7 +1037,7 @@ function ExtensionItem({
     return (
         <div className="group flex items-center justify-between gap-4 rounded-xl border border-border/40 bg-muted/5 p-3 transition-all hover:border-primary/10 hover:bg-muted/10">
             <div className="flex items-center gap-4">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-background p-2 ">
+                <div className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-background p-2">
                     {ext.iconUrl ? (
                         <img
                             src={getImageUrl(ext.iconUrl)!}
@@ -984,7 +1080,7 @@ function ExtensionItem({
             <Button
                 variant="secondary"
                 size="sm"
-                className="h-8 rounded-lg font-bold shadow-sm transition-all active:scale-95 px-3"
+                className="h-8 rounded-lg px-3 font-bold shadow-sm transition-all active:scale-95"
                 onClick={() => onAction(ext.pkgName, "install")}
             >
                 Install

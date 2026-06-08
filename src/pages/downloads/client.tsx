@@ -1,5 +1,5 @@
 import { PageLayout } from "@/components/page-layout"
-import { client } from "@/lib/client"
+import { useSuwayomiMutation, client } from "@/lib/client"
 import { getImageUrl, cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { useAppStore } from "@/hooks/use-app-store"
 import { Progress } from "@/components/ui/progress"
+import * as React from "react"
 
 export default function DownloadsClientPage() {
     const { downloads } = useAppStore()
@@ -25,68 +26,59 @@ export default function DownloadsClientPage() {
     const isDownloading = downloads.data?.state === "STARTED"
     const isLoading = downloads.loading && !downloads.data
 
-    const toggleDownloader = async () => {
+    const downloadMutation = useSuwayomiMutation({
+        onSuccess: () => downloads.refresh()
+    })
+
+    const toggleDownloader = () => {
         const action = isDownloading ? "stopDownloader" : "startDownloader"
-        try {
-            await client.mutation({
-                [action]: {
-                    __args: { input: {} },
-                    clientMutationId: true,
-                },
-            })
-            downloads.refresh()
-            toast.success(
-                isDownloading ? "Downloader paused" : "Downloader started"
-            )
-        } catch (error) {
-            toast.error("Failed to toggle downloader")
-        }
+        downloadMutation.mutate({
+            [action]: {
+                __args: { input: {} },
+                clientMutationId: true,
+            },
+        }, {
+            onSuccess: () => {
+                toast.success(isDownloading ? "Downloader paused" : "Downloader started")
+            },
+            onError: () => toast.error("Failed to toggle downloader")
+        })
     }
 
-    const clearQueue = async () => {
-        try {
-            await client.mutation({
-                clearDownloader: {
-                    __args: { input: {} },
-                    clientMutationId: true,
-                },
-            })
-            // Manual refresh to update UI immediately
-            downloads.refresh()
-            toast.success("Queue cleared")
-        } catch (error) {
-            toast.error("Failed to clear queue")
-        }
+    const clearQueue = () => {
+        downloadMutation.mutate({
+            clearDownloader: {
+                __args: { input: {} },
+                clientMutationId: true,
+            },
+        }, {
+            onSuccess: () => toast.success("Queue cleared"),
+            onError: () => toast.error("Failed to clear queue")
+        })
     }
 
-    const removeFromQueue = async (chapterId: number) => {
-        try {
-            await client.mutation({
-                dequeueChapterDownload: {
-                    __args: { input: { id: chapterId } },
-                    clientMutationId: true,
-                },
-            })
-            downloads.refresh()
-            toast.success("Removed from queue")
-        } catch (error) {
-            toast.error("Failed to remove from queue")
-        }
+    const removeFromQueue = (chapterId: number) => {
+        downloadMutation.mutate({
+            dequeueChapterDownload: {
+                __args: { input: { id: chapterId } },
+                clientMutationId: true,
+            },
+        }, {
+            onSuccess: () => toast.success("Removed from queue"),
+            onError: () => toast.error("Failed to remove from queue")
+        })
     }
 
-    const reenqueueChapter = async (chapterId: number) => {
-        try {
-            await client.mutation({
-                enqueueChapterDownload: {
-                    __args: { input: { id: chapterId } },
-                    clientMutationId: true,
-                },
-            })
-            downloads.refresh()
-            toast.success("Added back to queue")
-        } catch (error) {
-            toast.error("Failed to re-enqueue")
-        }
+    const reenqueueChapter = (chapterId: number) => {
+        downloadMutation.mutate({
+            enqueueChapterDownload: {
+                __args: { input: { id: chapterId } },
+                clientMutationId: true,
+            },
+        }, {
+            onSuccess: () => toast.success("Added back to queue"),
+            onError: () => toast.error("Failed to re-enqueue")
+        })
     }
 
     return (

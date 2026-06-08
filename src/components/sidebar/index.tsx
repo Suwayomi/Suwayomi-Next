@@ -137,7 +137,7 @@ export default function AppSidebar({
                   }
                 : i
         )
-    }, [store.meta, store.sources])
+    }, [store])
 
     return (
         <Sidebar collapsible="icon" {...props}>
@@ -209,18 +209,19 @@ function BarItem({
     store: any
     location: Location<any>
 }) {
-    const badge = React.useMemo(() => item.getBadge?.(store) ?? 0, [store])
-    const [open, setOpen] = React.useState(location.pathname === item.url)
+    const badge = React.useMemo(
+        () => item.getBadge?.(store) ?? 0,
+        [item, store]
+    )
+
+    const isCurrentRouteActive = location.pathname.startsWith(item.url)
+    const [open, setOpen] = React.useState(isCurrentRouteActive)
+
     React.useEffect(() => {
-        if (location.pathname === item.url) {
+        if (location.pathname.startsWith(item.url)) {
             setOpen(true)
         }
     }, [location.pathname, item.url])
-
-    const isOpen = React.useMemo(
-        () => location.pathname.startsWith(item.url) || open,
-        [open, location.pathname, item.url]
-    )
 
     return (
         <SidebarMenuItem key={item.title}>
@@ -232,21 +233,25 @@ function BarItem({
                 <item.icon className="size-4" />
                 <span>{item.title}</span>
             </SidebarMenuButton>
+
             {badge > 0 && <SidebarMenuBadge>{badge}</SidebarMenuBadge>}
+
             {item.subItems && (
                 <>
+                    {/* The Chevron toggle button manually flips the state */}
                     <SidebarMenuAction onClick={() => setOpen((p) => !p)}>
-                        <ChevronRight className={cn(isOpen && "rotate-90")} />
+                        <ChevronRight className={cn(open && "rotate-90")} />
                     </SidebarMenuAction>
-                    {isOpen && (
+
+                    {/* Controlled purely by the 'open' state now */}
+                    {open && (
                         <SidebarMenuSub>
                             {item.subItems.map((subItem) => (
-                                <SidebarMenuSubItem>
+                                <SidebarMenuSubItem key={subItem.title}>
                                     <SidebarMenuSubButton
                                         render={<Link to={subItem.url} />}
                                         isActive={
-                                            subItem.url ===
-                                            item.url + location.search
+                                            location.pathname === subItem.url
                                         }
                                     >
                                         <subItem.icon className="size-4" />

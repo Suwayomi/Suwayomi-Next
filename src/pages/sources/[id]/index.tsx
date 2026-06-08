@@ -1,6 +1,6 @@
 import * as React from "react"
 import { PageLayout } from "@/components/page-layout"
-import { client } from "@/lib/client"
+import { useSuwayomiQuery, client } from "@/lib/client"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -62,8 +62,6 @@ function SourceBrowseContent() {
     const [browseType, setBrowseType] = React.useState<FetchSourceMangaType>(
         initialSearch ? "SEARCH" : "POPULAR"
     )
-    const [sourceName, setSourceName] = React.useState<string>("Catalog")
-    const [sourceFilters, setSourceFilters] = React.useState<Filter[]>([])
     const [activeSourceFilters, setActiveSourceFilters] = React.useState<
         Record<number, FilterChangeInput>
     >({})
@@ -86,52 +84,45 @@ function SourceBrowseContent() {
         null
     )
 
-    const fetchSourceInfo = React.useCallback(async () => {
-        try {
-            const result = await client.query({
-                source: {
-                    __args: { id: sourceId },
-                    displayName: true,
-                    filters: {
-                        __typename: true,
-                        ...({
+    const { data: sourceInfo } = useSuwayomiQuery({
+        source: {
+            __args: { id: sourceId },
+            displayName: true,
+            filters: {
+                __typename: true,
+                ...({
+                    on_CheckBoxFilter: { name: true },
+                    on_SelectFilter: { name: true, values: true },
+                    on_TextFilter: { name: true },
+                    on_TriStateFilter: { name: true },
+                    on_SortFilter: {
+                        name: true,
+                        values: true,
+                    } as any,
+                    on_GroupFilter: {
+                        name: true,
+                        filters: {
+                            __typename: true,
                             on_CheckBoxFilter: { name: true },
-                            on_SelectFilter: { name: true, values: true },
-                            on_TextFilter: { name: true },
-                            on_TriStateFilter: { name: true },
-                            on_SortFilter: {
+                            on_SelectFilter: {
                                 name: true,
                                 values: true,
-                            } as any,
-                            on_GroupFilter: {
-                                name: true,
-                                filters: {
-                                    __typename: true,
-                                    on_CheckBoxFilter: { name: true },
-                                    on_SelectFilter: {
-                                        name: true,
-                                        values: true,
-                                    },
-                                    on_TextFilter: { name: true },
-                                    on_TriStateFilter: { name: true },
-                                },
-                            } as any,
-                            on_HeaderFilter: { name: true },
-                            on_SeparatorFilter: { __typename: true },
-                        } as any),
-                    },
-                },
-            })
-            if (result.source?.displayName) {
-                setSourceName(result.source.displayName)
-            }
-            if (result.source?.filters) {
-                setSourceFilters(result.source.filters as Filter[])
-            }
-        } catch (error) {
-            console.error("Failed to fetch source info:", error)
-        }
-    }, [sourceId])
+                            },
+                            on_TextFilter: { name: true },
+                            on_TriStateFilter: { name: true },
+                        },
+                    } as any,
+                    on_HeaderFilter: { name: true },
+                    on_SeparatorFilter: { __typename: true },
+                } as any),
+            },
+        },
+    }, {
+        enabled: !!sourceId
+    })
+
+    const sourceName = (sourceInfo as any)?.source?.displayName || "Catalog"
+    const sourceFilters = ((sourceInfo as any)?.source?.filters as Filter[]) || []
 
     const fetchManga = React.useCallback(
         async (
@@ -203,7 +194,6 @@ function SourceBrowseContent() {
     )
 
     React.useEffect(() => {
-        fetchSourceInfo()
         fetchManga(
             1,
             initialSearch,
@@ -211,7 +201,7 @@ function SourceBrowseContent() {
             activeSourceFilters
         )
         setSearchQuery(initialSearch)
-    }, [fetchSourceInfo, fetchManga, initialSearch])
+    }, [fetchManga, initialSearch])
 
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
         const { scrollTop, scrollHeight, clientHeight } = e.currentTarget

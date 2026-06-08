@@ -10,34 +10,17 @@ import {
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { client } from "@/lib/client"
+import { useSuwayomiMutation } from "@/lib/client"
 import Cookies from "js-cookie"
 import Struct from "./Struct"
 
 export default function LoginComponent() {
     const [username, setUsername] = useState("")
     const [password, setPassword] = useState("")
-    const [loading, setLoading] = useState(false)
 
-    const handleLogin = async () => {
-        if (!username || !password) {
-            toast.warning("Fields required", {
-                description: "Credentials cannot be empty.",
-            })
-            return
-        }
-
-        setLoading(true)
-        try {
-            const response = await client.mutation({
-                login: {
-                    __args: { input: { username, password } },
-                    clientMutationId: true,
-                    refreshToken: true,
-                    accessToken: true,
-                },
-            })
-            const { accessToken, refreshToken } = response.login
+    const loginMutation = useSuwayomiMutation({
+        onSuccess: (data) => {
+            const { accessToken, refreshToken } = data.login
             if (accessToken) {
                 Cookies.set("suwayomi_access_token", accessToken, {
                     expires: 7,
@@ -48,15 +31,33 @@ export default function LoginComponent() {
                     })
                 }
             }
-            // On Success:
             toast.success("Connected")
             window.location.reload()
-        } catch (e) {
+        },
+        onError: () => {
             toast.error("Access Denied")
-        } finally {
-            setLoading(false)
         }
+    })
+
+    const handleLogin = async () => {
+        if (!username || !password) {
+            toast.warning("Fields required", {
+                description: "Credentials cannot be empty.",
+            })
+            return
+        }
+
+        loginMutation.mutate({
+            login: {
+                __args: { input: { username, password } },
+                clientMutationId: true,
+                refreshToken: true,
+                accessToken: true,
+            },
+        })
     }
+
+    const { isPending: loading } = loginMutation
 
     return (
         <Struct>

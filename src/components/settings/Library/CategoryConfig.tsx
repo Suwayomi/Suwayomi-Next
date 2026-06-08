@@ -1,6 +1,6 @@
 import * as React from "react"
 import { FolderIcon, PlusIcon } from "lucide-react"
-import { client } from "@/lib/client"
+import { useSuwayomiQuery, useSuwayomiMutation } from "@/lib/client"
 import { toast } from "sonner"
 import { ManagementDialog } from "./ManagementDialog"
 import { LibraryManagementRow } from "./LibraryManagementRow"
@@ -31,92 +31,88 @@ interface CategoryConfigProps {
 }
 
 export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
-    const [categories, setCategories] = React.useState<LibraryCategory[]>(initialCategories)
+    const { data: categories = [] as LibraryCategory[], isLoading: isRefreshing, refetch: fetchData } = useSuwayomiQuery({
+        categories: {
+            nodes: {
+                id: true,
+                name: true,
+                default: true,
+                order: true,
+                includeInUpdate: true,
+                includeInDownload: true,
+            },
+        },
+    }, {
+        initialData: { categories: { nodes: initialCategories } } as any,
+        select: (data: any) => (data.categories?.nodes as any || []).filter((i: any) => i.name !== "Default") as LibraryCategory[]
+    })
+
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false)
     const [newCategoryName, setNewCategoryName] = React.useState("")
-    const [isRefreshing, setIsRefreshing] = React.useState(false)
 
-    const fetchData = React.useCallback(async () => {
-        setIsRefreshing(true)
-        try {
-            const result = await client.query({
-                categories: {
-                    nodes: {
-                        id: true,
-                        name: true,
-                        default: true,
-                        order: true,
-                        includeInUpdate: true,
-                        includeInDownload: true,
-                    },
-                },
-            })
-            // @ts-ignore
-            const nodes = (result?.categories?.nodes || []) as LibraryCategory[]
-            setCategories(nodes.filter((i) => i.name !== "Default"))
-        } catch (error) {
-            console.error("Failed to fetch categories", error)
-        } finally {
-            setIsRefreshing(false)
-        }
-    }, [])
-
-    const handleUpdateName = React.useCallback(async (id: number, newName: string) => {
-        setCategories((prev) =>
-            prev.map((cat) => (cat.id === id ? { ...cat, name: newName } : cat))
-        )
-        try {
-            await client.mutation({
-                updateCategory: {
-                    __args: {
-                        input: {
-                            id,
-                            patch: { name: newName },
-                        },
-                    },
-                    category: { name: true },
-                },
-            })
-            toast.success(`Category renamed to "${newName}"`)
-        } catch (error) {
+    const updateNameMutation = useSuwayomiMutation({
+        onSuccess: (_, variables) => {
+            toast.success(`Category renamed to "${variables.updateCategory?.__args?.input?.patch?.name}"`)
+        },
+        onError: () => {
             toast.error("Failed to rename category")
-            fetchData() 
+            fetchData()
         }
-    }, [fetchData])
+    })
 
-    const handleDeleteCategory = React.useCallback(async (id: number) => {
-        const categoryToDelete = categories.find(c => c.id === id)
-        setCategories((prev) => prev.filter((cat) => cat.id !== id))
-        try {
-            await client.mutation({
-                deleteCategory: {
-                    __args: { input: { categoryId: id } },
-                    category: { id: true },
-                },
-            })
-            toast.success(`Category "${categoryToDelete?.name}" deleted`)
-        } catch (error) {
+    const deleteCategoryMutation = useSuwayomiMutation({
+        onSuccess: () => {
+            toast.success(`Category deleted`)
+        },
+        onError: () => {
             toast.error("Failed to delete category")
             fetchData()
         }
-    }, [categories, fetchData])
+    })
 
-    const handleCreateCategory = async () => {
-        if (!newCategoryName.trim()) return
-        try {
-            await client.mutation({
-                createCategory: {
-                    __args: { input: { name: newCategoryName } },
-                    category: { name: true },
-                },
-            })
+    const createCategoryMutation = useSuwayomiMutation({
+        onSuccess: () => {
             toast.success(`Category "${newCategoryName}" created`)
             setNewCategoryName("")
             setIsAddDialogOpen(false)
             fetchData()
-        } catch (error) {
+        },
+        onError: () => {
             toast.error("Failed to create category")
         }
+    })
+
+    const handleUpdateName = React.useCallback((id: number, newName: string) => {
+        updateNameMutation.mutate({
+            updateCategory: {
+                __args: {
+                    input: {
+                        id,
+                        patch: { name: newName },
+                    },
+                },
+                category: { name: true },
+            },
+        })
+    }, [])
+
+    const handleDeleteCategory = React.useCallback((id: number) => {
+        deleteCategoryMutation.mutate({
+            deleteCategory: {
+                __args: { input: { categoryId: id } },
+                category: { id: true },
+            },
+        })
+    }, [])
+
+    const handleCreateCategory = async () => {
+        if (!newCategoryName.trim()) return
+        createCategoryMutation.mutate({
+            createCategory: {
+                __args: { input: { name: newCategoryName } },
+                category: { name: true },
+            },
+        })
     }
 
     return (
@@ -124,7 +120,7 @@ export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
             <ManagementDialog
                 title="Categories"
                 description="Organize your library with custom categories."
-                items={categories}
+                items={categories as any[]}
                 searchKey="name"
                 addLabel="New Category"
                 isLoading={isRefreshing}
@@ -132,11 +128,11 @@ export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
                 trigger={
                     <LibraryManagementRow
                         label="Categories"
-                        count={categories.length}
+                        count={(categories as any[]).length}
                         icon={<FolderIcon className="size-5" />}
                     />
                 }
-                renderItem={(category) => (
+                renderItem={(category: any) => (
                     <CategoryRow
                         key={category.id}
                         category={category}

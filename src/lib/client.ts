@@ -33,7 +33,10 @@ export const client = {
     ...rawClient,
     query: async <R extends QueryGenqlSelection>(
         request: R & { __name?: string },
-        options?: Omit<FetchQueryOptions<FieldsSelection<Query, R>>, "queryKey" | "queryFn">
+        options?: Omit<
+            FetchQueryOptions<FieldsSelection<Query, R>>,
+            "queryKey" | "queryFn"
+        >
     ): Promise<FieldsSelection<Query, R>> => {
         return queryClient.fetchQuery({
             queryKey: ["gql", "query", request],
@@ -44,34 +47,48 @@ export const client = {
     mutation: async <R extends MutationGenqlSelection>(
         request: R & { __name?: string }
     ): Promise<FieldsSelection<Mutation, R>> => {
-        // Mutations are typically not cached via fetchQuery
-        return rawClient.mutation(request)
+        const result = await rawClient.mutation(request)
+        queryClient.invalidateQueries({ queryKey: ["gql"] })
+        return result
     },
 }
 
-/**
- * Hook for declarative GraphQL queries
- */
-export function useSuwayomiQuery<R extends QueryGenqlSelection>(
+export function useSuwayomiQuery<
+    R extends QueryGenqlSelection,
+    TData = FieldsSelection<Query, R>,
+>(
     request: R & { __name?: string },
-    options?: Omit<UseQueryOptions<FieldsSelection<Query, R>>, "queryKey" | "queryFn">
+    options?: Partial<UseQueryOptions<FieldsSelection<Query, R>, Error, TData>>
 ) {
     return useQuery({
         queryKey: ["gql", "query", request],
         queryFn: () => rawClient.query(request),
         ...options,
-    })
+    } as any)
 }
 
-/**
- * Hook for declarative GraphQL mutations
- */
-export function useSuwayomiMutation<R extends MutationGenqlSelection>(
-    mutateFn: (variables: R & { __name?: string }) => Promise<FieldsSelection<Mutation, R>>,
-    options?: UseMutationOptions<FieldsSelection<Mutation, R>, Error, R & { __name?: string }>
+export function useSuwayomiMutationQuery<
+    R extends MutationGenqlSelection,
+    TData = FieldsSelection<Mutation, R>,
+>(
+    request: R & { __name?: string },
+    options?: Partial<
+        UseQueryOptions<FieldsSelection<Mutation, R>, Error, TData>
+    >
 ) {
+    return useQuery({
+        queryKey: ["gql", "mutation-query", request],
+        queryFn: () => rawClient.mutation(request),
+        ...options,
+    } as any)
+}
+
+export function useSuwayomiMutation<
+    R extends MutationGenqlSelection,
+    TData = FieldsSelection<Mutation, R>,
+>(options?: UseMutationOptions<TData, Error, R & { __name?: string }>) {
     return useMutation({
-        mutationFn: mutateFn,
+        mutationFn: (request) => rawClient.mutation(request) as Promise<TData>,
         ...options,
     })
 }

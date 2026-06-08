@@ -1,30 +1,37 @@
 import { PencilRuler } from "lucide-react"
 import { SettingRow, SettingsSection } from "../SettingsSection"
-import { client } from "@/lib/client"
+import { useSuwayomiMutation, client } from "@/lib/client"
 import { useState } from "react"
 import { toast } from "sonner"
+
 export default function PiperPaperSettings(props: { settings: any }) {
     const [settings, setSettings] = useState(props.settings)
-    const onUpdate = async (key: string, value: any) => {
-        try {
-            await client.mutation({
-                setSettings: {
-                    __args: {
-                        input: {
-                            settings: {
-                                [key]: value,
-                            },
-                        },
-                    },
-                    clientMutationId: true,
-                },
-            })
+    const updateMutation = useSuwayomiMutation({
+        onSuccess: (_, variables) => {
+            const key = Object.keys((variables as any).setSettings.__args.input.settings)[0]
+            const value = (variables as any).setSettings.__args.input.settings[key]
             setSettings({ ...settings, [key]: value })
             toast.success(`${key} updated`)
-        } catch (error) {
-            console.error("Failed to update setting:", error)
+        },
+        onError: (_, variables) => {
+            const key = Object.keys((variables as any).setSettings.__args.input.settings)[0]
             toast.error(`Failed to update ${key}`)
         }
+    })
+
+    const onUpdate = async (key: string, value: any) => {
+        updateMutation.mutate({
+            setSettings: {
+                __args: {
+                    input: {
+                        settings: {
+                            [key]: value,
+                        },
+                    },
+                },
+                clientMutationId: true,
+            },
+        })
     }
     return (
         <SettingsSection title="Client" icon={<PencilRuler />}>

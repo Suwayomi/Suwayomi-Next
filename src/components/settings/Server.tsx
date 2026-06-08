@@ -9,7 +9,7 @@ import {
     Database,
     Settings,
 } from "lucide-react"
-import { client } from "@/lib/client"
+import { useSuwayomiMutation } from "@/lib/client"
 import { toast } from "sonner"
 import { SettingRow, SettingsSection } from "../SettingsSection"
 
@@ -20,26 +20,35 @@ export default function ServerSettings({
 }) {
     const [settings, setSettings] = React.useState(initialSettings)
 
-    const onUpdate = async (key: string, value: any) => {
-        try {
-            await client.mutation({
-                setSettings: {
-                    __args: {
-                        input: {
-                            settings: {
-                                [key]: value,
-                            },
-                        },
-                    },
-                    clientMutationId: true,
-                },
-            })
-            setSettings({ ...settings, [key]: value })
-            toast.success(`${key} updated`)
-        } catch (error) {
+    const updateSettingsMutation = useSuwayomiMutation({
+        onSuccess: (_, variables) => {
+            const key = Object.keys(variables.setSettings?.__args?.input?.settings || {})[0]
+            const value = (variables.setSettings?.__args?.input?.settings as any)?.[key]
+            if (key) {
+                setSettings((prev: any) => ({ ...prev, [key]: value }))
+                toast.success(`${key} updated`)
+            }
+        },
+        onError: (error, variables) => {
+            const key = Object.keys(variables.setSettings?.__args?.input?.settings || {})[0]
             console.error("Failed to update setting:", error)
             toast.error(`Failed to update ${key}`)
         }
+    })
+
+    const onUpdate = async (key: string, value: any) => {
+        updateSettingsMutation.mutate({
+            setSettings: {
+                __args: {
+                    input: {
+                        settings: {
+                            [key]: value,
+                        },
+                    },
+                },
+                clientMutationId: true,
+            },
+        })
     }
 
     return (

@@ -2,7 +2,7 @@ import { getImageUrl, cn } from "@/lib/utils"
 import { Virtuoso } from "react-virtuoso"
 import type { VirtuosoHandle } from "react-virtuoso"
 import React from "react"
-import { ImageIcon } from "lucide-react"
+import { ImageIcon, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ChapterDivider } from "./ChapterDivider"
 
@@ -18,7 +18,6 @@ interface ReaderPageProps {
     onTap: (e: React.MouseEvent) => void
     nextChapter: any
     onMarkAsRead: () => void
-    onNavigateToChapter: (id: number) => void
     onLoadMore?: () => void
     onPageChange?: (index: number) => void
     padding?: {
@@ -55,15 +54,18 @@ function MangaPage({
 
     if (hasFailed) {
         return (
-            <div className="flex h-[50vh] w-full flex-col items-center justify-center gap-4 bg-muted/10 opacity-50">
-                <ImageIcon className="size-12" />
-                <p className="text-sm font-medium">
+            <div className="flex h-[80vh] w-full flex-col items-center justify-center gap-4 bg-muted/5 opacity-50">
+                <ImageIcon className="size-12 text-muted-foreground" />
+                <p className="text-sm font-medium text-muted-foreground">
                     Failed to load page {item.pageIndex + 1}
                 </p>
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setHasFailed(false)}
+                    className="mt-2"
+                    onClick={() => {
+                        setHasFailed(false)
+                    }}
                 >
                     Retry
                 </Button>
@@ -75,11 +77,12 @@ function MangaPage({
         <div
             id={`page-${index}`}
             className={cn(
-                "relative flex flex-col items-center justify-center",
+                "relative flex flex-col items-center justify-center overflow-hidden",
                 readingMode === "continuous-horizontal"
                     ? "h-full w-auto"
                     : "w-full",
-                !isScrollMode && "min-h-full min-w-full"
+                !isScrollMode && "min-h-full min-w-full",
+                !isLoaded && "min-h-[85vh] bg-muted/5"
             )}
             style={{
                 paddingBottom:
@@ -90,6 +93,19 @@ function MangaPage({
                     readingMode === "continuous-horizontal" ? pageGap : 0,
             }}
         >
+            {!isLoaded && (
+                <div className="absolute inset-0 z-10 flex animate-in flex-col items-center justify-center gap-4 duration-300 fade-in">
+                    <div className="relative flex items-center justify-center">
+                        <Loader2 className="size-12 animate-spin text-primary/20" />
+                        <span className="absolute text-[10px] font-black tracking-tighter text-muted-foreground uppercase opacity-50">
+                            {item.pageIndex + 1}
+                        </span>
+                    </div>
+                    <span className="text-[10px] font-bold tracking-[0.2em] text-muted-foreground/40 uppercase">
+                        Loading
+                    </span>
+                </div>
+            )}
             <img
                 src={getImageUrl(item.url)!}
                 alt={`Page ${item.pageIndex + 1}`}
@@ -100,14 +116,17 @@ function MangaPage({
                 onError={() => setHasFailed(true)}
                 decoding="async"
                 className={cn(
-                    "opacity-100",
+                    "transition-all duration-700 ease-in-out",
+                    isLoaded
+                        ? "scale-100 opacity-100"
+                        : "h-0 w-0 scale-95 opacity-0",
                     scaleType === "fit-width" &&
-                    (readingMode === "continuous-horizontal"
-                        ? "h-full w-auto"
-                        : "h-auto w-full md:w-[85%] lg:w-[70%]"),
+                        (readingMode === "continuous-horizontal"
+                            ? "h-full w-auto"
+                            : "h-auto w-full md:w-[85%] lg:w-[70%]"),
                     scaleType === "fit-height" && "h-screen w-auto max-w-none",
                     scaleType === "fit-screen" &&
-                    "h-auto max-h-screen w-auto max-w-full object-contain",
+                        "h-auto max-h-screen w-auto max-w-full object-contain",
                     scaleType === "original" && "h-auto w-auto max-w-none",
                     !isScrollMode && "rounded-sm object-contain shadow-2xl"
                 )}
@@ -128,7 +147,6 @@ export function PageList({
     onTap,
     nextChapter,
     onMarkAsRead,
-    onNavigateToChapter,
     onLoadMore,
     onPageChange,
     padding,
@@ -171,7 +189,10 @@ export function PageList({
                             readingMode === "continuous-horizontal"
                         ),
                         totalCount: items.length,
-                        overscan: Math.max(50, Math.min(Math.floor(items.length / 2), 50)),
+                        overscan: Math.max(
+                            50,
+                            Math.min(Math.floor(items.length / 2), 50)
+                        ),
                         increaseViewportBy: 3000,
                         rangeChanged: (range: any) => {
                             onPageChange?.(range.startIndex)
@@ -219,6 +240,3 @@ export function PageList({
         </div>
     )
 }
-
-
-

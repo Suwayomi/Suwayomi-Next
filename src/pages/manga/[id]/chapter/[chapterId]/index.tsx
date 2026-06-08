@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
-import { client } from "@/lib/client"
+import { useSuwayomiQuery, useSuwayomiMutationQuery } from "@/lib/client"
+import { Button } from "@/components/ui/button"
 import ReaderClient from "./client"
 import { LoadingScreen } from "@/components/LoadingScreen"
 
@@ -9,71 +9,74 @@ export default function ReaderPage() {
         id: string
         chapterId: string
     }>()
-    const mangaId = parseInt(id!)
-    const chapterNumber = parseInt(chapterIdStr!)
+    const mangaId = Number(id!)
+    const chapterNumber = Number(chapterIdStr!)
 
-    const [initialPagesData, setInitialPagesData] = useState<any>(null)
-    const [initialMangaData, setInitialMangaData] = useState<any>(null)
-    const [actualChapterId, setActualChapterId] = useState<number | null>(null)
-    const [loading, setLoading] = useState(true)
-
-    useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true)
-            try {
-                const mangaResult = await client.query({
-                    manga: {
-                        __args: { id: mangaId },
-                        chapters: {
-                            nodes: {
-                                id: true,
-                                sourceOrder: true,
-                                chapterNumber: true,
-                                name: true,
-                            },
-                        },
+    const { data: mangaResult, isLoading: mangaLoading } = useSuwayomiQuery(
+        {
+            manga: {
+                __args: { id: mangaId },
+                chapters: {
+                    nodes: {
+                        id: true,
+                        sourceOrder: true,
+                        chapterNumber: true,
+                        name: true,
                     },
-                })
-
-                const chapters = [...(mangaResult.manga?.chapters?.nodes || [])]
-
-                const targetChapter = chapters[chapterNumber - 1]
-                if (!targetChapter) {
-                    console.error("Chapter not found:", chapterNumber)
-                    setLoading(false)
-                    return
-                }
-
-                const chapterId = targetChapter.id
-                setActualChapterId(chapterId)
-                setInitialMangaData(mangaResult)
-
-                // Now fetch the pages for this chapter
-                const pagesResult = await client.mutation({
-                    fetchChapterPages: {
-                        __args: { input: { chapterId } },
-                        chapter: {
-                            id: true,
-                            name: true,
-                            pageCount: true,
-                            chapterNumber: true,
-                            isRead: true,
-                        },
-                        pages: true,
-                    },
-                })
-
-                setInitialPagesData(pagesResult)
-            } catch (error) {
-                console.error("Failed to fetch reader data:", error)
-            } finally {
-                setLoading(false)
-            }
+                },
+                id: true,
+            },
+        },
+        {
+            enabled: !isNaN(mangaId),
         }
-        fetchData()
-    }, [mangaId, chapterNumber])
+    )
 
-    if (loading || !actualChapterId) {
+    const chapters = (mangaResult as any)?.manga?.chapters?.nodes || []
+    const targetChapter = chapters.find((c: any) => c.chapterNumber === chapterNumber) || chapters[chapterNumber - 1]
+    const chapterId = targetChapter?.id
+
+    const { data: pagesResult, isLoading: pagesLoading } =
+        useSuwayomiMutationQuery(
+            {
+                fetchChapterPages: {
+                    __args: { input: { chapterId: chapterId! } },
+                    chapter: {
+                        id: true,
+                        name: true,
+                        pageCount: true,
+                        chapterNumber: true,
+                        isRead: true,
+                    },
+                    pages: true,
+                },
+            },
+            {
+                enabled: !!chapterId,
+                queryKey: [
+                    "gql",
+                    "mutation-query",
+                    "fetchChapterPages",
+                    chapterId,
+                ],
+            }
+        )
+
+    if (isNaN(mangaId) || isNaN(chapterNumber)) {
+        return (
+            <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-background">
+                <h1 className="text-4xl font-black tracking-tighter">404</h1>
+                <p className="text-muted-foreground text-sm uppercase tracking-widest font-bold">Invalid Chapter Path</p>
+                <Button variant="outline" onClick={() => window.history.back()}>
+                    Go Back
+                </Button>
+            </div>
+        )
+    }
+
+    const loading = mangaLoading || pagesLoading
+
+    if (loading || !chapterId) {
         return (
             <LoadingScreen
                 message="Loading Chapter..."
@@ -85,10 +88,11 @@ export default function ReaderPage() {
 
     return (
         <ReaderClient
-            initialPagesData={initialPagesData}
-            initialMangaData={initialMangaData}
+            key={`${mangaId}-${chapterId}`}
+            initialPagesData={pagesResult}
+            initialMangaData={mangaResult}
             mangaId={mangaId}
-            chapterId={actualChapterId}
+            chapterId={chapterId}
         />
     )
 }

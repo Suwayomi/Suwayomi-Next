@@ -1,7 +1,7 @@
 import * as React from "react"
 import { PageLayout } from "@/components/page-layout"
 import { LibraryActions } from "@/components/library-actions"
-import { client } from "@/lib/client"
+import { useSuwayomiMutation, client } from "@/lib/client"
 import { toast } from "sonner"
 import {
     Library,
@@ -122,24 +122,25 @@ export default function LibraryClient({}: LibraryClientProps) {
         })
     }
 
-    const removeFromLibrary = async (mangaIds: number[]) => {
-        const promise = client.mutation({
+    const removeMutation = useSuwayomiMutation({
+        onSuccess: () => {
+            setSelectedIds(new Set())
+            library.refresh()
+            toast.success("Removed from collection")
+        },
+        onError: () => {
+            toast.error("Failed to remove manga")
+        }
+    })
+
+    const removeFromLibrary = (mangaIds: number[]) => {
+        removeMutation.mutate({
             updateMangas: {
                 __args: {
                     input: { ids: mangaIds, patch: { inLibrary: false } },
                 },
                 mangas: { id: true },
             },
-        })
-
-        toast.promise(promise, {
-            loading: "Removing from library...",
-            success: () => {
-                setSelectedIds(new Set())
-                library.refresh()
-                return "Removed from collection"
-            },
-            error: "Failed to remove manga",
         })
     }
 

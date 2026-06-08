@@ -18,50 +18,44 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
+import { useSuwayomiQuery } from "@/lib/client"
+
 export default function AboutClientPage({
     initialData,
 }: {
     initialData: Record<string, [string, any][]>
 }) {
-    const [data, setData] =
-        React.useState<Record<string, [string, any][]>>(initialData)
-    const [checkingUpdate, setCheckingUpdate] = React.useState(false)
-
-    const fetchData = React.useCallback(async () => {
-        try {
-            const result = await client.query({
-                aboutServer: {
-                    buildTime: true,
-                    buildType: true,
-                    discord: true,
-                    github: true,
-                    name: true,
-                    version: true,
-                },
-            })
-            let { github, discord, ...rest } = {
+    const { data: serverInfoData } = useSuwayomiQuery({
+        aboutServer: {
+            buildTime: true,
+            buildType: true,
+            discord: true,
+            github: true,
+            name: true,
+            version: true,
+        },
+    }, {
+        initialData: { aboutServer: initialData.Server } as any,
+        select: (result: any) => {
+            const { github, discord, ...rest } = {
                 ...result.aboutServer,
-                buildTime: new Date(
-                    result.aboutServer.buildTime * 1000
-                ).toUTCString(),
+                buildTime: new Date(result.aboutServer.buildTime * 1000).toUTCString(),
             }
-            let server_data = Object.entries(rest)
-            let links_data = Object.entries({ github, discord })
-            setData((p) => ({ ...p, Server: server_data, Links: links_data }))
-        } catch (error) {
-            console.error("Failed to fetch history:", error)
+            return {
+                Server: Object.entries(rest),
+                Links: Object.entries({ github, discord })
+            }
         }
-    }, [])
+    })
 
-    React.useEffect(() => {
-        fetchData()
-    }, [fetchData])
+    const data = (serverInfoData as any) || initialData
+    const [checkingUpdate, setCheckingUpdate] = React.useState(false)
 
     const handleCheckUpdate = async () => {
         setCheckingUpdate(true)
         try {
-            const currentVersionEntry = data.Server?.find(
-                ([key]) => key === "version"
+            const currentVersionEntry = (data as Record<string, [string, any][]>).Server?.find(
+                ([key]: [string, any]) => key === "version"
             )
             const currentVersion = currentVersionEntry
                 ? currentVersionEntry[1]
@@ -109,7 +103,7 @@ export default function AboutClientPage({
     return (
         <PageLayout title="About">
             <div className="max-w-3xl space-y-8">
-                {Object.entries(data).map(([sectionTitle, items], id) => (
+                {Object.entries(data as Record<string, [string, any][]>).map(([sectionTitle, items], id) => (
                     <Card
                         key={id}
                         className="gap-0 overflow-hidden border-border/50 py-0 shadow-sm"
