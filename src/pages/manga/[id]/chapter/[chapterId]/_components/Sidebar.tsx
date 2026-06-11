@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { useSuwayomiMutation } from "@/lib/client"
-import { useNavigate } from "react-router-dom"
+import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useReaderSettings } from "@/hooks/use-reader-settings"
 import { useAppStore } from "@/hooks/use-app-store"
 import {
@@ -43,16 +43,12 @@ import {
 
 interface ReaderSidebarProps {
     showControls: boolean
-    isVerticalHud: boolean
-    isFloating: boolean
     chapter: any
     currentPage: number
     pagesCount: number
     chapters: any[]
     prevChapter: any
     nextChapter: any
-    onBack: () => void
-    mangaId: number
 }
 
 function ActionButton({
@@ -88,7 +84,7 @@ function ActionButton({
                         >
                             <Icon className="size-[18px]" />
                             {isVerticalHud && label && (
-                                <span className="text-[10px] font-bold uppercase tracking-wider">
+                                <span className="text-[10px] font-bold tracking-wider uppercase">
                                     {label}
                                 </span>
                             )}
@@ -97,7 +93,7 @@ function ActionButton({
                 />
                 <TooltipContent
                     side={isVerticalHud ? "bottom" : "right"}
-                    className="border-white/10 bg-zinc-900 text-[10px] font-bold uppercase tracking-widest text-white shadow-2xl backdrop-blur-xl"
+                    className="border-white/10 bg-zinc-900 text-[10px] font-bold tracking-widest text-white uppercase shadow-2xl backdrop-blur-xl"
                 >
                     {tooltip}
                 </TooltipContent>
@@ -108,22 +104,32 @@ function ActionButton({
 
 export function ReaderSidebar({
     showControls,
-    isVerticalHud,
-    isFloating,
     chapter,
     currentPage,
     pagesCount,
     chapters,
     prevChapter,
     nextChapter,
-    onBack,
-    mangaId,
 }: ReaderSidebarProps) {
+    const { id: mangaId } = useParams()
+    const { pathname } = useLocation()
     const { mutate: markAsRead } = useSuwayomiMutation()
     const { mutate: enqueueChapterDownloads } = useSuwayomiMutation()
     const { downloads } = useAppStore()
     const navigate = useNavigate()
-    const { readingMode, setReadingMode, scaleType, setScaleType, background, setBackground } = useReaderSettings()
+    const {
+        readingMode,
+        setReadingMode,
+        scaleType,
+        setScaleType,
+        background,
+        setBackground,
+        hudOrientation,
+        hudType,
+    } = useReaderSettings()
+
+    const isVerticalHud = hudOrientation === "vertical"
+    const isFloating = hudType === "floating"
 
     const downloadItem = downloads.data?.queue?.find(
         (i) => i.chapter.id === chapter?.id
@@ -131,6 +137,10 @@ export function ReaderSidebar({
 
     const onNavigateToChapter = (chapterNumber: number) => {
         navigate(`/manga/${mangaId}/chapter/${chapterNumber}`)
+    }
+
+    const onBack = () => {
+        navigate(pathname.split("/chapter/")[0], { replace: true })
     }
 
     const nextMode = () => {
@@ -151,7 +161,7 @@ export function ReaderSidebar({
                 "z-[120] transform transition-all duration-500 ease-out",
                 isVerticalHud
                     ? "fixed inset-x-0 top-0 translate-y-0"
-                    : "fixed inset-y-0 left-0 flex w-fit items-center justify-center translate-x-0",
+                    : "fixed inset-y-0 left-0 flex w-fit translate-x-0 items-center justify-center",
                 !showControls &&
                     (isVerticalHud
                         ? "-translate-y-full opacity-0"
@@ -169,7 +179,7 @@ export function ReaderSidebar({
                                   : "w-full border-b px-8 py-4"
                           )
                         : cn(
-                              "flex-col items-center justify-between py-10 px-3",
+                              "flex-col items-center justify-between px-3 py-10",
                               isFloating
                                   ? "my-6 ml-6 h-[90vh] rounded-[2.5rem] border"
                                   : "h-full border-r"
@@ -205,11 +215,11 @@ export function ReaderSidebar({
                         >
                             {`CH ${chapter?.chapterNumber}`}
                         </h1>
-                        <div className="flex items-center gap-1.5 overflow-hidden rounded-full bg-white/5 px-2 py-0.5 mt-1 transition-all hover:bg-white/10">
+                        <div className="mt-1 flex items-center gap-1.5 overflow-hidden rounded-full bg-white/5 px-2 py-0.5 transition-all hover:bg-white/10">
                             <span className="text-[9px] font-black tracking-tighter text-primary/80">
                                 {currentPage + 1}
                             </span>
-                            <div className="h-2 w-[1px] bg-white/10 rotate-12" />
+                            <div className="h-2 w-[1px] rotate-12 bg-white/10" />
                             <span className="text-[9px] font-black tracking-tighter text-white/30">
                                 {pagesCount}
                             </span>
@@ -285,12 +295,21 @@ export function ReaderSidebar({
                         isVerticalHud ? "flex-row" : "flex-col"
                     )}
                 >
-                    <div className={cn("flex gap-2", isVerticalHud ? "flex-row" : "flex-col")}>
+                    <div
+                        className={cn(
+                            "flex gap-2",
+                            isVerticalHud ? "flex-row" : "flex-col"
+                        )}
+                    >
                         {downloadItem ? (
-                            <div className={cn(
-                                "flex items-center justify-center rounded-xl bg-primary/10 transition-all duration-500",
-                                isVerticalHud ? "h-9 px-3 gap-2" : "size-10 flex-col py-2"
-                            )}>
+                            <div
+                                className={cn(
+                                    "flex items-center justify-center rounded-xl bg-primary/10 transition-all duration-500",
+                                    isVerticalHud
+                                        ? "h-9 gap-2 px-3"
+                                        : "size-10 flex-col py-2"
+                                )}
+                            >
                                 {downloadItem.state === "DOWNLOADING" ? (
                                     <Loader2 className="size-4 animate-spin text-primary" />
                                 ) : (
@@ -310,7 +329,9 @@ export function ReaderSidebar({
                                 onClick={() => {
                                     enqueueChapterDownloads({
                                         enqueueChapterDownloads: {
-                                            __args: { input: { ids: [chapter.id] } },
+                                            __args: {
+                                                input: { ids: [chapter.id] },
+                                            },
                                             downloadStatus: { state: true },
                                         },
                                     })
@@ -321,10 +342,23 @@ export function ReaderSidebar({
                         )}
 
                         <Sheet>
-                            <SheetTrigger render={<div className="hidden" id="reader-settings-trigger" />} />
+                            <SheetTrigger
+                                render={
+                                    <button
+                                        className="hidden"
+                                        id="reader-settings-trigger"
+                                    />
+                                }
+                            />
                             <ActionButton
                                 icon={Settings}
-                                onClick={() => document.getElementById("reader-settings-trigger")?.click()}
+                                onClick={() =>
+                                    document
+                                        .getElementById(
+                                            "reader-settings-trigger"
+                                        )
+                                        ?.click()
+                                }
                                 tooltip="Reader Settings"
                                 isVerticalHud={isVerticalHud}
                             />
@@ -337,7 +371,12 @@ export function ReaderSidebar({
                         </Sheet>
                     </div>
 
-                    <div className={cn("h-4 w-[1px] bg-white/10", !isVerticalHud && "h-[1px] w-4")} />
+                    <div
+                        className={cn(
+                            "h-4 w-[1px] bg-white/10",
+                            !isVerticalHud && "h-[1px] w-4"
+                        )}
+                    />
 
                     <Button
                         variant="ghost"

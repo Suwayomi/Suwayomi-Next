@@ -30,7 +30,7 @@ export const META_REGISTRY = {
                 settings: {
                     readingMode: "single-page",
                     readingDirection: "rtl",
-                    scaleType: "fit-screen",
+                    scaleType: "original",
                     pageGap: 0,
                 },
             },

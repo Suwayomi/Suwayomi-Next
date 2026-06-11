@@ -36,7 +36,7 @@ export default function LoginComponent() {
         },
         onError: () => {
             toast.error("Access Denied")
-        }
+        },
     })
 
     const handleLogin = async () => {
@@ -63,7 +63,7 @@ export default function LoginComponent() {
         <Struct>
             <div className="relative flex min-h-screen items-center justify-center bg-[#09090b] selection:bg-primary/30">
                 {/* Background Noise/Gradient - High-end touch */}
-                <div className="pointer-events-none absolute inset-0 z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150" />
+                <div className="pointer-events-none absolute inset-0 z-0 opacity-20 brightness-100 contrast-150" />
 
                 <div className="relative z-10 w-full max-w-[400px] px-6">
                     {/* Brand/Status Header */}

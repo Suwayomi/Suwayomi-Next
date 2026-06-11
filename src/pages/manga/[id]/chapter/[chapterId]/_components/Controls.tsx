@@ -1,23 +1,25 @@
-import * as React from "react"
 import { cn } from "@/lib/utils"
+import { globalLoadedCache } from "./PageList"
+import { useReaderSettings } from "@/hooks/use-reader-settings"
 
 interface ReaderControlsProps {
     showControls: boolean
-    isVerticalHud: boolean
-    isFloating: boolean
     currentPage: number
     pagesCount: number
     onNavigateToPage: (target: number) => void
+    pages?: string[]
 }
 
 export function ReaderControls({
     showControls,
-    isVerticalHud,
-    isFloating,
     currentPage,
     pagesCount,
     onNavigateToPage,
+    pages = [],
 }: ReaderControlsProps) {
+    const { hudOrientation, hudType } = useReaderSettings()
+    const isVerticalHud = hudOrientation === "vertical"
+    const isFloating = hudType === "floating"
     const maxSegments = 26
     const displayCount = Math.min(pagesCount, maxSegments)
     const ratio = pagesCount / displayCount
@@ -73,28 +75,38 @@ export function ReaderControls({
                     </span>
                     <div
                         className={cn(
-                            "group relative flex flex-1 animate-in fade-in duration-500",
+                            "group relative flex flex-1 animate-in overflow-hidden rounded-full duration-500 fade-in",
                             isVerticalHud
-                                ? "h-4 min-w-[150px] flex-row items-center gap-[2px] px-1"
-                                : "h-full min-h-[150px] w-4 flex-col items-center gap-[2px] py-1"
+                                ? "h-2 min-w-[150px] flex-row items-center gap-[2px]"
+                                : "h-full min-h-[150px] w-2 flex-col items-center gap-[2px]"
                         )}
                     >
-                        {Array.from({ length: displayCount }).map((_, i) => (
-                            <div
-                                key={i}
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    onNavigateToPage(Math.floor(i * ratio))
-                                }}
-                                className={cn(
-                                    "rounded-full transition-all duration-300 cursor-pointer",
-                                    isVerticalHud ? "h-2 flex-1" : "w-2 flex-1",
-                                    i <= activeSegment
-                                        ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.4)]"
-                                        : "bg-white/10 hover:bg-white/40 group-hover:bg-white/20"
-                                )}
-                            />
-                        ))}
+                        {Array.from({ length: displayCount }).map((_, i) => {
+                            const segmentPageIdx = Math.floor(i * ratio)
+                            const isLoaded = pages[segmentPageIdx]
+                                ? globalLoadedCache.has(pages[segmentPageIdx])
+                                : false
+                            return (
+                                <div
+                                    key={i}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        onNavigateToPage(segmentPageIdx)
+                                    }}
+                                    className={cn(
+                                        "cursor-pointer transition-all duration-300",
+                                        isVerticalHud
+                                            ? "h-2 flex-1"
+                                            : "w-2 flex-1",
+                                        i <= activeSegment
+                                            ? "bg-white shadow-[0_0_8px_rgba(255,255,255,0.4)]"
+                                            : isLoaded
+                                              ? "bg-white/50 shadow-[0_0_4px_rgba(255,255,255,0.2)]"
+                                              : "bg-white/10 group-hover:bg-white/20 hover:bg-white/40"
+                                    )}
+                                />
+                            )
+                        })}
                     </div>
                     <span
                         className={cn(

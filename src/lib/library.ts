@@ -5,10 +5,12 @@ export const updateMangaCategory = async ({
     mangaId,
     categoryIds = [],
     onSuccess,
+    message,
 }: {
     mangaId: number
     categoryIds?: number[]
     onSuccess?: () => void
+    message?: string
 }) => {
     const promise = client.mutation({
         updateMangaCategories: {
@@ -37,9 +39,9 @@ export const updateMangaCategory = async ({
         loading: "Updating categories...",
         success: () => {
             onSuccess && onSuccess()
-            return "Categories updated"
+            return message || "Categories updated"
         },
-        error: "Failed to update categories",
+        error: "Failed",
     })
 }
 

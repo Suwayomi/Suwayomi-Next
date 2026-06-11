@@ -35,7 +35,11 @@ import type { MangaMetaType } from "@/lib/store/slices/meta"
 import { MangaCard } from "@/components/MangaCard"
 import { CategorySelectionDialog } from "@/components/category-selection-dialog"
 import { updateMangaCategory, fetchUnreadChapterIds } from "@/lib/library"
-import { downloadChaptersAction, markMangasAsReadAction } from "@/lib/manga-actions"
+import {
+    downloadChaptersAction,
+    markMangasAsReadAction,
+} from "@/lib/manga-actions"
+import { mangaUtils } from "@/lib/manga"
 
 interface LibraryClientProps {}
 
@@ -86,9 +90,9 @@ export default function LibraryClient({}: LibraryClientProps) {
 
     const groupedMangas = React.useMemo(() => {
         if (selectedCategory === "all") return null
-        return filteredMangas.filter((m) =>
-            m.categories.nodes.find((c) => c.name === selectedCategory)
-        )
+        return filteredMangas.filter((m) => {
+            return m.categories.nodes.find((c) => c.name === selectedCategory)
+        })
     }, [filteredMangas, selectedCategory])
 
     const activeList =
@@ -130,7 +134,7 @@ export default function LibraryClient({}: LibraryClientProps) {
         },
         onError: () => {
             toast.error("Failed to remove manga")
-        }
+        },
     })
 
     const removeFromLibrary = (mangaIds: number[]) => {
@@ -142,49 +146,6 @@ export default function LibraryClient({}: LibraryClientProps) {
                 mangas: { id: true },
             },
         })
-    }
-
-    const toggleCustomMeta = async (type: MangaMetaType, mangaId: number) => {
-        const manga = mangas.find((m) => m.id === mangaId)
-        if (!manga) return
-        const isActive = manga.meta?.some(
-            (m: any) => m.key === type && m.value === "true"
-        )
-        try {
-            if (isActive) {
-                await client.mutation({
-                    deleteMangaMeta: {
-                        __args: {
-                            input: {
-                                key: type,
-                                mangaId: mangaId,
-                            },
-                        },
-                        clientMutationId: true,
-                    },
-                })
-            } else {
-                await client.mutation({
-                    setMangaMeta: {
-                        __args: {
-                            input: {
-                                meta: {
-                                    key: type,
-                                    mangaId: mangaId,
-                                    value: "true",
-                                },
-                            },
-                        },
-                        meta: { key: true },
-                    },
-                })
-            }
-            toast.success("Manga added to the list")
-            library.refresh()
-        } catch (error) {
-            console.error("Failed to toggle Meta status:", error)
-            toast.error("Failed to update Meta status")
-        }
     }
 
     const bulkToggleMeta = async (type: MangaMetaType, forceValue: boolean) => {
@@ -285,7 +246,6 @@ export default function LibraryClient({}: LibraryClientProps) {
                     markMangaAsRead={markMangaAsRead}
                     downloadChapters={downloadChapters}
                     removeFromLibrary={removeFromLibrary}
-                    toggleCustomMeta={toggleCustomMeta}
                 />
             </div>
 
@@ -430,7 +390,6 @@ interface DisplayListProps {
     markMangaAsRead: (ids: number[]) => void
     downloadChapters: (id: number, count?: number) => void
     removeFromLibrary: (ids: number[]) => void
-    toggleCustomMeta: (type: MangaMetaType, id: number) => void
 }
 
 function DisplayList({
@@ -441,7 +400,6 @@ function DisplayList({
     markMangaAsRead,
     downloadChapters,
     removeFromLibrary,
-    toggleCustomMeta,
 }: DisplayListProps) {
     const { library, meta } = useAppStore()
     const [targetManga, setTargetManga] = React.useState<{
@@ -526,15 +484,17 @@ function DisplayList({
                                 }
                                 onRemove={() => removeFromLibrary([manga.id])}
                                 onVipToggle={() =>
-                                    toggleCustomMeta(
+                                    mangaUtils.toggleMeta(
                                         "next:is-favorite",
-                                        manga.id
+                                        manga.id,
+                                        library
                                     )
                                 }
                                 onReadLaterToggle={() =>
-                                    toggleCustomMeta(
+                                    mangaUtils.toggleMeta(
                                         "next:read-later",
-                                        manga.id
+                                        manga.id,
+                                        library
                                     )
                                 }
                                 onChangeCategory={() =>

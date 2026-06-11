@@ -70,6 +70,7 @@ export type MangaDetail = QueryResult<{
         firstUnreadChapter: {
             id: true
             name: true
+            chapterNumber: true
         }
         meta: {
             key: true
@@ -91,57 +92,65 @@ export default function MangaDetailClient({
     const navigate = useNavigate()
     const { downloads, library, sources } = useAppStore()
 
-    const { data: qData, isLoading: isQueryLoading, refetch: refetchMangaInfo } = useSuwayomiQuery({
-        manga: {
-            __args: { id },
-            id: true,
-            title: true,
-            description: true,
-            thumbnailUrl: true,
-            status: true,
-            author: true,
-            artist: true,
-            genre: true,
-            inLibrary: true,
-            initialized: true,
-            unreadCount: true,
-            chapters: {
-                totalCount: true,
-                nodes: {
+    const {
+        data: qData,
+        isLoading: isQueryLoading,
+        refetch: refetchMangaInfo,
+    } = useSuwayomiQuery(
+        {
+            manga: {
+                __args: { id },
+                id: true,
+                title: true,
+                description: true,
+                thumbnailUrl: true,
+                status: true,
+                author: true,
+                artist: true,
+                genre: true,
+                inLibrary: true,
+                initialized: true,
+                unreadCount: true,
+                chapters: {
+                    totalCount: true,
+                    nodes: {
+                        id: true,
+                        name: true,
+                        mangaId: true,
+                        scanlator: true,
+                        realUrl: true,
+                        sourceOrder: true,
+                        chapterNumber: true,
+                        isRead: true,
+                        isDownloaded: true,
+                        isBookmarked: true,
+                        fetchedAt: true,
+                        uploadDate: true,
+                        lastReadAt: true,
+                    },
+                },
+                meta: {
+                    key: true,
+                    value: true,
+                },
+                source: {
+                    name: true,
+                    displayName: true,
+                    lang: true,
+                },
+                firstUnreadChapter: {
                     id: true,
                     name: true,
-                    mangaId: true,
-                    scanlator: true,
-                    realUrl: true,
-                    sourceOrder: true,
                     chapterNumber: true,
-                    isRead: true,
-                    isDownloaded: true,
-                    isBookmarked: true,
-                    fetchedAt: true,
-                    uploadDate: true,
-                    lastReadAt: true,
                 },
+                realUrl: true,
             },
-            meta: {
-                key: true,
-                value: true,
-            },
-            source: {
-                name: true,
-                displayName: true,
-                lang: true,
-            },
-            firstUnreadChapter: {
-                id: true,
-                name: true,
-            },
-            realUrl: true,
         },
-    }, {
-        initialData: initialData as any,
-        enabled: !!id
-    })
+        {
+            initialData: initialData as any,
+            enabled: !!id,
+        }
+    )
 
     const mangaData = qData as MangaDetail | null
     const [isDescriptionExpanded, setIsDescriptionExpanded] =
@@ -188,7 +197,12 @@ export default function MangaDetailClient({
             }
             initializeManga()
         }
-    }, [mangaData?.manga?.initialized, mangaData?.manga?.chapters.totalCount, id, refetchMangaInfo])
+    }, [
+        mangaData?.manga?.initialized,
+        mangaData?.manga?.chapters.totalCount,
+        id,
+        refetchMangaInfo,
+    ])
 
     const toggleChapterSelection = (chapterId: number) => {
         setSelectedChapterIds((prev) => {
@@ -206,7 +220,7 @@ export default function MangaDetailClient({
             setSelectedChapterIds(new Set())
             toast.success("Successfully updated chapter(s)")
         },
-        onError: () => toast.error("Failed to update chapters")
+        onError: () => toast.error("Failed to update chapters"),
     })
 
     const markAsRead = (ids: number[], isRead: boolean) => {
@@ -225,7 +239,7 @@ export default function MangaDetailClient({
             setSelectedChapterIds(new Set())
             toast.success("Download started")
         },
-        onError: () => toast.error("Failed to start download")
+        onError: () => toast.error("Failed to start download"),
     })
 
     const downloadChapters = (ids: number[]) => {
@@ -246,7 +260,7 @@ export default function MangaDetailClient({
             setSelectedChapterIds(new Set())
             toast.success("Successfully deleted chapter(s)")
         },
-        onError: () => toast.error("Failed to delete chapters")
+        onError: () => toast.error("Failed to delete chapters"),
     })
 
     const deleteDownloadedChapters = (ids: number[]) => {
@@ -277,7 +291,7 @@ export default function MangaDetailClient({
             library.refresh()
             toast.success("Updated library status")
         },
-        onError: () => toast.error("Failed to update library status")
+        onError: () => toast.error("Failed to update library status"),
     })
 
     const addToLibrary = async (categoryId?: number[]) => {
@@ -315,8 +329,10 @@ export default function MangaDetailClient({
         onSuccess: (_, variables) => {
             refetchMangaInfo()
             const isAdding = !!(variables as any).setMangaMeta
-            toast.success(isAdding ? "Added to favorites" : "Removed from favorites")
-        }
+            toast.success(
+                isAdding ? "Added to favorites" : "Removed from favorites"
+            )
+        },
     })
 
     const addToFavorite = async () => {
@@ -511,7 +527,7 @@ export default function MangaDetailClient({
                                     onClick={() => {
                                         if (manga.firstUnreadChapter) {
                                             navigate(
-                                                `/manga/${id}/chapter/${manga.firstUnreadChapter.id}`
+                                                `/manga/${id}/chapter/${manga.firstUnreadChapter.chapterNumber}`
                                             )
                                         }
                                     }}

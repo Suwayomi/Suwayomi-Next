@@ -21,7 +21,7 @@ export const LoadingScreen = ({
             )}
         >
             {/* Background Noise/Gradient */}
-            <div className="pointer-events-none absolute inset-0 z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150" />
+            <div className="pointer-events-none absolute inset-0 z-0 opacity-20 brightness-100 contrast-150" />
 
             <div className="relative z-10 flex flex-col items-center">
                 {/* Brand Logo / Icon */}

@@ -1,12 +1,11 @@
 import { cn } from "@/lib/utils"
+import { useReaderSettings } from "@/hooks/use-reader-settings"
 
 interface ReaderOverlayProps {
     showControls: boolean
     onToggleControls: () => void
     onNext: () => void
     onPrev: () => void
-    tapZoneType?: string
-    invertTapZone?: string
 }
 
 /**
@@ -18,9 +17,8 @@ export function ReaderOverlay({
     onToggleControls,
     onNext,
     onPrev,
-    tapZoneType = "edge",
-    invertTapZone = "none",
 }: ReaderOverlayProps) {
+    const { tapZone: tapZoneType, invertTapZone } = useReaderSettings()
     if (tapZoneType === "disabled") {
         return (
             <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center">

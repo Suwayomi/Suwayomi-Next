@@ -3,15 +3,12 @@ import { Virtuoso } from "react-virtuoso"
 import type { VirtuosoHandle } from "react-virtuoso"
 import React from "react"
 import { ImageIcon, Loader2 } from "lucide-react"
+import { useReaderSettings } from "@/hooks/use-reader-settings"
 import { Button } from "@/components/ui/button"
-import { ChapterDivider } from "./ChapterDivider"
+import { ChapterDivider, PreviousChapter } from "./ChapterExtra"
 
 interface ReaderPageProps {
     items: any[]
-    readingMode: string
-    readingDirection: string
-    scaleType: string
-    pageGap: number
     currentPage: number
     containerRef: React.RefObject<HTMLDivElement | null>
     virtuosoRef?: React.RefObject<VirtuosoHandle | null>
@@ -20,6 +17,7 @@ interface ReaderPageProps {
     onMarkAsRead: () => void
     onLoadMore?: () => void
     onPageChange?: (index: number) => void
+    onPageLoaded?: () => void
     padding?: {
         top: number
         bottom: number
@@ -35,9 +33,11 @@ interface MangaPageProps {
     scaleType: string
     pageGap: number
     isScrollMode: boolean
+    onPageLoaded?: () => void
+    pageRefs: React.RefObject<(HTMLDivElement | null)[]>
 }
 
-const globalLoadedCache = new Set<string>()
+export const globalLoadedCache = new Set<string>()
 
 function MangaPage({
     index,
@@ -46,6 +46,8 @@ function MangaPage({
     scaleType,
     pageGap,
     isScrollMode,
+    onPageLoaded,
+    pageRefs,
 }: MangaPageProps) {
     const [isLoaded, setIsLoaded] = React.useState(
         globalLoadedCache.has(item.url)
@@ -76,6 +78,9 @@ function MangaPage({
     return (
         <div
             id={`page-${index}`}
+            ref={(el) => {
+                if (el) pageRefs.current[index] = el
+            }}
             className={cn(
                 "relative flex flex-col items-center justify-center overflow-hidden",
                 readingMode === "continuous-horizontal"
@@ -94,7 +99,7 @@ function MangaPage({
             }}
         >
             {!isLoaded && (
-                <div className="absolute inset-0 z-10 flex animate-in flex-col items-center justify-center gap-4 duration-300 fade-in">
+                <div className="pointer-events-none absolute inset-0 z-10 flex animate-in flex-col items-center justify-center gap-4 duration-300 fade-in">
                     <div className="relative flex items-center justify-center">
                         <Loader2 className="size-12 animate-spin text-primary/20" />
                         <span className="absolute text-[10px] font-black tracking-tighter text-muted-foreground uppercase opacity-50">
@@ -112,11 +117,12 @@ function MangaPage({
                 onLoad={() => {
                     globalLoadedCache.add(item.url)
                     setIsLoaded(true)
+                    onPageLoaded?.()
                 }}
                 onError={() => setHasFailed(true)}
                 decoding="async"
                 className={cn(
-                    "transition-all duration-700 ease-in-out",
+                    "ease-in-out",
                     isLoaded
                         ? "scale-100 opacity-100"
                         : "h-0 w-0 scale-95 opacity-0",
@@ -137,10 +143,6 @@ function MangaPage({
 
 export function PageList({
     items,
-    readingMode,
-    readingDirection,
-    scaleType,
-    pageGap,
     currentPage,
     containerRef,
     virtuosoRef,
@@ -149,8 +151,13 @@ export function PageList({
     onMarkAsRead,
     onLoadMore,
     onPageChange,
+    onPageLoaded,
     padding,
 }: ReaderPageProps) {
+    const pageRefs = React.useRef<(HTMLDivElement | null)[]>([])
+    const { readingMode, readingDirection, scaleType, pageGap } =
+        useReaderSettings()
+
     const isScrollMode =
         readingMode === "continuous-vertical" ||
         readingMode === "webtoon" ||
@@ -159,7 +166,12 @@ export function PageList({
     const renderItem = (index: number) => {
         const item = items[index]
         if (!item) return null
-
+        //
+        // if (item.type === "top-loader") {
+        //     return (
+        //         <PreviousChapter currentChapter={item.chapter.chapterNumber} />
+        //     )
+        // }
         if (item.type === "divider") {
             return <ChapterDivider chapter={item.chapter} />
         }
@@ -172,6 +184,8 @@ export function PageList({
                 scaleType={scaleType}
                 pageGap={pageGap}
                 isScrollMode={isScrollMode}
+                onPageLoaded={onPageLoaded}
+                pageRefs={pageRefs}
             />
         )
     }
@@ -180,35 +194,51 @@ export function PageList({
         return (
             <div className="h-full w-full flex-1" onClick={onTap}>
                 <Virtuoso
-                    {...({
-                        ref: virtuosoRef,
-                        data: items,
-                        useWindowScroll: false,
-                        initialTopMostItemIndex: currentPage,
-                        horizontal: JSON.stringify(
-                            readingMode === "continuous-horizontal"
-                        ),
-                        totalCount: items.length,
-                        overscan: Math.max(
-                            50,
-                            Math.min(Math.floor(items.length / 2), 50)
-                        ),
-                        increaseViewportBy: 3000,
-                        rangeChanged: (range: any) => {
-                            onPageChange?.(range.startIndex)
-                        },
-                        endReached: () => {
-                            onLoadMore?.()
-                        },
-                        style: {
-                            paddingTop: padding?.top || 0,
-                            paddingBottom: padding?.bottom || 0,
-                            paddingLeft: padding?.left || 0,
-                            paddingRight: padding?.right || 0,
-                        },
-                        itemContent: (index: number) => renderItem(index),
-                        className: "scrollbar-hide",
-                    } as any)}
+                    ref={virtuosoRef}
+                    data={items}
+                    useWindowScroll={false}
+                    initialTopMostItemIndex={currentPage}
+                    horizontalDirection={
+                        readingMode === "continuous-horizontal"
+                    }
+                    totalCount={items.length}
+                    increaseViewportBy={3000}
+                    endReached={() => {
+                        onLoadMore?.()
+                    }}
+                    style={{
+                        paddingTop: padding?.top || 0,
+                        paddingBottom: padding?.bottom || 0,
+                        paddingLeft: padding?.left || 0,
+                        paddingRight: padding?.right || 0,
+                    }}
+                    itemContent={(index: number) => renderItem(index)}
+                    className={"scrollbar-hide"}
+                    onScroll={(e) => {
+                        const viewportTop = e.currentTarget.scrollTop
+                        const viewportCenter =
+                            viewportTop + window.innerHeight / 2
+
+                        let index = 0
+                        let final_distance = Infinity
+
+                        pageRefs.current.forEach((el, i) => {
+                            if (!el) return
+
+                            const top = el.offsetTop
+                            const height = el.offsetHeight
+                            const center = top + height / 2
+
+                            const distance = Math.abs(center - viewportCenter)
+
+                            if (distance < final_distance) {
+                                final_distance = distance
+                                index = i
+                            }
+                        })
+
+                        onPageChange?.(index)
+                    }}
                 />
             </div>
         )

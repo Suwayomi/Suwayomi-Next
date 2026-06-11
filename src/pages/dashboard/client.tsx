@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useNavigate } from "react-router-dom"
 import type { HistoryGroup } from "@/lib/store/slices/history"
+import { readLaterUtils } from "@/lib/readlater"
 
 interface DashboardSectionProps {
     title: string
@@ -282,7 +283,6 @@ function FavoriteShelf({ favorites }: { favorites: any[] }) {
 
 function ReadLaterQueue({ readLater }: { readLater: any[] }) {
     const navigate = useNavigate()
-
     return (
         <DashboardSection
             title="Read Later"
@@ -439,7 +439,7 @@ export default function DashboardClient() {
 
     const { favorites, readLater } = React.useMemo(() => {
         const libraryData = librarySlice.data || []
-        return libraryData.reduce(
+        const result = libraryData.reduce(
             (acc, m) => {
                 const meta = m.meta || []
                 const isFavorite = meta.some(
@@ -447,21 +447,23 @@ export default function DashboardClient() {
                         metaItem.key === "next:is-favorite" &&
                         metaItem.value === "true"
                 )
-                const isReadLater = meta.some(
-                    (metaItem) =>
-                        metaItem.key === "next:read-later" &&
-                        metaItem.value === "true"
+                const readLaterMeta = meta.find(
+                    (metaItem) => metaItem.key === "next:read-later"
                 )
-
-                if (isFavorite && acc.favorites.length < 10)
+                const isReadLater = !!readLaterMeta?.value
+                if (isFavorite && acc.favorites.length < 10) {
                     acc.favorites.push(m)
-                if (isReadLater && acc.readLater.length < 2)
+                }
+                if (isReadLater) {
                     acc.readLater.push(m)
-
+                }
                 return acc
             },
             { favorites: [] as any[], readLater: [] as any[] }
         )
+        result.readLater.sort(readLaterUtils.sort)
+        result.readLater = result.readLater.slice(0, 2)
+        return result
     }, [librarySlice.data])
 
     return (

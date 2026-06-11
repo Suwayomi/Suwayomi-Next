@@ -1,42 +1,43 @@
-import { client } from "@/lib/client";
+import { client } from "@/lib/client"
 
 export type LibraryManga = {
-    id: number;
-    title: string;
-    unreadCount: number;
-    thumbnailUrl: string | null;
-    thumbnailUrlLastFetched: string;
-    description: string;
-    status: string;
-    author: string;
-    artist: string;
-    genre: string[];
-    inLibrary: boolean;
-    initialized: boolean;
+    id: number
+    title: string
+    unreadCount: number
+    thumbnailUrl: string | null
+    thumbnailUrlLastFetched: string
+    description: string
+    status: string
+    author: string
+    artist: string
+    genre: string[]
+    inLibrary: boolean
+    initialized: boolean
+    lastReadChapter: { lastReadAt: string }
     chapters: {
-        totalCount: number;
-    };
+        totalCount: number
+    }
     categories: {
         nodes: {
-            id: number;
-            name: string;
-        }[];
-    };
+            id: number
+            name: string
+        }[]
+    }
     meta: {
-        key: string;
-        value: string;
-    }[];
+        key: string
+        value: string
+    }[]
     source: {
-        name: string;
-        displayName: string;
-        lang: string;
-    } | null;
+        name: string
+        displayName: string
+        lang: string
+    } | null
     firstUnreadChapter: {
-        id: number;
-        name: string;
-    };
-    realUrl: string;
-};
+        id: number
+        name: string
+    }
+    realUrl: string
+}
 
 export async function fetchLibrary(): Promise<LibraryManga[]> {
     const result = await client.query({
@@ -55,6 +56,7 @@ export async function fetchLibrary(): Promise<LibraryManga[]> {
                 inLibrary: true,
                 initialized: true,
                 unreadCount: true,
+                lastReadChapter: { lastReadAt: true },
                 chapters: {
                     totalCount: true,
                 },
@@ -80,7 +82,7 @@ export async function fetchLibrary(): Promise<LibraryManga[]> {
                 realUrl: true,
             },
         },
-    });
+    })
 
-    return (result.mangas?.nodes as LibraryManga[]) ?? [];
+    return (result.mangas?.nodes as LibraryManga[]) ?? []
 }

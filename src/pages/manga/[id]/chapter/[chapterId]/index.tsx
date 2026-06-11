@@ -1,16 +1,33 @@
+import * as React from "react"
 import { useParams } from "react-router-dom"
 import { useSuwayomiQuery, useSuwayomiMutationQuery } from "@/lib/client"
 import { Button } from "@/components/ui/button"
 import ReaderClient from "./client"
 import { LoadingScreen } from "@/components/LoadingScreen"
+import { mangaUtils } from "@/lib/manga"
+import { useAppStore } from "@/lib/store"
 
 export default function ReaderPage() {
+    const { library } = useAppStore()
     const { id, chapterId: chapterIdStr } = useParams<{
         id: string
         chapterId: string
     }>()
+
     const mangaId = Number(id!)
     const chapterNumber = Number(chapterIdStr!)
+
+    const hasUpdatedMetadata = React.useRef(false)
+    if (!isNaN(mangaId) && !hasUpdatedMetadata.current) {
+        hasUpdatedMetadata.current = true
+        const currentISOString = new Date().toISOString()
+        mangaUtils.toggleMeta(
+            "next:read-later",
+            mangaId,
+            library,
+            currentISOString
+        )
+    }
 
     const { data: mangaResult, isLoading: mangaLoading } = useSuwayomiQuery(
         {
@@ -33,7 +50,9 @@ export default function ReaderPage() {
     )
 
     const chapters = (mangaResult as any)?.manga?.chapters?.nodes || []
-    const targetChapter = chapters.find((c: any) => c.chapterNumber === chapterNumber) || chapters[chapterNumber - 1]
+    const targetChapter =
+        chapters.find((c: any) => c.chapterNumber === chapterNumber) ||
+        chapters[chapterNumber - 1]
     const chapterId = targetChapter?.id
 
     const { data: pagesResult, isLoading: pagesLoading } =
@@ -66,7 +85,9 @@ export default function ReaderPage() {
         return (
             <div className="flex h-screen w-full flex-col items-center justify-center gap-4 bg-background">
                 <h1 className="text-4xl font-black tracking-tighter">404</h1>
-                <p className="text-muted-foreground text-sm uppercase tracking-widest font-bold">Invalid Chapter Path</p>
+                <p className="text-sm font-bold tracking-widest text-muted-foreground uppercase">
+                    Invalid Chapter Path
+                </p>
                 <Button variant="outline" onClick={() => window.history.back()}>
                     Go Back
                 </Button>

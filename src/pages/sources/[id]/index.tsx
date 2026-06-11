@@ -84,45 +84,49 @@ function SourceBrowseContent() {
         null
     )
 
-    const { data: sourceInfo } = useSuwayomiQuery({
-        source: {
-            __args: { id: sourceId },
-            displayName: true,
-            filters: {
-                __typename: true,
-                ...({
-                    on_CheckBoxFilter: { name: true },
-                    on_SelectFilter: { name: true, values: true },
-                    on_TextFilter: { name: true },
-                    on_TriStateFilter: { name: true },
-                    on_SortFilter: {
-                        name: true,
-                        values: true,
-                    } as any,
-                    on_GroupFilter: {
-                        name: true,
-                        filters: {
-                            __typename: true,
-                            on_CheckBoxFilter: { name: true },
-                            on_SelectFilter: {
-                                name: true,
-                                values: true,
+    const { data: sourceInfo } = useSuwayomiQuery(
+        {
+            source: {
+                __args: { id: sourceId },
+                displayName: true,
+                filters: {
+                    __typename: true,
+                    ...({
+                        on_CheckBoxFilter: { name: true },
+                        on_SelectFilter: { name: true, values: true },
+                        on_TextFilter: { name: true },
+                        on_TriStateFilter: { name: true },
+                        on_SortFilter: {
+                            name: true,
+                            values: true,
+                        } as any,
+                        on_GroupFilter: {
+                            name: true,
+                            filters: {
+                                __typename: true,
+                                on_CheckBoxFilter: { name: true },
+                                on_SelectFilter: {
+                                    name: true,
+                                    values: true,
+                                },
+                                on_TextFilter: { name: true },
+                                on_TriStateFilter: { name: true },
                             },
-                            on_TextFilter: { name: true },
-                            on_TriStateFilter: { name: true },
-                        },
-                    } as any,
-                    on_HeaderFilter: { name: true },
-                    on_SeparatorFilter: { __typename: true },
-                } as any),
+                        } as any,
+                        on_HeaderFilter: { name: true },
+                        on_SeparatorFilter: { __typename: true },
+                    } as any),
+                },
             },
         },
-    }, {
-        enabled: !!sourceId
-    })
+        {
+            enabled: !!sourceId,
+        }
+    )
 
     const sourceName = (sourceInfo as any)?.source?.displayName || "Catalog"
-    const sourceFilters = ((sourceInfo as any)?.source?.filters as Filter[]) || []
+    const sourceFilters =
+        ((sourceInfo as any)?.source?.filters as Filter[]) || []
 
     const fetchManga = React.useCallback(
         async (
@@ -261,6 +265,7 @@ function SourceBrowseContent() {
                 )
                 library.refresh()
             },
+            message: "Manga added to library.",
         })
     }
 

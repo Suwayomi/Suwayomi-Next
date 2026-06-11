@@ -24,7 +24,6 @@ export default function ReaderClient({
     chapterId,
 }: ReaderClientProps) {
     const { pathname } = useLocation()
-    const navigate = useNavigate()
 
     const [mangaData, setMangaData] = React.useState<any>(initialMangaData)
     const [showControls, setShowControls] = React.useState(true)
@@ -57,6 +56,7 @@ export default function ReaderClient({
         readingMode === "webtoon" ||
         readingMode === "continuous-horizontal"
     const [isNavigating, setIsNavigating] = React.useState(false)
+    // const [loadedCount, setLoadedCount] = React.useState(0)
 
     React.useEffect(() => {
         setMangaData(initialMangaData)
@@ -77,6 +77,12 @@ export default function ReaderClient({
     const allItems = React.useMemo(() => {
         const items: any[] = []
         loadedChapters.forEach((ch, chIdx) => {
+            // if (chIdx === 0 && ch.chapter.chapterNumber > 1) {
+            //     items.push({
+            //         type: "top-loader",
+            //         chapter: ch.chapter,
+            //     })
+            // }
             ch.pages.forEach((p: string, pIdx: number) => {
                 items.push({
                     type: "page",
@@ -97,23 +103,34 @@ export default function ReaderClient({
         return items
     }, [loadedChapters])
 
-    const activeItem = allItems[currentPage] || allItems[0]
-    const activeChapter = activeItem?.chapter
+    // const activeItem = allItems[currentPage] || allItems[allItems.length - 1]
+    // const activeChapter = activeItem?.chapter
+    const activeItem = allItems[currentPage] || allItems[allItems.length - 1]
+
+    const activeChapter =
+        activeItem?.type === "page" ? activeItem.chapter : null
 
     const [currentSyncedChapterId, setCurrentSyncedChapterId] =
         React.useState(chapterId)
 
+    const chapterFromPage = allItems
+        .slice(currentPage)
+        .find((i) => i.type === "page")?.chapter
     React.useEffect(() => {
-        if (activeChapter && activeChapter.id !== currentSyncedChapterId) {
-            const path = pathname.split("/chapter/")[0]
-            window.history.replaceState(
-                null,
-                "",
-                `${path}/chapter/${activeChapter.chapterNumber}`
-            )
-            setCurrentSyncedChapterId(activeChapter.id)
-        }
-    }, [activeChapter, pathname, currentSyncedChapterId])
+        if (!chapterFromPage) return
+
+        if (chapterFromPage.id === currentSyncedChapterId) return
+
+        const path = pathname.split("/chapter/")[0]
+
+        window.history.replaceState(
+            null,
+            "",
+            `${path}/chapter/${chapterFromPage.chapterNumber}`
+        )
+
+        setCurrentSyncedChapterId(chapterFromPage.id)
+    }, [chapterFromPage, pathname, currentSyncedChapterId])
 
     const fetchChapterMutation = useSuwayomiMutation()
     const markAsReadMutation = useSuwayomiMutation()
@@ -217,22 +234,17 @@ export default function ReaderClient({
         }
     }, [activeItem, markAsRead])
 
-    const isVerticalHud = hudOrientation === "vertical"
-    const isFloating = hudType === "floating"
-
     return (
         <div
             className={cn(
                 "fixed inset-0 z-[100] flex overflow-hidden font-sans transition-colors duration-500",
-                isVerticalHud ? "flex-col" : "flex-row",
+                hudOrientation === "vertical" ? "flex-col" : "flex-row",
                 background === "black" ? "bg-black" : "bg-zinc-950"
             )}
             onMouseMove={() => {}}
         >
             <ReaderSidebar
                 showControls={showControls}
-                isVerticalHud={isVerticalHud}
-                isFloating={isFloating}
                 chapter={activeChapter}
                 currentPage={
                     activeItem?.type === "page" ? activeItem.pageIndex : 0
@@ -241,18 +253,10 @@ export default function ReaderClient({
                 chapters={chapters}
                 prevChapter={prevChapter}
                 nextChapter={nextChapter}
-                onBack={() =>
-                    navigate(pathname.split("/chapter")[0], { replace: true })
-                }
-                mangaId={mangaId}
             />
 
             <PageList
                 items={allItems}
-                readingMode={readingMode}
-                readingDirection={readingDirection}
-                scaleType={scaleType}
-                pageGap={pageGap}
                 currentPage={currentPage}
                 containerRef={containerRef}
                 virtuosoRef={virtuosoRef}
@@ -263,26 +267,37 @@ export default function ReaderClient({
                 onPageChange={(index) => {
                     if (!isNavigating) setCurrentPage(index)
                 }}
+                //onPageLoaded={() => setLoadedCount((c) => c + 1)}
                 padding={{
                     top:
-                        !isFloating && isVerticalHud && showControls
-                            ? hudOrientation === "vertical"
-                                ? 72
-                                : 0
+                        hudType !== "floating" &&
+                        hudOrientation === "vertical" &&
+                        showControls
+                            ? 72
                             : 0,
                     left:
-                        !isFloating && !isVerticalHud && showControls ? 48 : 0,
+                        hudType !== "floating" &&
+                        hudOrientation !== "vertical" &&
+                        showControls
+                            ? 48
+                            : 0,
                     right:
-                        !isFloating && !isVerticalHud && showControls ? 48 : 0,
+                        hudType !== "floating" &&
+                        hudOrientation !== "vertical" &&
+                        showControls
+                            ? 48
+                            : 0,
                     bottom:
-                        !isFloating && isVerticalHud && showControls ? 80 : 0,
+                        hudType !== "floating" &&
+                        hudOrientation === "vertical" &&
+                        showControls
+                            ? 80
+                            : 0,
                 }}
             />
 
             <ReaderControls
                 showControls={showControls}
-                isVerticalHud={isVerticalHud}
-                isFloating={isFloating}
                 currentPage={
                     activeItem?.type === "page" ? activeItem.pageIndex : 0
                 }
@@ -296,6 +311,10 @@ export default function ReaderClient({
                     if (firstGlobalIdx !== -1)
                         navigateToPage(firstGlobalIdx + idx)
                 }}
+                pages={
+                    loadedChapters.find((c) => c.id === activeChapter?.id)
+                        ?.pages || []
+                }
             />
 
             <ReaderOverlay
@@ -309,8 +328,6 @@ export default function ReaderClient({
                 onPrev={
                     readingDirection === "rtl" ? handleNextPage : handlePrevPage
                 }
-                tapZoneType={tapZone}
-                invertTapZone={invertTapZone}
             />
         </div>
     )
