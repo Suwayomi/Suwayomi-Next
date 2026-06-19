@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import { Switch } from "../ui/switch"
 import { useMeta } from "@/hooks/use-meta"
 
-const ACCENTS = [
+export const ACCENTS = [
     { name: "Default Blue", value: "oklch(0.53 0.23 250)" },
     { name: "Royal Purple", value: "oklch(0.53 0.23 300)" },
     { name: "Emerald Green", value: "oklch(0.53 0.23 150)" },

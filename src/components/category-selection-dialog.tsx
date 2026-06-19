@@ -13,6 +13,7 @@ import { FolderPlus, Loader2 } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useNavigate } from "react-router-dom"
 
 interface CategorySelectionDialogProps {
     open: boolean
@@ -29,6 +30,7 @@ export function CategorySelectionDialog({
     title = "Add to Library",
     previousIds = [0],
 }: CategorySelectionDialogProps) {
+    const navigate = useNavigate()
     const { categories } = useAppStore()
     const [selectedIds, setSelectedIds] = React.useState<number[]>(previousIds)
     React.useEffect(() => {
@@ -70,7 +72,7 @@ export function CategorySelectionDialog({
                         <div className="flex items-center justify-center py-8">
                             <Loader2 className="size-6 animate-spin text-primary/40" />
                         </div>
-                    ) : (
+                    ) : categories.data.length > 1 ? (
                         <ScrollArea className="max-h-[300px] pr-4">
                             <div className="grid gap-2">
                                 {categories.data.slice(1).map((category) => {
@@ -118,6 +120,18 @@ export function CategorySelectionDialog({
                                 })}
                             </div>
                         </ScrollArea>
+                    ) : (
+                        <div className="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-neutral-500/40 p-5">
+                            <span className="mx-auto text-sm text-neutral-500">
+                                You don't have any categories defined.
+                            </span>
+                            <Button
+                                variant={"secondary"}
+                                onClick={() => navigate("/settings/Library")}
+                            >
+                                Create Category
+                            </Button>
+                        </div>
                     )}
                 </div>
 

@@ -7,30 +7,20 @@ import {
     Palette,
     BookOpen,
     Sparkles,
+    FolderKanban,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { useMeta } from "@/hooks/use-meta"
-
-const ACCENTS = [
-    { name: "Default Blue", value: "oklch(0.53 0.23 250)" },
-    { name: "Royal Purple", value: "oklch(0.53 0.23 300)" },
-    { name: "Emerald Green", value: "oklch(0.53 0.23 150)" },
-    { name: "Amber Orange", value: "oklch(0.53 0.23 50)" },
-    { name: "Ruby Red", value: "oklch(0.53 0.23 20)" },
-    { name: "Cosmic Pink", value: "oklch(0.53 0.23 340)" },
-    { name: "Cyber Cyan", value: "oklch(0.53 0.23 200)" },
-    { name: "Electric Lime", value: "oklch(0.80 0.21 110)" },
-    { name: "Neon Yellow", value: "oklch(0.84 0.19 85)" },
-]
+import { ACCENTS } from "./settings/Appearance"
 
 const STEPS = ["welcome", "theme", "accent"] as const
 type Step = (typeof STEPS)[number]
 
 function ProgressDots({ current }: { current: number }) {
     return (
-        <div className="flex items-center gap-2">
+        <div className="absolute top-3 flex items-center gap-2">
             {STEPS.map((_, i) => (
                 <div
                     key={i}
@@ -53,38 +43,32 @@ function StepWelcome() {
         <div className="flex flex-col items-center gap-6 px-4 text-center">
             {/* Animated icon */}
             <div className="relative">
-                <div
-                    className="flex size-24 items-center justify-center rounded-3xl shadow-2xl"
-                    style={{ background: "var(--primary)" }}
-                >
-                    <BookOpen
-                        className="size-12 text-white"
-                        strokeWidth={1.5}
-                    />
+                <div className="flex size-24 items-center justify-center rounded-3xl border-1 bg-secondary shadow-2xl">
+                    <img src="logo.png" />
                 </div>
                 <div
                     className="absolute -top-1 -right-1 flex size-7 items-center justify-center rounded-full shadow-lg"
                     style={{ background: "var(--primary)" }}
                 >
-                    <Sparkles className="size-3.5 text-white" />
+                    <Sparkles className="size-3.5 fill-white text-white" />
                 </div>
             </div>
 
             <div className="space-y-3">
                 <h1 className="font-heading text-4xl font-bold tracking-tight">
                     Welcome to{" "}
-                    <span style={{ color: "var(--primary)" }}>Piper Paper</span>
+                    <span style={{ color: "var(--primary)" }}>Suwayomi</span>
                 </h1>
                 <p className="max-w-sm text-base leading-relaxed text-muted-foreground">
-                    Your premium manga reading experience. Let's get you set up
-                    in just a couple of steps.
+                    The manga reading experience. Let's get you set up in just a
+                    couple of steps.
                 </p>
             </div>
 
             <div className="mt-2 grid w-full max-w-xs grid-cols-3 gap-3">
                 {[
-                    { icon: BookOpen, label: "Read manga" },
-                    { icon: Palette, label: "Personalize" },
+                    { icon: FolderKanban, label: "Manage" },
+                    { icon: BookOpen, label: "Read" },
                     { icon: Sparkles, label: "Discover" },
                 ].map(({ icon: Icon, label }) => (
                     <div
@@ -117,104 +101,14 @@ function StepTheme() {
 
     return (
         <div className="flex flex-col items-center gap-6 px-4 text-center">
-            <div
-                className="flex size-20 items-center justify-center rounded-2xl shadow-xl"
-                style={{ background: "var(--primary)" }}
-            >
-                {isDark ? (
-                    <Moon className="size-10 text-white" strokeWidth={1.5} />
-                ) : (
-                    <Sun className="size-10 text-white" strokeWidth={1.5} />
-                )}
-            </div>
-
             <div className="space-y-2">
                 <h2 className="font-heading text-3xl font-bold tracking-tight">
                     Choose your theme
                 </h2>
                 <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-                    Pick a look that's comfortable for your eyes — you can
-                    always change this later in Settings.
+                    Pick a look that's comfortable for your eyes, you can always
+                    change this later in Settings.
                 </p>
-            </div>
-
-            {/* Theme cards */}
-            <div className="grid w-full max-w-sm grid-cols-2 gap-3">
-                <button
-                    onClick={() => apply(false)}
-                    className={cn(
-                        "relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 p-5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]",
-                        !isDark
-                            ? "border-primary bg-primary/5 ring-2 ring-primary/30"
-                            : "border-border/40 bg-muted/10 hover:bg-muted/20"
-                    )}
-                >
-                    {/* Light preview */}
-                    <div className="flex h-16 w-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
-                        <div className="flex h-3 items-center gap-1 border-b border-gray-200 bg-gray-100 px-2">
-                            <div className="size-1.5 rounded-full bg-gray-300" />
-                            <div className="h-1 max-w-[40%] flex-1 rounded bg-gray-200" />
-                        </div>
-                        <div className="grid flex-1 grid-cols-3 gap-1 p-2">
-                            {[...Array(3)].map((_, i) => (
-                                <div
-                                    key={i}
-                                    className="aspect-[3/4] rounded bg-gray-100"
-                                />
-                            ))}
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Sun className="size-4 text-amber-500" />
-                        <span className="text-sm font-semibold">Light</span>
-                    </div>
-                    {!isDark && (
-                        <div
-                            className="absolute top-2 right-2 flex size-5 items-center justify-center rounded-full"
-                            style={{ background: "var(--primary)" }}
-                        >
-                            <Check className="size-3 text-white" />
-                        </div>
-                    )}
-                </button>
-
-                <button
-                    onClick={() => apply(true)}
-                    className={cn(
-                        "relative flex cursor-pointer flex-col items-center gap-3 rounded-2xl border-2 p-5 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]",
-                        isDark
-                            ? "border-primary bg-primary/5 ring-2 ring-primary/30"
-                            : "border-border/40 bg-muted/10 hover:bg-muted/20"
-                    )}
-                >
-                    {/* Dark preview */}
-                    <div className="flex h-16 w-full flex-col overflow-hidden rounded-lg border border-zinc-700 bg-zinc-900 shadow-sm">
-                        <div className="flex h-3 items-center gap-1 border-b border-zinc-700 bg-zinc-800 px-2">
-                            <div className="size-1.5 rounded-full bg-zinc-600" />
-                            <div className="h-1 max-w-[40%] flex-1 rounded bg-zinc-700" />
-                        </div>
-                        <div className="grid flex-1 grid-cols-3 gap-1 p-2">
-                            {[...Array(3)].map((_, i) => (
-                                <div
-                                    key={i}
-                                    className="aspect-[3/4] rounded bg-zinc-800"
-                                />
-                            ))}
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Moon className="size-4 text-primary" />
-                        <span className="text-sm font-semibold">Dark</span>
-                    </div>
-                    {isDark && (
-                        <div
-                            className="absolute top-2 right-2 flex size-5 items-center justify-center rounded-full"
-                            style={{ background: "var(--primary)" }}
-                        >
-                            <Check className="size-3 text-white" />
-                        </div>
-                    )}
-                </button>
             </div>
 
             {/* Toggle shortcut */}
@@ -242,13 +136,6 @@ function StepAccent() {
 
     return (
         <div className="flex w-full flex-col items-center gap-6 px-4 text-center">
-            <div
-                className="flex size-20 items-center justify-center rounded-2xl shadow-xl transition-all duration-500"
-                style={{ background: "var(--primary)" }}
-            >
-                <Palette className="size-10 text-white" strokeWidth={1.5} />
-            </div>
-
             <div className="space-y-2">
                 <h2 className="font-heading text-3xl font-bold tracking-tight">
                     Pick your accent
@@ -290,21 +177,12 @@ function StepAccent() {
                     )
                 })}
             </div>
-
-            {/* Live preview badge */}
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <div
-                    className="size-3 rounded-full"
-                    style={{ background: "var(--primary)" }}
-                />
-                <span>Live preview — changes apply instantly</span>
-            </div>
         </div>
     )
 }
 
 export function WelcomeScreen({ onDismiss }: { onDismiss: () => void }) {
-    const [stepIndex, setStepIndex] = React.useState(0)
+    const [stepIndex, setStepIndex] = React.useState(2)
 
     const currentStep = STEPS[stepIndex]
     const isFirst = stepIndex === 0
@@ -346,31 +224,20 @@ export function WelcomeScreen({ onDismiss }: { onDismiss: () => void }) {
                     "relative w-full max-w-lg overflow-hidden rounded-3xl border border-border/60 bg-background shadow-2xl transition-all duration-500"
                 )}
             >
-                {/* Accent glow bar at top */}
-                <div
-                    className="absolute inset-x-0 top-0 h-1 opacity-80"
-                    style={{ background: "var(--primary)" }}
-                />
-
-                {/* Animated ambient glow */}
                 <div
                     className="pointer-events-none absolute -top-20 left-1/2 size-40 -translate-x-1/2 rounded-full opacity-15 blur-3xl"
                     style={{ background: "var(--primary)" }}
                 />
 
-                {/* Content area */}
-                <div className="relative flex min-h-[480px] flex-col items-center gap-8 px-6 pt-10 pb-8">
-                    {/* Step content with slide animation */}
+                <div className="relative flex min-h-[480px] flex-col gap-8 px-6 pt-10 pb-8">
+                    {/*<ProgressDots current={stepIndex} />*/}
                     <div className="flex w-full flex-1 items-center justify-center">
                         <StepContent step={currentStep} />
                     </div>
 
-                    {/* Footer */}
-                    <div className="flex w-full flex-col items-center gap-4">
-                        <ProgressDots current={stepIndex} />
-
+                    <div className="flex w-full items-center gap-4">
                         <div className="flex w-full items-center gap-3">
-                            {!isFirst && (
+                            {!isFirst ? (
                                 <Button
                                     variant="ghost"
                                     className="flex-none"
@@ -378,16 +245,24 @@ export function WelcomeScreen({ onDismiss }: { onDismiss: () => void }) {
                                 >
                                     Back
                                 </Button>
+                            ) : (
+                                <Button
+                                    onClick={handleFinish}
+                                    variant={"ghost"}
+                                >
+                                    Skip setup
+                                </Button>
                             )}
 
                             <Button
-                                className="h-11 flex-1 gap-2 rounded-xl text-sm font-semibold"
+                                className={"flex-1"}
+                                variant={"default"}
                                 onClick={handleNext}
                             >
                                 {isLast ? (
                                     <>
-                                        <Sparkles className="size-4" />
                                         Get Started
+                                        <Sparkles className="size-4" />
                                     </>
                                 ) : (
                                     <>
@@ -397,15 +272,6 @@ export function WelcomeScreen({ onDismiss }: { onDismiss: () => void }) {
                                 )}
                             </Button>
                         </div>
-
-                        {isFirst && (
-                            <button
-                                onClick={handleFinish}
-                                className="cursor-pointer text-xs text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
-                            >
-                                Skip setup
-                            </button>
-                        )}
                     </div>
                 </div>
             </div>

@@ -1,11 +1,10 @@
-import React, { useState } from "react"
+import React from "react"
 import { useNavigate } from "react-router-dom"
 import {
     Star,
     StarOff,
     Check,
     MoreVertical,
-    ClipboardClock,
     Download,
     BookOpen,
     Trash2,
@@ -26,10 +25,10 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAppStore } from "@/lib/store"
+import { useAppStore, type LibraryManga } from "@/lib/store"
 
 interface MangaCardProps {
-    manga: any
+    manga: LibraryManga
     isSelected?: boolean
     isSelectionMode?: boolean
     onToggle?: () => void
@@ -340,7 +339,7 @@ export function MangaCard({
                                       className="h-10 w-full gap-2 rounded-xl font-bold shadow-lg shadow-primary/20"
                                       onClick={(e) => {
                                           e.stopPropagation()
-                                          onAddLibrary(manga.id)
+                                          onAddLibrary(String(manga.id))
                                       }}
                                   >
                                       <Plus className="size-4" /> Add to Library
