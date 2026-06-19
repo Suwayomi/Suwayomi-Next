@@ -42,6 +42,7 @@ export default function ReaderPage() {
                     },
                 },
                 id: true,
+                sourceId: true,
             },
         },
         {
@@ -112,7 +113,6 @@ export default function ReaderPage() {
             key={`${mangaId}-${chapterId}`}
             initialPagesData={pagesResult}
             initialMangaData={mangaResult}
-            mangaId={mangaId}
             chapterId={chapterId}
         />
     )

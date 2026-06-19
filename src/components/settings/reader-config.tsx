@@ -37,6 +37,7 @@ import {
     type InvertTapZone,
     type HudType,
     type HudOrientation,
+    type ReaderSettings,
 } from "@/hooks/use-reader-settings"
 import { useMeta } from "@/hooks/use-meta"
 import {
@@ -48,8 +49,11 @@ import {
 } from "@/components/ui/select"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
+import type { ReaderConfig } from "@/lib/store/slices/meta"
+import { toast } from "sonner"
 
 interface Props {
+    sourceId?: string
     className?: string
 }
 
@@ -85,7 +89,7 @@ function ConfigButton({
     )
 }
 
-export function ReaderConfig({ className }: Props) {
+export function ReaderConfig({ className, sourceId }: Props) {
     const {
         readingMode,
         readingDirection,
@@ -106,19 +110,21 @@ export function ReaderConfig({ className }: Props) {
         setPageGap,
         setBackground,
         updateSettings,
+        selectedPreset: selectedPresetName,
+        setSelectedPreset,
     } = useReaderSettings()
 
-    const [presets, setPresets] = useMeta("next-reader")
-    const [selectedPresetName, setSelectedPresetName] =
-        React.useState<string>("Manga")
+    const [readerData, setReaderData] = useMeta("next-reader")
+
     const [newPresetName, setNewPresetName] = React.useState("")
 
     const selectedPreset =
-        presets.find((p) => p.name === selectedPresetName) || presets[0]
+        readerData.presets.find((p) => p.name === selectedPresetName) ||
+        readerData.presets[0]
 
     const saveCurrentToPreset = () => {
         if (!selectedPreset) return
-        const updatedPresets = presets.map((p) =>
+        const updatedPresets = readerData.presets.map((p) =>
             p.name === selectedPresetName
                 ? {
                       ...p,
@@ -127,11 +133,17 @@ export function ReaderConfig({ className }: Props) {
                           readingDirection,
                           scaleType,
                           pageGap,
+                          tapZone,
+                          invertTapZone,
+                          hudType,
+                          hudOrientation,
+                          background,
                       },
                   }
                 : p
         )
-        setPresets(updatedPresets)
+        toast.success("Preset saved")
+        setReaderData({ ...readerData, presets: updatedPresets })
     }
 
     const createNewPreset = () => {
@@ -143,20 +155,27 @@ export function ReaderConfig({ className }: Props) {
                 readingDirection,
                 scaleType,
                 pageGap,
+                tapZone,
+                invertTapZone,
+                hudType,
+                hudOrientation,
+                background,
             },
         }
-        const updatedPresets = [...presets, newPreset]
-        setPresets(updatedPresets)
+        setReaderData({
+            ...readerData,
+            presets: [...readerData.presets, newPreset],
+        })
         setNewPresetName("")
-        setSelectedPresetName(newPreset.name)
+        setSelectedPreset(newPreset.name)
     }
 
     const deletePreset = (name: string) => {
-        if (presets.length <= 1) return
-        const updatedPresets = presets.filter((p) => p.name !== name)
-        setPresets(updatedPresets)
+        if (readerData.presets.length <= 1) return
+        const updatedPresets = readerData.presets.filter((p) => p.name !== name)
+        setReaderData({ ...readerData, presets: updatedPresets })
         if (selectedPresetName === name) {
-            setSelectedPresetName(updatedPresets[0].name)
+            setSelectedPreset(updatedPresets[0].name)
         }
     }
 
@@ -178,19 +197,27 @@ export function ReaderConfig({ className }: Props) {
                             value={selectedPresetName}
                             onValueChange={(val) => {
                                 if (!val) return
-                                setSelectedPresetName(val)
-                                const preset = presets.find(
+                                setSelectedPreset(val)
+                                const preset = readerData.presets.find(
                                     (p) => p.name === val
                                 )
                                 if (preset)
                                     updateSettings(preset.settings as any)
+                                sourceId &&
+                                    setReaderData({
+                                        ...readerData,
+                                        sourceMapping: {
+                                            ...readerData.sourceMapping,
+                                            [sourceId]: val,
+                                        },
+                                    })
                             }}
                         >
                             <SelectTrigger className="flex-1">
                                 <SelectValue placeholder="Select preset..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {presets.map((preset) => (
+                                {readerData.presets.map((preset) => (
                                     <SelectItem
                                         key={preset.name}
                                         value={preset.name}
@@ -211,7 +238,7 @@ export function ReaderConfig({ className }: Props) {
                         <Button
                             onClick={() => deletePreset(selectedPresetName)}
                             title="Delete selected preset"
-                            disabled={presets.length <= 1}
+                            disabled={readerData.presets.length <= 1}
                             size={"icon"}
                             variant={"ghost"}
                         >

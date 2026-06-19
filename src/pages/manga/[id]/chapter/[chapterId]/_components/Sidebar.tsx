@@ -1,20 +1,9 @@
-import * as React from "react"
 import {
     X,
     ChevronFirst,
     ChevronLast,
     Settings,
-    History,
-    Layout,
-    MoveVertical,
-    Monitor,
-    Maximize2,
-    Palette,
     Check,
-    MoreHorizontal,
-    MonitorIcon,
-    SmartphoneIcon,
-    AppWindowIcon,
     Download,
     RefreshCw,
     Loader2,
@@ -201,8 +190,8 @@ export function ReaderSidebar({
 
                     <div
                         className={cn(
-                            "flex min-w-0 flex-col",
-                            !isVerticalHud && "items-center text-center"
+                            "flex min-w-0 items-center gap-2",
+                            !isVerticalHud && "flex-col"
                         )}
                     >
                         <h1
@@ -215,7 +204,7 @@ export function ReaderSidebar({
                         >
                             {`CH ${chapter?.chapterNumber}`}
                         </h1>
-                        <div className="mt-1 flex items-center gap-1.5 overflow-hidden rounded-full bg-white/5 px-2 py-0.5 transition-all hover:bg-white/10">
+                        <div className="flex items-center gap-1.5 overflow-hidden rounded-full bg-white/5 px-2 py-0.5 transition-all hover:bg-white/10">
                             <span className="text-[9px] font-black tracking-tighter text-primary/80">
                                 {currentPage + 1}
                             </span>
@@ -295,12 +284,7 @@ export function ReaderSidebar({
                         isVerticalHud ? "flex-row" : "flex-col"
                     )}
                 >
-                    <div
-                        className={cn(
-                            "flex gap-2",
-                            isVerticalHud ? "flex-row" : "flex-col"
-                        )}
-                    >
+                    <div className={cn("flex flex-row gap-2")}>
                         {downloadItem ? (
                             <div
                                 className={cn(

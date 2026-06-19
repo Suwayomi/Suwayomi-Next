@@ -52,7 +52,7 @@ export default function SourceBrowsePage() {
 }
 
 function SourceBrowseContent() {
-    const { library, meta } = useAppStore()
+    const { library, meta, categories } = useAppStore()
     const navigate = useNavigate()
     const params = useParams()
     const [searchParams, _] = useSearchParams()
@@ -270,8 +270,15 @@ function SourceBrowseContent() {
     }
 
     const onAddClick = (mangaId: number) => {
-        setPendingMangaId(mangaId)
-        setIsCategoryDialogOpen(true)
+        if ((categories.data?.length || 1) > 1) {
+            setPendingMangaId(mangaId)
+            setIsCategoryDialogOpen(true)
+        } else {
+            addToLibrary({
+                mangaId: mangaId,
+                categoryIds: [0],
+            })
+        }
     }
 
     return (
@@ -406,6 +413,7 @@ function SourceBrowseContent() {
                             <div className="grid grid-cols-2 gap-x-6 gap-y-10 pb-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                                 {sourceMangaItems.map((manga) => (
                                     <MangaCard
+                                        key={manga.id}
                                         manga={manga}
                                         onAddLibrary={() =>
                                             onAddClick(manga.id)

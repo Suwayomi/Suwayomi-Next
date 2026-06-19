@@ -64,7 +64,7 @@ function MangaPage({
                 <Button
                     variant="outline"
                     size="sm"
-                    className="mt-2"
+                    className="relative z-[70] mt-2"
                     onClick={() => {
                         setHasFailed(false)
                     }}

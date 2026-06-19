@@ -38,7 +38,7 @@ import { selectActiveDownloadCount } from "@/lib/store/slices/downloads"
 import { Link, useLocation, type Location } from "react-router-dom"
 import { cn, getImageUrl } from "@/lib/utils"
 
-type NavItem = {
+export type NavItem = {
     title: string
     url: string
     icon: React.ElementType

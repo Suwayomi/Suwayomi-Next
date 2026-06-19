@@ -9,18 +9,17 @@ import { PageList } from "./_components/PageList"
 import { ReaderOverlay } from "./_components/ReaderOverlay"
 import { useLocation, useNavigate } from "react-router-dom"
 import type { VirtuosoHandle } from "react-virtuoso"
+import { useAppStore } from "@/lib/store"
 
 interface ReaderClientProps {
     initialPagesData: any
     initialMangaData: any
-    mangaId: number
     chapterId: number
 }
 
 export default function ReaderClient({
     initialPagesData,
     initialMangaData,
-    mangaId,
     chapterId,
 }: ReaderClientProps) {
     const { pathname } = useLocation()
@@ -36,6 +35,7 @@ export default function ReaderClient({
     ])
 
     const {
+        useSourcePreset,
         readingMode,
         readingDirection,
         tapZone,
@@ -56,10 +56,14 @@ export default function ReaderClient({
         readingMode === "webtoon" ||
         readingMode === "continuous-horizontal"
     const [isNavigating, setIsNavigating] = React.useState(false)
+    const { meta } = useAppStore()
     // const [loadedCount, setLoadedCount] = React.useState(0)
 
     React.useEffect(() => {
         setMangaData(initialMangaData)
+        const next_reader = meta.data?.["next-reader"]
+        next_reader &&
+            useSourcePreset(next_reader, initialMangaData.manga.sourceId)
     }, [initialMangaData])
 
     React.useEffect(() => {
@@ -237,7 +241,7 @@ export default function ReaderClient({
     return (
         <div
             className={cn(
-                "fixed inset-0 z-[100] flex overflow-hidden font-sans transition-colors duration-500",
+                "fixed inset-0 z-100 flex overflow-hidden font-sans transition-colors duration-500",
                 hudOrientation === "vertical" ? "flex-col" : "flex-row",
                 background === "black" ? "bg-black" : "bg-zinc-950"
             )}

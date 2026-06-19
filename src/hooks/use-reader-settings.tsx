@@ -1,4 +1,5 @@
 import * as React from "react"
+import type { ReaderConfig } from "@/lib/store/slices/meta"
 
 export type ReadingMode =
     | "single-page"
@@ -13,7 +14,7 @@ export type ScaleType = "fit-width" | "fit-height" | "fit-screen" | "original"
 export type HudType = "floating" | "static"
 export type HudOrientation = "vertical" | "horizontal"
 
-interface ReaderSettings {
+export interface ReaderSettings {
     readingMode: ReadingMode
     readingDirection: ReadingDirection
     tapZone: TapZone
@@ -26,6 +27,9 @@ interface ReaderSettings {
 }
 
 interface ReaderSettingsContextType extends ReaderSettings {
+    selectedPreset: string
+    setSelectedPreset: (name: string) => void
+    useSourcePreset: (config: ReaderConfig, sourceId: string) => void
     updateSettings: (updates: Partial<ReaderSettings>) => void
     setReadingMode: (mode: ReadingMode) => void
     setReadingDirection: (dir: ReadingDirection) => void
@@ -39,7 +43,7 @@ interface ReaderSettingsContextType extends ReaderSettings {
 }
 
 const DEFAULT_SETTINGS: ReaderSettings = {
-    readingMode: "webtoon",
+    readingMode: "single-page",
     readingDirection: "ltr",
     tapZone: "edge",
     invertTapZone: "none",
@@ -61,33 +65,34 @@ export function ReaderSettingsProvider({
 }) {
     const [settings, setSettings] =
         React.useState<ReaderSettings>(DEFAULT_SETTINGS)
-
-    React.useEffect(() => {
-        const saved = localStorage.getItem("reader-settings-v3")
-        if (saved) {
-            try {
-                setSettings(JSON.parse(saved))
-            } catch (e) {
-                console.error("Failed to parse reader settings", e)
-            }
-        }
-    }, [])
+    const [selectedPreset, setSelectedPreset] = React.useState<string>("")
 
     const updateSettings = React.useCallback(
         (updates: Partial<ReaderSettings>) => {
             setSettings((prev) => {
                 const next = { ...prev, ...updates }
-                localStorage.setItem("reader-settings-v3", JSON.stringify(next))
+                // localStorage.setItem("reader-settings-v3", JSON.stringify(next))
                 return next
             })
         },
         []
     )
+    const useSourcePreset = (config: ReaderConfig, sourceId: string) => {
+        const name = config.sourceMapping[sourceId]
+        const targetPreset = config.presets.find((i) => i.name === name)
+        if (name && targetPreset) {
+            updateSettings(targetPreset.settings as ReaderSettings)
+            setSelectedPreset(name)
+        }
+    }
 
     const value = React.useMemo(
         () => ({
             ...settings,
+            selectedPreset,
+            setSelectedPreset,
             updateSettings,
+            useSourcePreset,
             setReadingMode: (mode: ReadingMode) =>
                 updateSettings({ readingMode: mode }),
             setReadingDirection: (dir: ReadingDirection) =>

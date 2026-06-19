@@ -240,9 +240,14 @@ export default function BrowseClientPage() {
     }, [availableExtensions, installedExtensions])
 
     const filteredInstalled = React.useMemo(() => {
-        let list = installedExtensions.filter((e) =>
-            e.name.toLowerCase().includes(installedSearchQuery.toLowerCase())
-        )
+        const showNsfw = meta.data?.["next-show-nsfw"]
+        let list = installedExtensions.filter((e) => {
+            const isInstalled = e.name
+                .toLowerCase()
+                .includes(installedSearchQuery.toLowerCase())
+            const matchesNsfw = showNsfw || !e.isNsfw
+            return isInstalled && matchesNsfw
+        })
 
         // Sort: Extensions with pinned sources first
         return list.sort((a, b) => {
@@ -256,7 +261,13 @@ export default function BrowseClientPage() {
             if (!aPinned && bPinned) return 1
             return a.name.localeCompare(b.name)
         })
-    }, [installedExtensions, installedSearchQuery, sourcesByPkg, pinnedSources])
+    }, [
+        installedExtensions,
+        installedSearchQuery,
+        sourcesByPkg,
+        pinnedSources,
+        meta.data,
+    ])
 
     const [visibleCount, setVisibleCount] = React.useState(
         INITIAL_VISIBLE_COUNT
@@ -274,9 +285,18 @@ export default function BrowseClientPage() {
                 ext.name
                     .toLowerCase()
                     .includes(catalogSearchQuery.toLowerCase())
-            return matchesNsfw && matchesLang && matchesSearch
+            const isNotInstalled = !installedExtensions.some(
+                (i) => i.name === ext.name
+            )
+            return matchesNsfw && matchesLang && matchesSearch && isNotInstalled
         })
-    }, [availableExtensions, meta.data, selectedLanguage, catalogSearchQuery])
+    }, [
+        availableExtensions,
+        meta.data,
+        selectedLanguage,
+        catalogSearchQuery,
+        installedExtensions,
+    ])
 
     const visibleCatalog = React.useMemo(() => {
         return filteredCatalog.slice(0, visibleCount)
@@ -863,26 +883,24 @@ function ExtensionCard({
     return (
         <div
             className={cn(
-                "group relative flex flex-col gap-4 rounded-2xl border border-border/40 bg-muted/5 p-4 transition-all duration-300 hover:border-primary/20",
+                "group relative flex flex-col gap-4 rounded-2xl border border-card bg-muted/20 p-4",
                 ext.isInstalled ? "cursor-pointer" : "",
                 hasPinnedSource &&
-                    "border-primary/30 bg-primary/[0.03] shadow-[0_0_30px_-12px_rgba(var(--primary),0.2)]"
+                    "border-primary/30 bg-primary/30 shadow-[0_0_30px_-12px_rgba(var(--primary),0.2)]"
             )}
             onClick={handleCardClick}
         >
             <div className="flex items-start justify-between">
                 <div className="relative shrink-0">
-                    <div className="flex size-14 items-center justify-center rounded-xl border border-border/40 bg-background p-2.5 shadow-sm">
-                        {ext.iconUrl ? (
-                            <img
-                                src={getImageUrl(ext.iconUrl)!}
-                                alt={ext.name}
-                                className="size-full object-contain"
-                            />
-                        ) : (
-                            <Puzzle className="size-7 text-muted-foreground/30" />
-                        )}
-                    </div>
+                    {ext.iconUrl ? (
+                        <img
+                            src={getImageUrl(ext.iconUrl)!}
+                            alt={ext.name}
+                            className="size-20 object-contain"
+                        />
+                    ) : (
+                        <Puzzle className="size-7 text-muted-foreground/30" />
+                    )}
                     {ext.hasUpdate && (
                         <div className="absolute -top-1.5 -right-1.5 z-20 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md ring-2 ring-background">
                             <RefreshCw className="size-3" />
@@ -898,13 +916,7 @@ function ExtensionCard({
                         <DropdownMenu>
                             <DropdownMenuTrigger
                                 render={
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="size-10 rounded-xl bg-muted/10 text-muted-foreground transition-all hover:bg-muted/20 hover:text-foreground"
-                                    >
-                                        <MoreVertical className="size-5" />
-                                    </Button>
+                                    <MoreVertical className="size-5 outline-none" />
                                 }
                             />
                             <DropdownMenuContent
@@ -923,20 +935,11 @@ function ExtensionCard({
                                         Extension
                                     </DropdownMenuItem>
                                 )}
-                                <DropdownMenuItem
-                                    className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive"
-                                    onClick={(e) => {
-                                        e.stopPropagation()
-                                        onAction(ext.pkgName, "uninstall")
-                                    }}
-                                >
-                                    <Trash2 className="size-4" /> Uninstall
-                                </DropdownMenuItem>
+
                                 {sources.length > 0 &&
                                     onTogglePin &&
                                     pinnedSources && (
                                         <>
-                                            <div className="my-1 h-px bg-border/40" />
                                             {sources.map((source) => (
                                                 <DropdownMenuItem
                                                     key={source.id}
@@ -951,20 +954,27 @@ function ExtensionCard({
                                                     ) ? (
                                                         <>
                                                             <PinOff className="size-4" />{" "}
-                                                            Unpin{" "}
-                                                            {source.displayName}
+                                                            Unpin
                                                         </>
                                                     ) : (
                                                         <>
                                                             <Pin className="size-4" />{" "}
-                                                            Pin{" "}
-                                                            {source.displayName}
+                                                            Pin
                                                         </>
                                                     )}
                                                 </DropdownMenuItem>
                                             ))}
                                         </>
                                     )}
+                                <DropdownMenuItem
+                                    className="gap-2 text-destructive hover:text-destructive focus:bg-destructive/10"
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        onAction(ext.pkgName, "uninstall")
+                                    }}
+                                >
+                                    <Trash2 className="size-4" /> Uninstall
+                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     ) : (
@@ -989,7 +999,7 @@ function ExtensionCard({
                         {ext.name}
                     </h3>
                     {ext.isNsfw && (
-                        <span className="rounded-md border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-[8px] font-black text-destructive uppercase">
+                        <span className="text-sm font-black text-destructive uppercase">
                             18+
                         </span>
                     )}
@@ -1009,82 +1019,6 @@ function ExtensionCard({
                     </span>
                 </div>
             </div>
-        </div>
-    )
-}
-
-function ExtensionItem({
-    ext,
-    onAction,
-}: {
-    ext: Extension
-    onAction: (p: string, a: any) => void
-}) {
-    const langColors: Record<string, string> = {
-        en: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-        ja: "bg-red-500/10 text-red-500 border-red-500/20",
-        zh: "bg-orange-500/10 text-orange-500 border-orange-500/20",
-        es: "bg-yellow-500/10 text-yellow-500 border-yellow-500/20",
-        pt: "bg-green-500/10 text-green-500 border-green-500/20",
-        fr: "bg-indigo-500/10 text-indigo-500 border-indigo-500/20",
-        multi: "bg-purple-500/10 text-purple-500 border-purple-500/20",
-    }
-
-    const langStyle =
-        langColors[ext.lang.toLowerCase()] ||
-        "bg-muted/30 text-muted-foreground border-border/50"
-
-    return (
-        <div className="group flex items-center justify-between gap-4 rounded-xl border border-border/40 bg-muted/5 p-3 transition-all hover:border-primary/10 hover:bg-muted/10">
-            <div className="flex items-center gap-4">
-                <div className="flex size-11 shrink-0 items-center justify-center rounded-lg border border-border/40 bg-background p-2">
-                    {ext.iconUrl ? (
-                        <img
-                            src={getImageUrl(ext.iconUrl)!}
-                            alt={ext.name}
-                            className="size-full object-contain"
-                        />
-                    ) : (
-                        <Puzzle className="size-6 text-muted-foreground/30" />
-                    )}
-                </div>
-
-                <div className="flex min-w-0 flex-1 flex-col">
-                    <div className="flex items-center gap-2">
-                        <span className="truncate font-black text-foreground">
-                            {ext.name}
-                        </span>
-                        {ext.isNsfw && (
-                            <span className="rounded-md border border-destructive/20 bg-destructive/10 px-1.5 py-0.5 text-[8px] font-black text-destructive uppercase">
-                                18+
-                            </span>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span
-                            className={cn(
-                                "rounded-lg border px-2 py-0.5 text-[9px] font-black tracking-widest uppercase",
-                                langStyle
-                            )}
-                        >
-                            {ext.lang}
-                        </span>
-                        <span className="text-muted-foreground/30">•</span>
-                        <span className="text-[10px] font-bold tracking-widest text-muted-foreground uppercase">
-                            v{ext.versionName}
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <Button
-                variant="secondary"
-                size="sm"
-                className="h-8 rounded-lg px-3 font-bold shadow-sm transition-all active:scale-95"
-                onClick={() => onAction(ext.pkgName, "install")}
-            >
-                Install
-            </Button>
         </div>
     )
 }
