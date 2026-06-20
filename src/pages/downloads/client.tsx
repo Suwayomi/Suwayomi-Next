@@ -27,58 +27,74 @@ export default function DownloadsClientPage() {
     const isLoading = downloads.loading && !downloads.data
 
     const downloadMutation = useSuwayomiMutation({
-        onSuccess: () => downloads.refresh()
+        onSuccess: () => downloads.refresh(),
     })
 
     const toggleDownloader = () => {
         const action = isDownloading ? "stopDownloader" : "startDownloader"
-        downloadMutation.mutate({
-            [action]: {
-                __args: { input: {} },
-                clientMutationId: true,
+        downloadMutation.mutate(
+            {
+                [action]: {
+                    __args: { input: {} },
+                    clientMutationId: true,
+                },
             },
-        }, {
-            onSuccess: () => {
-                toast.success(isDownloading ? "Downloader paused" : "Downloader started")
-            },
-            onError: () => toast.error("Failed to toggle downloader")
-        })
+            {
+                onSuccess: () => {
+                    toast.success(
+                        isDownloading
+                            ? "Downloader paused"
+                            : "Downloader started"
+                    )
+                },
+                onError: () => toast.error("Failed to toggle downloader"),
+            }
+        )
     }
 
     const clearQueue = () => {
-        downloadMutation.mutate({
-            clearDownloader: {
-                __args: { input: {} },
-                clientMutationId: true,
+        downloadMutation.mutate(
+            {
+                clearDownloader: {
+                    __args: { input: {} },
+                    clientMutationId: true,
+                },
             },
-        }, {
-            onSuccess: () => toast.success("Queue cleared"),
-            onError: () => toast.error("Failed to clear queue")
-        })
+            {
+                onSuccess: () => toast.success("Queue cleared"),
+                onError: () => toast.error("Failed to clear queue"),
+            }
+        )
     }
 
     const removeFromQueue = (chapterId: number) => {
-        downloadMutation.mutate({
-            dequeueChapterDownload: {
-                __args: { input: { id: chapterId } },
-                clientMutationId: true,
+        downloadMutation.mutate(
+            {
+                dequeueChapterDownload: {
+                    __args: { input: { id: chapterId } },
+                    clientMutationId: true,
+                },
             },
-        }, {
-            onSuccess: () => toast.success("Removed from queue"),
-            onError: () => toast.error("Failed to remove from queue")
-        })
+            {
+                onSuccess: () => toast.success("Removed from queue"),
+                onError: () => toast.error("Failed to remove from queue"),
+            }
+        )
     }
 
     const reenqueueChapter = (chapterId: number) => {
-        downloadMutation.mutate({
-            enqueueChapterDownload: {
-                __args: { input: { id: chapterId } },
-                clientMutationId: true,
+        downloadMutation.mutate(
+            {
+                enqueueChapterDownload: {
+                    __args: { input: { id: chapterId } },
+                    clientMutationId: true,
+                },
             },
-        }, {
-            onSuccess: () => toast.success("Added back to queue"),
-            onError: () => toast.error("Failed to re-enqueue")
-        })
+            {
+                onSuccess: () => toast.success("Added back to queue"),
+                onError: () => toast.error("Failed to re-enqueue"),
+            }
+        )
     }
 
     return (

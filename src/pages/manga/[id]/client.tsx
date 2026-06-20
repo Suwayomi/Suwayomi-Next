@@ -511,9 +511,9 @@ export default function MangaDetailClient({
                                         m.key === "next:is-favorite" &&
                                         m.value === "true"
                                 )}
-                                onAddToLibrary={() =>
+                                onAddToLibrary={() => {
                                     setIsCategoryDialogOpen(true)
-                                }
+                                }}
                                 onRemoveFromLibrary={removeFromLibrary}
                                 onToggleFavorite={addToFavorite}
                             />

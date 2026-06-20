@@ -28,15 +28,6 @@ export function PageLayout({
         >
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-2">
-                    <SidebarTrigger
-                        className={"md:hidden"}
-                        render={
-                            <Button size={"icon"} variant={"ghost"}>
-                                <PanelRightOpen />
-                            </Button>
-                        }
-                    />
-
                     {/* {(onBack || true) && ( */}
                     {/*     <Button */}
                     {/*         variant="ghost" */}
@@ -47,18 +38,24 @@ export function PageLayout({
                     {/*         <ArrowLeft className="size-4" /> */}
                     {/*     </Button> */}
                     {/* )} */}
-                    <div className="flex flex-col">
-                        {title && (
-                            <h1 className="text-2xl font-black tracking-tight text-foreground uppercase sm:text-3xl">
-                                {title}
-                            </h1>
-                        )}
-                        {description && (
-                            <p className="text-sm font-medium text-muted-foreground opacity-70 sm:text-base">
-                                {description}
-                            </p>
-                        )}
-                    </div>
+
+                    <SidebarTrigger
+                        className={"w-fit"}
+                        render={
+                            <div className="flex flex-col">
+                                {title && (
+                                    <h1 className="text-2xl font-black tracking-tight text-foreground uppercase sm:text-3xl">
+                                        {title}
+                                    </h1>
+                                )}
+                                {description && (
+                                    <p className="text-sm font-medium text-muted-foreground opacity-70 sm:text-base">
+                                        {description}
+                                    </p>
+                                )}
+                            </div>
+                        }
+                    />
                 </div>
                 {actions && (
                     <div className="flex shrink-0 items-center gap-2">

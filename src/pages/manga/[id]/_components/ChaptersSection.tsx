@@ -14,7 +14,10 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { downloadChaptersAction, markMangasAsReadAction } from "@/lib/manga-actions"
+import {
+    downloadChaptersAction,
+    markMangasAsReadAction,
+} from "@/lib/manga-actions"
 
 export function ChaptersSection({
     manga,
@@ -95,35 +98,64 @@ export function ChaptersSection({
                                     </DropdownMenuSubTrigger>
                                     <DropdownMenuSubContent className="w-56">
                                         <DropdownMenuItem
-                                            onClick={() => downloadChaptersAction(manga.id, 1)}
+                                            onClick={() =>
+                                                downloadChaptersAction(
+                                                    manga.id,
+                                                    1
+                                                )
+                                            }
                                         >
                                             Next chapter
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
-                                            onClick={() => downloadChaptersAction(manga.id, 5)}
+                                            onClick={() =>
+                                                downloadChaptersAction(
+                                                    manga.id,
+                                                    5
+                                                )
+                                            }
                                         >
                                             Next 5 chapters
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
-                                            onClick={() => downloadChaptersAction(manga.id, 10)}
+                                            onClick={() =>
+                                                downloadChaptersAction(
+                                                    manga.id,
+                                                    10
+                                                )
+                                            }
                                         >
                                             Next 10 chapters
                                         </DropdownMenuItem>
                                         <DropdownMenuItem
-                                            onClick={() => downloadChaptersAction(manga.id, 25)}
+                                            onClick={() =>
+                                                downloadChaptersAction(
+                                                    manga.id,
+                                                    25
+                                                )
+                                            }
                                         >
                                             Next 25 chapters
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem
-                                            onClick={() => downloadChaptersAction(manga.id)}
+                                            onClick={() =>
+                                                downloadChaptersAction(manga.id)
+                                            }
                                         >
                                             All unread
                                         </DropdownMenuItem>
                                     </DropdownMenuSubContent>
                                 </DropdownMenuSub>
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => markMangasAsReadAction([manga.id], refreshManga)}>
+                                <DropdownMenuItem
+                                    onClick={() =>
+                                        markMangasAsReadAction(
+                                            [manga.id],
+                                            refreshManga
+                                        )
+                                    }
+                                >
                                     <BookOpen className="size-4" />
                                     <span>Mark unread as read</span>
                                 </DropdownMenuItem>

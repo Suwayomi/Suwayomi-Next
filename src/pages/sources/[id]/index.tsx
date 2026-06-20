@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { Search, Loader2, RefreshCw, WifiOff } from "lucide-react"
 import { CategorySelectionDialog } from "@/components/category-selection-dialog"
-import { useAppStore } from "@/lib/store"
+import { useAppStore, type LibraryManga } from "@/lib/store"
 import { SourceFilter } from "@/components/source-filter"
 import {
     type Filter,
@@ -414,7 +414,7 @@ function SourceBrowseContent() {
                                 {sourceMangaItems.map((manga) => (
                                     <MangaCard
                                         key={manga.id}
-                                        manga={manga}
+                                        manga={manga as LibraryManga}
                                         onAddLibrary={() =>
                                             onAddClick(manga.id)
                                         }

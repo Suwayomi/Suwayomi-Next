@@ -31,33 +31,45 @@ interface CategoryConfigProps {
 }
 
 export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
-    const { data: categories = [] as LibraryCategory[], isLoading: isRefreshing, refetch: fetchData } = useSuwayomiQuery({
-        categories: {
-            nodes: {
-                id: true,
-                name: true,
-                default: true,
-                order: true,
-                includeInUpdate: true,
-                includeInDownload: true,
+    const {
+        data: categories = [] as LibraryCategory[],
+        isLoading: isRefreshing,
+        refetch: fetchData,
+    } = useSuwayomiQuery(
+        {
+            categories: {
+                nodes: {
+                    id: true,
+                    name: true,
+                    default: true,
+                    order: true,
+                    includeInUpdate: true,
+                    includeInDownload: true,
+                },
             },
         },
-    }, {
-        initialData: { categories: { nodes: initialCategories } } as any,
-        select: (data: any) => (data.categories?.nodes as any || []).filter((i: any) => i.name !== "Default") as LibraryCategory[]
-    })
+        {
+            initialData: { categories: { nodes: initialCategories } } as any,
+            select: (data: any) =>
+                ((data.categories?.nodes as any) || []).filter(
+                    (i: any) => i.name !== "Default"
+                ) as LibraryCategory[],
+        }
+    )
 
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false)
     const [newCategoryName, setNewCategoryName] = React.useState("")
 
     const updateNameMutation = useSuwayomiMutation({
         onSuccess: (_, variables) => {
-            toast.success(`Category renamed to "${variables.updateCategory?.__args?.input?.patch?.name}"`)
+            toast.success(
+                `Category renamed to "${variables.updateCategory?.__args?.input?.patch?.name}"`
+            )
         },
         onError: () => {
             toast.error("Failed to rename category")
             fetchData()
-        }
+        },
     })
 
     const deleteCategoryMutation = useSuwayomiMutation({
@@ -67,7 +79,7 @@ export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
         onError: () => {
             toast.error("Failed to delete category")
             fetchData()
-        }
+        },
     })
 
     const createCategoryMutation = useSuwayomiMutation({
@@ -79,22 +91,25 @@ export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
         },
         onError: () => {
             toast.error("Failed to create category")
-        }
+        },
     })
 
-    const handleUpdateName = React.useCallback((id: number, newName: string) => {
-        updateNameMutation.mutate({
-            updateCategory: {
-                __args: {
-                    input: {
-                        id,
-                        patch: { name: newName },
+    const handleUpdateName = React.useCallback(
+        (id: number, newName: string) => {
+            updateNameMutation.mutate({
+                updateCategory: {
+                    __args: {
+                        input: {
+                            id,
+                            patch: { name: newName },
+                        },
                     },
+                    category: { name: true },
                 },
-                category: { name: true },
-            },
-        })
-    }, [])
+            })
+        },
+        []
+    )
 
     const handleDeleteCategory = React.useCallback((id: number) => {
         deleteCategoryMutation.mutate({
@@ -156,18 +171,28 @@ export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
                             <Input
                                 id="new-cat-name"
                                 value={newCategoryName}
-                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                onChange={(e) =>
+                                    setNewCategoryName(e.target.value)
+                                }
                                 placeholder="e.g. Completed, Reading Later..."
                                 autoFocus
-                                onKeyDown={(e) => e.key === "Enter" && handleCreateCategory()}
+                                onKeyDown={(e) =>
+                                    e.key === "Enter" && handleCreateCategory()
+                                }
                             />
                         </div>
                     </div>
                     <DialogFooter>
-                        <Button variant="ghost" onClick={() => setIsAddDialogOpen(false)}>
+                        <Button
+                            variant="ghost"
+                            onClick={() => setIsAddDialogOpen(false)}
+                        >
                             Cancel
                         </Button>
-                        <Button onClick={handleCreateCategory} disabled={!newCategoryName.trim()}>
+                        <Button
+                            onClick={handleCreateCategory}
+                            disabled={!newCategoryName.trim()}
+                        >
                             Create Category
                         </Button>
                     </DialogFooter>

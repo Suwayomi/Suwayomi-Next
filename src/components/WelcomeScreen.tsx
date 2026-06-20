@@ -9,7 +9,7 @@ import {
     Sparkles,
     FolderKanban,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { applyTheme, cn } from "@/lib/utils"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { useMeta } from "@/hooks/use-meta"
@@ -129,8 +129,7 @@ function StepAccent() {
     const [currentAccent, setCurrentAccent] = useMeta("next-accent-color")
 
     const selectAccent = (value: string) => {
-        document.documentElement.style.setProperty("--primary", value)
-        document.documentElement.style.setProperty("--ring", value)
+        applyTheme(value)
         setCurrentAccent(value)
     }
 

@@ -7,6 +7,7 @@ import * as React from "react"
 import { useLocation } from "react-router-dom"
 import Struct from "./Struct"
 import { WelcomeScreen } from "@/components/WelcomeScreen"
+import { applyTheme } from "@/lib/utils"
 
 export default function MainClient({
     children,
@@ -36,15 +37,7 @@ export default function MainClient({
         if (initialData?.meta) {
             const theme = initialData.meta["next-theme"]
             const accent = initialData.meta["next-accent-color"]
-            if (theme) {
-                localStorage.setItem("next-theme", theme)
-                document.documentElement.className = theme
-            }
-            if (accent) {
-                localStorage.setItem("next-accent-color", accent)
-                document.documentElement.style.setProperty("--primary", accent)
-                document.documentElement.style.setProperty("--ring", accent)
-            }
+            applyTheme(accent, theme)
         }
     }, [initialData])
 

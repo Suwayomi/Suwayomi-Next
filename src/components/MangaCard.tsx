@@ -11,6 +11,8 @@ import {
     Plus,
     TagsIcon,
     Clock9,
+    StarIcon,
+    Clock9Icon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { MangaImage } from "./MangaImage"
@@ -73,9 +75,7 @@ export function MangaCard({
     )
 
     const handleClick = (e: React.MouseEvent) => {
-        // If the user is clicking a button or something inside it, don't navigate
-        if ((e.target as HTMLElement).closest("button")) return
-
+        // if ((e.target as HTMLElement).closest("button")) return
         if ((isSelectionMode || e.ctrlKey) && onToggle) {
             onToggle()
         } else {
@@ -95,10 +95,7 @@ export function MangaCard({
 
     return (
         <>
-            <div
-                className="group relative flex cursor-pointer flex-col gap-3 transition-all"
-                onClick={handleClick}
-            >
+            <div className="group relative flex cursor-pointer flex-col gap-3 transition-all">
                 {/* Thumbnail Area */}
                 <div
                     className={cn(
@@ -107,20 +104,22 @@ export function MangaCard({
                             "border-4 border-primary ring-4 ring-primary/20"
                     )}
                 >
-                    <MangaImage
-                        thumbnailUrl={manga.thumbnailUrl}
-                        alt={manga.title}
-                        className="h-full w-full object-cover transition-transform duration-700"
-                    />
+                    <div onClick={handleClick}>
+                        <MangaImage
+                            thumbnailUrl={manga.thumbnailUrl}
+                            alt={manga.title}
+                            className="h-full w-full object-cover transition-transform duration-700"
+                        />
+                    </div>
 
                     {/* Status Badges */}
 
-                    <div className="absolute top-3 left-3 z-20 space-y-2">
-                        {manga.inLibrary && isVip && (
+                    <div className="pointer-events-none absolute top-3 left-3 z-20 space-y-2">
+                        {/*manga.inLibrary && isVip && (
                             <div className="flex size-8 -rotate-12 transform items-center justify-center rounded-full bg-amber-500 shadow-lg shadow-black">
                                 <Star className="size-4 fill-zinc-900 text-zinc-900" />
                             </div>
-                        )}
+                        )*/}
                         {page === "source" && manga.inLibrary && (
                             <div className="rounded-md border border-black/20 bg-primary px-2 py-1 text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg dark:border-white/20">
                                 In Library
@@ -128,8 +127,8 @@ export function MangaCard({
                         )}
                     </div>
 
-                    {meta.data?.["next-ui-configs"].disable_cover_state && (
-                        <div className="absolute right-3 bottom-3 z-20 flex h-fit justify-center gap-2 space-y-2">
+                    {/*meta.data?.["next-ui-configs"].disable_cover_state && (
+                        <div className="pointer-events-none absolute right-3 bottom-3 z-20 flex h-fit justify-center gap-2 space-y-2">
                             {matchingTags > 0 && (
                                 <div className="z-20 m-0 flex size-fit items-center gap-1 rounded-md border border-white/20 bg-secondary p-1 text-xs text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg">
                                     <TagsIcon className="size-4" />{" "}
@@ -137,19 +136,18 @@ export function MangaCard({
                                 </div>
                             )}
 
-                            {/* Unread Badge Count */}
                             {manga.unreadCount > 0 && !isSelected && (
                                 <div className="m-0 flex size-fit gap-1 rounded-md border border-black/20 bg-primary px-2 py-1 text-[10px] font-black tracking-tighter text-primary-foreground uppercase shadow-lg dark:border-white/20">
                                     {manga.unreadCount}
                                 </div>
                             )}
                         </div>
-                    )}
+                    )*/}
 
                     {/* Selection Overlay */}
                     <div
                         className={cn(
-                            "absolute inset-0 z-10 flex items-center justify-center bg-primary/10 transition-opacity",
+                            "pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-primary/10 transition-opacity",
                             isSelected
                                 ? "opacity-100"
                                 : "opacity-0 group-hover:opacity-20"
@@ -166,7 +164,7 @@ export function MangaCard({
                     {manga.inLibrary
                         ? !isSelectionMode &&
                           hasDropdownActions && (
-                              <div className="absolute top-2 right-2 z-20 flex flex-col gap-2 opacity-100 transition-opacity group-hover:opacity-100 md:opacity-0">
+                              <div className="absolute top-2 right-2 isolate z-20 flex flex-col gap-2 opacity-100 transition-opacity group-hover:opacity-100 md:opacity-0">
                                   <DropdownMenu>
                                       <DropdownMenuTrigger
                                           onClick={(e) => e.stopPropagation()}
@@ -346,10 +344,18 @@ export function MangaCard({
                                   </Button>
                               </div>
                           )}
+                    <OverlayControls
+                        manga={manga}
+                        isVip={isVip}
+                        isOnReadLater={isOnReadLater}
+                        onReadLaterToggle={onReadLaterToggle}
+                        onVipToggle={onVipToggle}
+                        handleClick={handleClick}
+                    />
                 </div>
 
                 {/* Details Area */}
-                <div className="flex flex-col gap-1 px-1">
+                <div className="flex flex-col gap-1 px-1" onClick={handleClick}>
                     <h3 className="line-clamp-2 font-heading text-sm leading-snug font-bold text-foreground transition-colors group-hover:text-primary">
                         {manga.title}
                     </h3>
@@ -364,5 +370,68 @@ export function MangaCard({
                 </div>
             </div>
         </>
+    )
+}
+
+const OverlayControls = ({
+    manga,
+    isVip,
+    isOnReadLater,
+    handleClick,
+    onVipToggle,
+    onReadLaterToggle,
+}: {
+    manga: LibraryManga
+    handleClick: (e: React.MouseEvent) => void
+    isVip: boolean
+    isOnReadLater: boolean
+    onVipToggle?: () => void
+    onReadLaterToggle?: () => void
+}) => {
+    return (
+        <div className="pointer-events-none absolute bottom-0 box-border flex h-full w-full items-end bg-linear-to-t from-background from-0% via-background via-30% to-transparent to-100% p-3 opacity-0 transition-opacity group-hover:opacity-100">
+            <div className="block w-full space-y-2 overflow-hidden">
+                <p className="line-clamp-3 text-xs text-muted-foreground">
+                    {manga.description}
+                </p>
+                <div className="pointer-events-auto flex gap-1">
+                    <Button className={"flex-1"} onClick={handleClick}>
+                        Read
+                    </Button>
+                    {onVipToggle && (
+                        <Button
+                            size="icon"
+                            variant={"ghost"}
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onVipToggle()
+                            }}
+                        >
+                            <StarIcon
+                                className={cn(
+                                    isVip && "fill-amber-500 text-amber-500"
+                                )}
+                            />
+                        </Button>
+                    )}
+                    {onReadLaterToggle && (
+                        <Button
+                            size="icon"
+                            variant={"ghost"}
+                            onClick={(e) => {
+                                e.stopPropagation()
+                                onReadLaterToggle()
+                            }}
+                        >
+                            <Clock9Icon
+                                className={cn(
+                                    isOnReadLater && "read-later-icon"
+                                )}
+                            />
+                        </Button>
+                    )}
+                </div>
+            </div>
+        </div>
     )
 }

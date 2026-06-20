@@ -29,3 +29,15 @@ export function getImageUrl(path: string | null | undefined) {
 
     return fullUrl
 }
+
+export function applyTheme(accent?: string, mode?: string) {
+    if (mode) {
+        localStorage.setItem("next-theme", mode)
+        document.documentElement.className = mode
+    }
+    if (accent) {
+        localStorage.setItem("next-accent-color", accent)
+        document.documentElement.style.setProperty("--primary", accent)
+        document.documentElement.style.setProperty("--ring", accent)
+    }
+}

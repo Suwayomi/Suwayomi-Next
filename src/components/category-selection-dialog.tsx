@@ -122,8 +122,9 @@ export function CategorySelectionDialog({
                         </ScrollArea>
                     ) : (
                         <div className="flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-neutral-500/40 p-5">
-                            <span className="mx-auto text-sm text-neutral-500">
-                                You don't have any categories defined.
+                            <span className="mx-auto text-center text-sm text-neutral-500">
+                                You haven't created any categories yet! We'll
+                                put this in Default for now, or you can
                             </span>
                             <Button
                                 variant={"secondary"}

@@ -42,10 +42,13 @@ export function MangaGroupCard({ manga, chapters, type }: MangaGroupCardProps) {
 
     const isUpdates = type === "updates"
     const latestChapter = chapters[0]
-    
-    // For updates, the chapters list shows up to 10. 
+
+    // For updates, the chapters list shows up to 10.
     // We display a "+X more" if unreadCount > chapters.length
-    const moreUnreadCount = Math.max(0, (manga.unreadCount || 0) - chapters.length)
+    const moreUnreadCount = Math.max(
+        0,
+        (manga.unreadCount || 0) - chapters.length
+    )
 
     const formatTime = (ts: string | null) => {
         if (!ts) return ""
@@ -94,7 +97,10 @@ export function MangaGroupCard({ manga, chapters, type }: MangaGroupCardProps) {
 
                     <div className="flex items-center gap-2">
                         {isUpdates && (
-                            <Badge variant="secondary" className="h-5 px-1.5 text-[10px] uppercase">
+                            <Badge
+                                variant="secondary"
+                                className="h-5 px-1.5 text-[10px] uppercase"
+                            >
                                 {manga.unreadCount} Unread
                             </Badge>
                         )}
@@ -110,8 +116,15 @@ export function MangaGroupCard({ manga, chapters, type }: MangaGroupCardProps) {
 
                     {latestChapter && (
                         <div className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                            {isUpdates ? <Calendar className="size-3" /> : <Clock className="size-3" />}
-                            <span>{isUpdates ? "Fetched " : ""}{formatTime(latestChapter.timestamp)}</span>
+                            {isUpdates ? (
+                                <Calendar className="size-3" />
+                            ) : (
+                                <Clock className="size-3" />
+                            )}
+                            <span>
+                                {isUpdates ? "Fetched " : ""}
+                                {formatTime(latestChapter.timestamp)}
+                            </span>
                         </div>
                     )}
                 </div>
@@ -131,7 +144,8 @@ export function MangaGroupCard({ manga, chapters, type }: MangaGroupCardProps) {
                             </>
                         ) : (
                             <>
-                                {isUpdates ? "New" : "History"} ({chapters.length}){" "}
+                                {isUpdates ? "New" : "History"} (
+                                {chapters.length}){" "}
                                 <ChevronDown className="size-4" />
                             </>
                         )}
@@ -162,7 +176,11 @@ export function MangaGroupCard({ manga, chapters, type }: MangaGroupCardProps) {
                                 )
                             }
                             className="size-11 rounded-full shadow-md transition-transform duration-200 active:scale-95"
-                            title={isUpdates ? "Read oldest unread" : "Resume latest chapter"}
+                            title={
+                                isUpdates
+                                    ? "Read oldest unread"
+                                    : "Resume latest chapter"
+                            }
                         >
                             <Play className="size-4 fill-current" />
                         </Button>
@@ -191,17 +209,15 @@ export function MangaGroupCard({ manga, chapters, type }: MangaGroupCardProps) {
                                     {chapter.name}
                                 </span>
                                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                                    <span>
-                                        {formatTime(chapter.timestamp)}
-                                    </span>
+                                    <span>{formatTime(chapter.timestamp)}</span>
                                     <Play className="size-3 fill-current text-primary opacity-0 transition-opacity group-hover/row:opacity-100" />
                                 </div>
                             </div>
                         ))}
-                        
+
                         {isUpdates && moreUnreadCount > 0 && (
-                            <div 
-                                className="px-3 py-2 text-xs font-bold text-primary cursor-pointer hover:underline"
+                            <div
+                                className="cursor-pointer px-3 py-2 text-xs font-bold text-primary hover:underline"
                                 onClick={() => navigate(`/manga/${manga.id}`)}
                             >
                                 + {moreUnreadCount} more unread chapters

@@ -25,6 +25,7 @@ import {
     DropdownMenuTrigger,
 } from "./ui/dropdown-menu"
 import { Randomizer } from "./Randomizer"
+import { SearchInput } from "./SearchInput"
 
 interface LibraryActionsProps {
     categories: string[]
@@ -93,16 +94,8 @@ export function LibraryActions({
                     ))}
                 </SelectContent>
             </Select>
-            <div className="relative w-64">
-                <Search className="absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-                <Input
-                    placeholder="Search library..."
-                    className="h-9 pl-9"
-                    onChange={(e) => onSearch(e.target.value)}
-                />
-            </div>
-
             <div className="flex items-center gap-2">
+                <SearchInput onSearch={onSearch} />
                 <MangaFilter
                     filter={filter}
                     onFilterChange={setFilter}

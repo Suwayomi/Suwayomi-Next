@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Check } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { applyTheme, cn } from "@/lib/utils"
 import { Switch } from "../ui/switch"
 import { useMeta } from "@/hooks/use-meta"
 
@@ -27,6 +27,7 @@ export default function AppearanceSettings({
     const applyAccent = React.useCallback((value: string) => {
         document.documentElement.style.setProperty("--primary", value)
         document.documentElement.style.setProperty("--ring", value)
+        applyTheme(value)
     }, [])
 
     const selectAccent = (value: string) => {

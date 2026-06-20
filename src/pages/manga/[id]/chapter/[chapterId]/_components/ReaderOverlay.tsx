@@ -42,7 +42,7 @@ export function ReaderOverlay({
         if (action !== "toggle") {
             const isHorizontalInverted =
                 invertTapZone === "horizontal" || invertTapZone === "both"
-            // Vertical inversion usually doesn't apply to specific zones in current grid, 
+            // Vertical inversion usually doesn't apply to specific zones in current grid,
             // but we could swap top/bottom if we wanted. For now let's focus on horizontal.
             if (isHorizontalInverted) {
                 finalAction = action === "next" ? "prev" : "next"
@@ -113,7 +113,7 @@ export function ReaderOverlay({
                     {renderZone("prev")}
                     {/* Col 3: Next */}
                     {renderZone("next", "row-span-3")}
-                    
+
                     {renderZone("prev")}
                     {renderZone("toggle")}
 
@@ -139,7 +139,7 @@ export function ReaderOverlay({
                     {renderZone("prev")}
                     {renderZone("prev")}
                     {renderZone("next")}
-                    
+
                     {/* Row 2 */}
                     {renderZone("prev")}
                     {renderZone("toggle")}
@@ -154,4 +154,3 @@ export function ReaderOverlay({
         </div>
     )
 }
-

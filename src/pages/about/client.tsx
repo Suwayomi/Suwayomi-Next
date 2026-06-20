@@ -25,28 +25,33 @@ export default function AboutClientPage({
 }: {
     initialData: Record<string, [string, any][]>
 }) {
-    const { data: serverInfoData } = useSuwayomiQuery({
-        aboutServer: {
-            buildTime: true,
-            buildType: true,
-            discord: true,
-            github: true,
-            name: true,
-            version: true,
+    const { data: serverInfoData } = useSuwayomiQuery(
+        {
+            aboutServer: {
+                buildTime: true,
+                buildType: true,
+                discord: true,
+                github: true,
+                name: true,
+                version: true,
+            },
         },
-    }, {
-        initialData: { aboutServer: initialData.Server } as any,
-        select: (result: any) => {
-            const { github, discord, ...rest } = {
-                ...result.aboutServer,
-                buildTime: new Date(result.aboutServer.buildTime * 1000).toUTCString(),
-            }
-            return {
-                Server: Object.entries(rest),
-                Links: Object.entries({ github, discord })
-            }
+        {
+            initialData: { aboutServer: initialData.Server } as any,
+            select: (result: any) => {
+                const { github, discord, ...rest } = {
+                    ...result.aboutServer,
+                    buildTime: new Date(
+                        result.aboutServer.buildTime * 1000
+                    ).toUTCString(),
+                }
+                return {
+                    Server: Object.entries(rest),
+                    Links: Object.entries({ github, discord }),
+                }
+            },
         }
-    })
+    )
 
     const data = (serverInfoData as any) || initialData
     const [checkingUpdate, setCheckingUpdate] = React.useState(false)
@@ -54,9 +59,9 @@ export default function AboutClientPage({
     const handleCheckUpdate = async () => {
         setCheckingUpdate(true)
         try {
-            const currentVersionEntry = (data as Record<string, [string, any][]>).Server?.find(
-                ([key]: [string, any]) => key === "version"
-            )
+            const currentVersionEntry = (
+                data as Record<string, [string, any][]>
+            ).Server?.find(([key]: [string, any]) => key === "version")
             const currentVersion = currentVersionEntry
                 ? currentVersionEntry[1]
                 : null
@@ -103,87 +108,92 @@ export default function AboutClientPage({
     return (
         <PageLayout title="About">
             <div className="max-w-3xl space-y-8">
-                {Object.entries(data as Record<string, [string, any][]>).map(([sectionTitle, items], id) => (
-                    <Card
-                        key={id}
-                        className="gap-0 overflow-hidden border-border/50 py-0 shadow-sm"
-                    >
-                        <CardHeader className="bg-muted/30 py-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    {sectionTitle === "Server" ? (
-                                        <Server className="size-5 text-primary" />
-                                    ) : (
-                                        <LinkIcon className="size-5 text-primary" />
-                                    )}
-                                    <CardTitle className="text-lg">
-                                        {sectionTitle} Information
-                                    </CardTitle>
-                                </div>
-
-                                {sectionTitle === "Server" && (
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={handleCheckUpdate}
-                                        disabled={checkingUpdate}
-                                        className="h-8 gap-1.5 font-bold"
-                                    >
-                                        {checkingUpdate ? (
-                                            <Loader2 className="size-3 animate-spin" />
+                {Object.entries(data as Record<string, [string, any][]>).map(
+                    ([sectionTitle, items], id) => (
+                        <Card
+                            key={id}
+                            className="gap-0 overflow-hidden border-border/50 py-0 shadow-sm"
+                        >
+                            <CardHeader className="bg-muted/30 py-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        {sectionTitle === "Server" ? (
+                                            <Server className="size-5 text-primary" />
                                         ) : (
-                                            <Info className="size-3" />
+                                            <LinkIcon className="size-5 text-primary" />
                                         )}
-                                        Check for update
-                                    </Button>
-                                )}
-                            </div>
-                            <CardDescription>
-                                {sectionTitle === "Server"
-                                    ? "Technical details regarding your current server instance."
-                                    : "Connect with the community and project source."}
-                            </CardDescription>
-                        </CardHeader>
+                                        <CardTitle className="text-lg">
+                                            {sectionTitle} Information
+                                        </CardTitle>
+                                    </div>
 
-                        <CardContent className="p-0">
-                            <div className="divide-y divide-border/40">
-                                {items.map((j, jd) => {
-                                    const is_link =
-                                        typeof j[1] === "string" &&
-                                        j[1].startsWith("http")
-                                    return (
-                                        <div
-                                            key={jd}
-                                            className="flex flex-col justify-between p-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center"
+                                    {sectionTitle === "Server" && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleCheckUpdate}
+                                            disabled={checkingUpdate}
+                                            className="h-8 gap-1.5 font-bold"
                                         >
-                                            <span className="text-sm font-medium text-muted-foreground capitalize">
-                                                {j[0]
-                                                    .replace(/([A-Z])/g, " $1")
-                                                    .trim()}
-                                            </span>
-
-                                            {!is_link ? (
-                                                <span className="rounded border border-border/50 bg-muted/50 px-2 py-0.5 font-mono text-sm font-semibold">
-                                                    {j[1]}
-                                                </span>
+                                            {checkingUpdate ? (
+                                                <Loader2 className="size-3 animate-spin" />
                                             ) : (
-                                                <a
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    href={j[1]}
-                                                    className="group flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
-                                                >
-                                                    {j[0]}
-                                                    <ExternalLinkIcon className="size-3.5 opacity-50 transition-opacity group-hover:opacity-100" />
-                                                </a>
+                                                <Info className="size-3" />
                                             )}
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+                                            Check for update
+                                        </Button>
+                                    )}
+                                </div>
+                                <CardDescription>
+                                    {sectionTitle === "Server"
+                                        ? "Technical details regarding your current server instance."
+                                        : "Connect with the community and project source."}
+                                </CardDescription>
+                            </CardHeader>
+
+                            <CardContent className="p-0">
+                                <div className="divide-y divide-border/40">
+                                    {items.map((j, jd) => {
+                                        const is_link =
+                                            typeof j[1] === "string" &&
+                                            j[1].startsWith("http")
+                                        return (
+                                            <div
+                                                key={jd}
+                                                className="flex flex-col justify-between p-4 transition-colors hover:bg-muted/20 sm:flex-row sm:items-center"
+                                            >
+                                                <span className="text-sm font-medium text-muted-foreground capitalize">
+                                                    {j[0]
+                                                        .replace(
+                                                            /([A-Z])/g,
+                                                            " $1"
+                                                        )
+                                                        .trim()}
+                                                </span>
+
+                                                {!is_link ? (
+                                                    <span className="rounded border border-border/50 bg-muted/50 px-2 py-0.5 font-mono text-sm font-semibold">
+                                                        {j[1]}
+                                                    </span>
+                                                ) : (
+                                                    <a
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        href={j[1]}
+                                                        className="group flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                                                    >
+                                                        {j[0]}
+                                                        <ExternalLinkIcon className="size-3.5 opacity-50 transition-opacity group-hover:opacity-100" />
+                                                    </a>
+                                                )}
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )
+                )}
 
                 <p className="pt-4 text-center text-xs text-muted-foreground">
                     Suwayomi Client & Server — Built with ❤️ for manga

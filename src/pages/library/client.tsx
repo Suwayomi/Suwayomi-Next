@@ -517,7 +517,7 @@ function DisplayList({
             </div>
             <CategorySelectionDialog
                 open={targetManga !== null && targetManga.action === "category"}
-                onOpenChange={() => setTargetManga(null)}
+                onOpenChange={(p) => !p && setTargetManga(null)}
                 onSelect={(categoryIds) => {
                     if (targetManga?.manga.id !== null) {
                         onChangeCategory({
