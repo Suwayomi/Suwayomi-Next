@@ -1,6 +1,6 @@
 import * as React from "react"
-import { FolderIcon, PlusIcon } from "lucide-react"
-import { useSuwayomiQuery, useSuwayomiMutation } from "@/lib/client"
+import { FolderIcon } from "lucide-react"
+import { useSuwayomiMutation } from "@/lib/client"
 import { toast } from "sonner"
 import { ManagementDialog } from "./ManagementDialog"
 import { LibraryManagementRow } from "./LibraryManagementRow"
@@ -16,46 +16,12 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { useAppStore } from "@/lib/store"
 
-interface LibraryCategory {
-    id: number
-    name: string
-    default: boolean
-    order: number
-    includeInUpdate: boolean
-    includeInDownload: boolean
-}
+interface CategoryConfigProps {}
 
-interface CategoryConfigProps {
-    initialCategories: LibraryCategory[]
-}
-
-export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
-    const {
-        data: categories = [] as LibraryCategory[],
-        isLoading: isRefreshing,
-        refetch: fetchData,
-    } = useSuwayomiQuery(
-        {
-            categories: {
-                nodes: {
-                    id: true,
-                    name: true,
-                    default: true,
-                    order: true,
-                    includeInUpdate: true,
-                    includeInDownload: true,
-                },
-            },
-        },
-        {
-            initialData: { categories: { nodes: initialCategories } } as any,
-            select: (data: any) =>
-                ((data.categories?.nodes as any) || []).filter(
-                    (i: any) => i.name !== "Default"
-                ) as LibraryCategory[],
-        }
-    )
+export function CategoryConfig({}: CategoryConfigProps) {
+    const { categories } = useAppStore()
 
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false)
     const [newCategoryName, setNewCategoryName] = React.useState("")
@@ -68,7 +34,7 @@ export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
         },
         onError: () => {
             toast.error("Failed to rename category")
-            fetchData()
+            categories.refresh()
         },
     })
 
@@ -78,7 +44,7 @@ export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
         },
         onError: () => {
             toast.error("Failed to delete category")
-            fetchData()
+            categories.refresh()
         },
     })
 
@@ -87,7 +53,7 @@ export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
             toast.success(`Category "${newCategoryName}" created`)
             setNewCategoryName("")
             setIsAddDialogOpen(false)
-            fetchData()
+            categories.refresh()
         },
         onError: () => {
             toast.error("Failed to create category")
@@ -125,7 +91,10 @@ export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
         createCategoryMutation.mutate({
             createCategory: {
                 __args: { input: { name: newCategoryName } },
-                category: { name: true },
+                category: {
+                    name: true,
+                    //	meta: you can just add it here why complicating it
+                },
             },
         })
     }
@@ -135,15 +104,15 @@ export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
             <ManagementDialog
                 title="Categories"
                 description="Organize your library with custom categories."
-                items={categories as any[]}
+                items={categories.data as any[]}
                 searchKey="name"
                 addLabel="New Category"
-                isLoading={isRefreshing}
+                isLoading={categories.loading}
                 onAdd={() => setIsAddDialogOpen(true)}
                 trigger={
                     <LibraryManagementRow
                         label="Categories"
-                        count={(categories as any[]).length}
+                        count={(categories.data as any[]).length}
                         icon={<FolderIcon className="size-5" />}
                     />
                 }

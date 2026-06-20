@@ -344,14 +344,16 @@ export function MangaCard({
                                   </Button>
                               </div>
                           )}
-                    <OverlayControls
-                        manga={manga}
-                        isVip={isVip}
-                        isOnReadLater={isOnReadLater}
-                        onReadLaterToggle={onReadLaterToggle}
-                        onVipToggle={onVipToggle}
-                        handleClick={handleClick}
-                    />
+                    {page === "library" && (
+                        <OverlayControls
+                            manga={manga}
+                            isVip={isVip}
+                            isOnReadLater={isOnReadLater}
+                            onReadLaterToggle={onReadLaterToggle}
+                            onVipToggle={onVipToggle}
+                            handleClick={handleClick}
+                        />
+                    )}
                 </div>
 
                 {/* Details Area */}

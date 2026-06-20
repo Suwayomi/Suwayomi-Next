@@ -4,19 +4,9 @@ import { type Category } from "@/lib/settings-config"
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnySettings = Record<string, any>
 
-interface LibraryCategory {
-    id: number
-    name: string
-    default: boolean
-    order: number
-    includeInUpdate: boolean
-    includeInDownload: boolean
-}
-
 interface Props {
     category: Category
     initialData: AnySettings
-    initialCategories: LibraryCategory[] | null
 }
 
 const FALLBACK_COMPONENT = lazy(() =>
@@ -43,7 +33,6 @@ const CATEGORY_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
 export default function CategorySettingsClient({
     category,
     initialData,
-    initialCategories,
 }: Props) {
     const CategoryComponent =
         CATEGORY_COMPONENTS[category] || FALLBACK_COMPONENT
@@ -54,7 +43,6 @@ export default function CategorySettingsClient({
                 //@ts-ignore
                 settings={initialData}
                 category={category}
-                initialCategories={initialCategories}
             />
         </Suspense>
     )

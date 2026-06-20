@@ -43,8 +43,8 @@ function StepWelcome() {
         <div className="flex flex-col items-center gap-6 px-4 text-center">
             {/* Animated icon */}
             <div className="relative">
-                <div className="flex size-24 items-center justify-center rounded-3xl border-1 bg-secondary shadow-2xl">
-                    <img src="logo.png" />
+                <div className="flex size-24 items-center justify-center rounded-3xl border bg-secondary shadow-2xl">
+                    <img src="/logo.png" />
                 </div>
                 <div
                     className="absolute -top-1 -right-1 flex size-7 items-center justify-center rounded-full shadow-lg"

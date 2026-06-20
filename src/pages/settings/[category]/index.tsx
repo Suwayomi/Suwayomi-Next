@@ -23,28 +23,9 @@ export default function CategorySettingsPage() {
         },
     })
 
-    const { data: initialCategories, isLoading: categoriesLoading } = useSuwayomiQuery({
-        categories: {
-            nodes: {
-                id: true,
-                name: true,
-                default: true,
-                order: true,
-                includeInUpdate: true,
-                includeInDownload: true,
-            },
-            totalCount: true,
-        },
-    }, {
-        enabled: category === "Library",
-        select: (data) => data.categories?.nodes?.filter((n: any) => n.name !== "Default") ?? null
-    })
-
-    const loading = settingsLoading || (category === "Library" && categoriesLoading)
-
     return (
         <SettingsLayout>
-            {loading ? (
+            {settingsLoading ? (
                 <LoadingScreen
                     message="Loading Settings..."
                     subtext={`Configuring preferences for the ${category} module`}
@@ -55,8 +36,6 @@ export default function CategorySettingsPage() {
                     category={category!}
                     // @ts-ignore
                     initialData={settings?.settings}
-                    // @ts-ignore
-                    initialCategories={initialCategories}
                 />
             )}
         </SettingsLayout>

@@ -26,8 +26,8 @@ export const LoadingScreen = ({
             <div className="relative z-10 flex flex-col items-center">
                 {/* Brand Logo / Icon */}
                 <div className="relative mb-8">
-                    <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl">
-                        <Command className="h-8 w-8 text-white" />
+                    <div className="flex size-24 items-center justify-center rounded-3xl border bg-secondary shadow-2xl">
+                        <img src="/logo.png" />
                     </div>
                     {/* Pulsing Ring */}
                     <div className="absolute -inset-2 animate-pulse rounded-[2rem] border border-primary/20 blur-md" />

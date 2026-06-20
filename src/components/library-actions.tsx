@@ -5,6 +5,9 @@ import {
     CheckSquare,
     MoreVertical,
     RefreshCw,
+    TagsIcon,
+    ChevronLeft,
+    ChevronLeftIcon,
 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import {
@@ -16,7 +19,11 @@ import {
 } from "@/components/ui/select"
 import { MangaFilter, type MangaFilterState } from "./manga-filter"
 import { useAppStore } from "@/lib/store"
-import { useNavigate, useSearchParams } from "react-router-dom"
+import {
+    useNavigate,
+    useSearchParams,
+    type SetURLSearchParams,
+} from "react-router-dom"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -26,74 +33,63 @@ import {
 } from "./ui/dropdown-menu"
 import { Randomizer } from "./Randomizer"
 import { SearchInput } from "./SearchInput"
+import { Button } from "./ui/button"
+import { Toggle } from "./ui/toggle"
 
 interface LibraryActionsProps {
     categories: string[]
     ids: number[]
     onSearch: (query: string) => void
-    onCategoryChange: (category: string) => void
     onSelectAll: () => void
-    onConfigure: () => void
     filter: MangaFilterState
     setFilter: React.Dispatch<React.SetStateAction<MangaFilterState>>
     refreshLibrary: () => void
+    searchParams: URLSearchParams
+    setSearchParams: SetURLSearchParams
 }
 
 export function LibraryActions({
-    categories,
     onSearch,
     ids,
-    onCategoryChange,
     onSelectAll,
-    onConfigure,
     filter,
     setFilter,
     refreshLibrary,
+    searchParams,
+    setSearchParams,
 }: LibraryActionsProps) {
     const { library } = useAppStore()
     const navigate = useNavigate()
-    const [searchParams, setSearchParams] = useSearchParams()
     const currentCategory = searchParams.get("category")
-    const handleCategoryChange = (newCategory: string | null) => {
-        const newParams = new URLSearchParams(searchParams)
-        if (newCategory === "all") {
-            newParams.delete("category")
-        } else if (newCategory) {
-            newParams.set("category", newCategory)
-        }
-        setSearchParams(newParams)
-        onCategoryChange(
-            categories.find(
-                (i) => i.toLowerCase() === newCategory?.toLowerCase()
-            ) || "all"
-        )
+    const currentView = searchParams.get("view")
+    const handleViewChange = (newView: string | null) => {
+        setSearchParams((prev) => {
+            if (newView === "categories") {
+                prev.set("view", newView)
+                prev.delete("category")
+            } else {
+                prev.delete("view")
+            }
+            return prev
+        })
     }
     return (
         <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs text-muted-foreground">Category: </span>
-            <Select
-                onValueChange={(val) => handleCategoryChange(val)}
-                value={
-                    categories.some(
-                        (i) =>
-                            i.toLowerCase() === currentCategory?.toLowerCase()
+            <Toggle
+                aria-label="Toggle"
+                aria-pressed={currentView === "categories"}
+                onClick={() => {
+                    handleViewChange(
+                        currentView === "categories" ? null : "categories"
                     )
-                        ? currentCategory
-                        : "all"
-                }
+                }}
             >
-                <SelectTrigger className="h-9 w-[180px]">
-                    <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map((cat) => (
-                        <SelectItem key={cat} value={cat.toLowerCase()}>
-                            {cat}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+                {(currentCategory?.length || 0) > 0 ? (
+                    <ChevronLeftIcon />
+                ) : (
+                    <TagsIcon />
+                )}
+            </Toggle>
             <div className="flex items-center gap-2">
                 <SearchInput onSearch={onSearch} />
                 <MangaFilter
@@ -145,7 +141,6 @@ export function LibraryActions({
                     <DropdownMenuItem
                         onClick={(e) => {
                             e.stopPropagation()
-                            onConfigure()
                             navigate("/settings/Library")
                         }}
                         className="gap-2"

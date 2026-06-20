@@ -42,7 +42,7 @@ export function PageLayout({
                     <SidebarTrigger
                         className={"w-fit"}
                         render={
-                            <div className="flex flex-col">
+                            <button className="flex flex-col">
                                 {title && (
                                     <h1 className="text-2xl font-black tracking-tight text-foreground uppercase sm:text-3xl">
                                         {title}
@@ -53,7 +53,7 @@ export function PageLayout({
                                         {description}
                                     </p>
                                 )}
-                            </div>
+                            </button>
                         }
                     />
                 </div>
