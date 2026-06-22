@@ -10,10 +10,10 @@ import {
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { FolderPlus, Loader2 } from "lucide-react"
-import { useAppStore } from "@/lib/store"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useNavigate } from "react-router-dom"
+import { useAppStore } from "@/hooks/use-app-store"
 
 interface CategorySelectionDialogProps {
     open: boolean
@@ -75,7 +75,7 @@ export function CategorySelectionDialog({
                     ) : categories.data.length > 1 ? (
                         <ScrollArea className="max-h-[300px] pr-4">
                             <div className="grid gap-2">
-                                {categories.data.slice(1).map((category) => {
+                                {categories.data.slice(1).map((category: any) => {
                                     const isChecked = selectedIds.includes(
                                         category.id
                                     )

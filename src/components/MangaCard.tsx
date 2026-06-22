@@ -17,6 +17,8 @@ import {
 import { cn } from "@/lib/utils"
 import { MangaImage } from "./MangaImage"
 import { Button } from "@/components/ui/button"
+import { useAppStore } from "@/hooks/use-app-store"
+import type { LibraryManga } from "@/hooks/use-app-store"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -27,7 +29,6 @@ import {
     DropdownMenuSubTrigger,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAppStore, type LibraryManga } from "@/lib/store"
 
 interface MangaCardProps {
     manga: LibraryManga
@@ -344,16 +345,6 @@ export function MangaCard({
                                   </Button>
                               </div>
                           )}
-                    {page === "library" && (
-                        <OverlayControls
-                            manga={manga}
-                            isVip={isVip}
-                            isOnReadLater={isOnReadLater}
-                            onReadLaterToggle={onReadLaterToggle}
-                            onVipToggle={onVipToggle}
-                            handleClick={handleClick}
-                        />
-                    )}
                 </div>
 
                 {/* Details Area */}

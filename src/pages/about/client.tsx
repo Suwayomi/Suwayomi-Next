@@ -17,15 +17,16 @@ import {
     CardDescription,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import { useSuwayomiQuery } from "@/lib/client"
 
 export default function AboutClientPage({
     initialData,
 }: {
-    initialData: Record<string, [string, any][]>
+    initialData: Record<string, [string, any][]> | null
 }) {
-    const { data: serverInfoData } = useSuwayomiQuery(
+    const { data: serverInfoData, isLoading } = useSuwayomiQuery(
         {
             aboutServer: {
                 buildTime: true,
@@ -37,7 +38,7 @@ export default function AboutClientPage({
             },
         },
         {
-            initialData: { aboutServer: initialData.Server } as any,
+            initialData: initialData ? ({ aboutServer: initialData.Server } as any) : undefined,
             select: (result: any) => {
                 const { github, discord, ...rest } = {
                     ...result.aboutServer,
@@ -52,6 +53,10 @@ export default function AboutClientPage({
             },
         }
     )
+
+    if (isLoading && !initialData) {
+        return <AboutSkeleton />
+    }
 
     const data = (serverInfoData as any) || initialData
     const [checkingUpdate, setCheckingUpdate] = React.useState(false)
@@ -199,6 +204,38 @@ export default function AboutClientPage({
                     Suwayomi Client & Server — Built with ❤️ for manga
                     enthusiasts.
                 </p>
+            </div>
+        </PageLayout>
+    )
+}
+
+function AboutSkeleton() {
+    return (
+        <PageLayout title="About">
+            <div className="max-w-3xl space-y-8">
+                {[1, 2].map((i) => (
+                    <Card key={i} className="overflow-hidden border-border/50 shadow-sm">
+                        <CardHeader className="bg-muted/30 py-4">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-2">
+                                    <Skeleton className="h-6 w-48" />
+                                    <Skeleton className="h-4 w-64" />
+                                </div>
+                                <Skeleton className="h-8 w-32 rounded-lg" />
+                            </div>
+                        </CardHeader>
+                        <CardContent className="p-0">
+                            <div className="divide-y divide-border/40">
+                                {[1, 2, 3, 4].map((j) => (
+                                    <div key={j} className="flex flex-col justify-between p-4 sm:flex-row sm:items-center">
+                                        <Skeleton className="h-4 w-32" />
+                                        <Skeleton className="h-6 w-48 rounded" />
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
             </div>
         </PageLayout>
     )

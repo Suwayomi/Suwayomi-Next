@@ -1,7 +1,5 @@
 import { cn } from "@/lib/utils"
 import * as React from "react"
-import { Button } from "./ui/button"
-import { PanelRightOpen } from "lucide-react"
 import { SidebarTrigger } from "./ui/sidebar"
 
 interface Props {
@@ -42,7 +40,7 @@ export function PageLayout({
                     <SidebarTrigger
                         className={"w-fit"}
                         render={
-                            <button className="flex flex-col">
+                            <button className="flex gap-2">
                                 {title && (
                                     <h1 className="text-2xl font-black tracking-tight text-foreground uppercase sm:text-3xl">
                                         {title}

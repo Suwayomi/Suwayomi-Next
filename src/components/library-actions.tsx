@@ -18,7 +18,6 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { MangaFilter, type MangaFilterState } from "./manga-filter"
-import { useAppStore } from "@/lib/store"
 import {
     useNavigate,
     useSearchParams,
@@ -35,6 +34,7 @@ import { Randomizer } from "./Randomizer"
 import { SearchInput } from "./SearchInput"
 import { Button } from "./ui/button"
 import { Toggle } from "./ui/toggle"
+import { useAppStore } from "@/hooks/use-app-store"
 
 interface LibraryActionsProps {
     categories: string[]

@@ -15,12 +15,11 @@ import {
     EyeOff,
     Clock9Icon,
 } from "lucide-react"
-import { useAppStore } from "@/hooks/use-app-store"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useNavigate } from "react-router-dom"
-import type { HistoryGroup } from "@/lib/store/slices/history"
 import { readLaterUtils } from "@/lib/readlater"
+import { useAppStore, type HistoryGroup } from "@/hooks/use-app-store"
 
 interface DashboardSectionProps {
     title: string
@@ -441,16 +440,14 @@ export default function DashboardClient() {
         const libraryData = librarySlice.data || []
         const result = libraryData.reduce(
             (acc, m) => {
-                const meta = m.meta || []
-                const isFavorite = meta.some(
-                    (metaItem) =>
+                const isFavorite = m.meta?.some(
+                    (metaItem: any) =>
                         metaItem.key === "next:is-favorite" &&
                         metaItem.value === "true"
                 )
-                const readLaterMeta = meta.find(
-                    (metaItem) => metaItem.key === "next:read-later"
+                const isReadLater = m.meta?.some(
+                    (metaItem: any) => metaItem.key === "next:read-later"
                 )
-                const isReadLater = !!readLaterMeta?.value
                 if (isFavorite && acc.favorites.length < 10) {
                     acc.favorites.push(m)
                 }
@@ -480,7 +477,7 @@ export default function DashboardClient() {
 
                     <FreshReleases
                         updates={updates}
-                        favorites={new Set(favorites.map((i) => i.id))}
+                        favorites={new Set(favorites.map((i: any) => i.id))}
                     />
                 </div>
             </ScrollArea>

@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useMeta } from "@/hooks/use-app-store"
 import {
     Check,
     ChevronRight,
@@ -12,7 +13,6 @@ import {
 import { applyTheme, cn } from "@/lib/utils"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
-import { useMeta } from "@/hooks/use-meta"
 import { ACCENTS } from "./settings/Appearance"
 
 const STEPS = ["welcome", "theme", "accent"] as const
@@ -29,8 +29,8 @@ function ProgressDots({ current }: { current: number }) {
                         i === current
                             ? "h-2 w-6 bg-primary"
                             : i < current
-                              ? "h-2 w-2 bg-primary/50"
-                              : "h-2 w-2 bg-muted-foreground/30"
+                                ? "h-2 w-2 bg-primary/50"
+                                : "h-2 w-2 bg-muted-foreground/30"
                     )}
                 />
             ))}
@@ -181,7 +181,7 @@ function StepAccent() {
 }
 
 export function WelcomeScreen({ onDismiss }: { onDismiss: () => void }) {
-    const [stepIndex, setStepIndex] = React.useState(2)
+    const [stepIndex, setStepIndex] = React.useState(0)
 
     const currentStep = STEPS[stepIndex]
     const isFirst = stepIndex === 0

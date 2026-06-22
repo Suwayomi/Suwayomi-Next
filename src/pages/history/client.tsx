@@ -4,9 +4,9 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { History, ArrowRight } from "lucide-react"
-import { useAppStore } from "@/hooks/use-app-store"
 import { useNavigate } from "react-router-dom"
 import { MangaGroupCard } from "@/components/MangaGroupCard"
+import { useAppStore } from "@/hooks/use-app-store"
 
 export default function HistoryClient() {
     const navigate = useNavigate()

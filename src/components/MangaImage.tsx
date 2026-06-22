@@ -59,7 +59,6 @@ export function MangaImage({
                             size="xs"
                             className="h-7 gap-1 rounded-full px-2 text-[10px]"
                             onClick={handleRetry}
-                            onClick={(e) => e.stopPropagation()}
                             onMouseDown={(e) => e.stopPropagation()}
                         >
                             <RefreshCw className="size-3" />

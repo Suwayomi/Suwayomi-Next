@@ -1,6 +1,6 @@
 import { toast } from "sonner"
 import { client } from "./client"
-import type { MangaMetaType } from "./store/slices/meta"
+import type { MangaMetaType } from "@/hooks/use-global-meta"
 
 const toggleCustomMeta = async (
     type: MangaMetaType,

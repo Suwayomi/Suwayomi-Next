@@ -16,6 +16,12 @@ import {
 } from "lucide-react"
 
 import {
+    useAppStore,
+    selectActiveDownloadCount,
+    selectUpdateCount,
+} from "@/hooks/use-app-store"
+
+import {
     Sidebar,
     SidebarContent,
     SidebarFooter,
@@ -33,8 +39,6 @@ import {
     SidebarMenuSubButton,
     SidebarMenuAction,
 } from "@/components/ui/sidebar"
-import { useAppStore } from "@/hooks/use-app-store"
-import { selectActiveDownloadCount } from "@/lib/store/slices/downloads"
 import { Link, useLocation, type Location } from "react-router-dom"
 import { cn, getImageUrl } from "@/lib/utils"
 
@@ -42,7 +46,7 @@ export type NavItem = {
     title: string
     url: string
     icon: React.ElementType
-    getBadge?: (store: ReturnType<typeof useAppStore>) => number
+    getBadge?: (store: any) => number
     subItems?: Omit<NavItem, "subItems">[]
 }
 
@@ -114,8 +118,8 @@ export default function AppSidebar({
     const location = useLocation()
     const store = useAppStore()
     const options = React.useMemo(() => {
-        const pinnedSubItems = store.meta.data?.["next-pinned-sources"]
-            .map((id) => {
+        const pinnedSubItems = (store.meta.data?.["next-pinned-sources"] || [])
+            .map((id: string) => {
                 const source = store.sources.data?.find((s: any) => s.id === id)
                 if (!source) return null
                 return {
@@ -125,11 +129,11 @@ export default function AppSidebar({
                 }
             })
             .filter(Boolean) as NavItem["subItems"]
-        return navGroups.map((i) =>
+        return navGroups.map((i: any) =>
             i.label === "Discover"
                 ? {
                       ...i,
-                      items: i.items.map((j) =>
+                      items: i.items.map((j: any) =>
                           j.title === "Browse"
                               ? { ...j, subItems: pinnedSubItems }
                               : j
@@ -159,13 +163,13 @@ export default function AppSidebar({
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>
-                {options.map((group) => {
+                {options.map((group: any) => {
                     return (
                         <SidebarGroup key={group.label}>
                             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
                             <SidebarGroupContent>
                                 <SidebarMenu>
-                                    {group.items.map((item, index) => (
+                                    {group.items.map((item: any, index: number) => (
                                         <BarItem
                                             key={index}
                                             item={item}

@@ -1,4 +1,10 @@
+import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useCallback } from "react"
 import { client } from "@/lib/client"
+
+// ---------------------------------------------------------------------------
+// Registry & Types
+// ---------------------------------------------------------------------------
 
 export interface CustomTag {
     id: number
@@ -29,7 +35,11 @@ export interface VersionedEnvelope<T> {
     data: T
 }
 
-export type MangaMetaType = "next:is-favorite" | "next:read-later"
+export type MangaMetaType =
+    | "next:is-favorite"
+    | "next:read-later"
+    | "next:rating"
+    | "next:note"
 
 type MetaRegistryShape = Record<string, { v: number; default: unknown }>
 
@@ -72,14 +82,20 @@ export const META_REGISTRY = {
 } as const satisfies MetaRegistryShape
 
 export type MetaKey = keyof typeof META_REGISTRY
-
 export type MetaValue<K extends MetaKey> = (typeof META_REGISTRY)[K]["default"]
+export type ParsedMeta = { [K in MetaKey]: MetaValue<K> }
 
-export type ParsedMeta = {
-    [K in MetaKey]: MetaValue<K>
-}
+// ---------------------------------------------------------------------------
+// Query key
+// ---------------------------------------------------------------------------
 
-export async function fetchGlobalMeta(): Promise<ParsedMeta> {
+export const globalMetaQueryKey = ["global-meta"] as const
+
+// ---------------------------------------------------------------------------
+// Fetcher
+// ---------------------------------------------------------------------------
+
+async function fetchGlobalMeta(): Promise<ParsedMeta> {
     const result = Object.fromEntries(
         (Object.keys(META_REGISTRY) as MetaKey[]).map((k) => [
             k,
@@ -128,6 +144,10 @@ export async function fetchGlobalMeta(): Promise<ParsedMeta> {
     return result
 }
 
+// ---------------------------------------------------------------------------
+// Mutations
+// ---------------------------------------------------------------------------
+
 export async function setGlobalMeta<K extends MetaKey>(
     key: K,
     value: MetaValue<K>
@@ -162,4 +182,43 @@ export async function deleteGlobalMeta(key: MetaKey): Promise<void> {
             meta: { key: true },
         },
     })
+}
+
+// ---------------------------------------------------------------------------
+// Hooks
+// ---------------------------------------------------------------------------
+
+/** Fetch all global meta values as a parsed object. */
+export function useGlobalMeta() {
+    return useQuery({
+        queryKey: globalMetaQueryKey,
+        queryFn: fetchGlobalMeta,
+    })
+}
+
+/**
+ * Access a single meta key with a typed setter.
+ * Returns `[value, setValue]` — identical API to the old `useMeta`.
+ */
+export function useMeta<K extends MetaKey>(
+    key: K
+): [MetaValue<K>, (value: MetaValue<K>) => Promise<void>] {
+    const queryClient = useQueryClient()
+    const { data } = useGlobalMeta()
+
+    const registryDefault = (
+        META_REGISTRY as Record<string, { default: unknown }>
+    )[key]?.default as MetaValue<K>
+
+    const value = (data?.[key] ?? registryDefault) as MetaValue<K>
+
+    const setValue = useCallback(
+        async (newValue: MetaValue<K>) => {
+            await setGlobalMeta(key, newValue)
+            await queryClient.invalidateQueries({ queryKey: globalMetaQueryKey })
+        },
+        [key, queryClient]
+    )
+
+    return [value, setValue]
 }

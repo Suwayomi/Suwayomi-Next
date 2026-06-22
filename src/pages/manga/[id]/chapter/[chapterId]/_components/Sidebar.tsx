@@ -22,13 +22,13 @@ import { cn } from "@/lib/utils"
 import { useSuwayomiMutation } from "@/lib/client"
 import { useLocation, useNavigate, useParams } from "react-router-dom"
 import { useReaderSettings } from "@/hooks/use-reader-settings"
-import { useAppStore } from "@/hooks/use-app-store"
 import {
     Tooltip,
     TooltipContent,
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useAppStore } from "@/hooks/use-app-store"
 
 interface ReaderSidebarProps {
     showControls: boolean

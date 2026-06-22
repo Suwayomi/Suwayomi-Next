@@ -26,6 +26,9 @@ export const updateMangaCategory = async ({
                 },
             },
             clientMutationId: true,
+            manga: {
+                id: true,
+            },
         },
         updateMangas: {
             __args: {
@@ -37,11 +40,15 @@ export const updateMangaCategory = async ({
 
     toast.promise(promise, {
         loading: "Updating categories...",
-        success: () => {
+        success: (data) => {
+            console.log("Category update success:", data)
             onSuccess && onSuccess()
             return message || "Categories updated"
         },
-        error: "Failed",
+        error: (err) => {
+            console.error("Category update error:", err)
+            return "Failed"
+        },
     })
 }
 

@@ -1,6 +1,5 @@
 import * as React from "react"
 import { PageLayout } from "@/components/page-layout"
-import { useAppStore } from "@/hooks/use-app-store"
 import {
     Clock,
     Bell
@@ -8,6 +7,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { MangaGroupCard } from "@/components/MangaGroupCard"
+import { useAppStore } from "@/hooks/use-app-store"
 
 export default function UpdatesPage() {
     const { updates: updatesSlice } = useAppStore()

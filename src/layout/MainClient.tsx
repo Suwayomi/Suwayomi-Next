@@ -2,7 +2,6 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import AppSidebar from "@/components/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ReaderSettingsProvider } from "@/hooks/use-reader-settings"
-import { AppStoreProvider } from "@/hooks/use-app-store"
 import * as React from "react"
 import { useLocation } from "react-router-dom"
 import Struct from "./Struct"
@@ -44,23 +43,21 @@ export default function MainClient({
     return (
         <Struct>
             <ReaderSettingsProvider>
-                <AppStoreProvider initialData={initialData}>
-                    <TooltipProvider>
-                        <SidebarProvider className="relative h-screen overflow-hidden">
-                            <AppSidebar />
-                            <SidebarInset className="flex min-w-0 flex-col">
-                                <main className="flex-1 overflow-auto">
-                                    {children}
-                                </main>
-                            </SidebarInset>
-                        </SidebarProvider>
-                        {showWelcome && (
-                            <WelcomeScreen
-                                onDismiss={() => setShowWelcome(false)}
-                            />
-                        )}
-                    </TooltipProvider>
-                </AppStoreProvider>
+                <TooltipProvider>
+                    <SidebarProvider className="relative h-screen overflow-hidden">
+                        <AppSidebar />
+                        <SidebarInset className="flex min-w-0 flex-col">
+                            <main className="flex-1 overflow-auto">
+                                {children}
+                            </main>
+                        </SidebarInset>
+                    </SidebarProvider>
+                    {showWelcome && (
+                        <WelcomeScreen
+                            onDismiss={() => setShowWelcome(false)}
+                        />
+                    )}
+                </TooltipProvider>
             </ReaderSettingsProvider>
         </Struct>
     )

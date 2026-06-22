@@ -28,6 +28,7 @@ import {
     StretchHorizontal,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useMeta, type ReaderConfig } from "@/hooks/use-app-store"
 import {
     useReaderSettings,
     type ReadingMode,
@@ -39,7 +40,6 @@ import {
     type HudOrientation,
     type ReaderSettings,
 } from "@/hooks/use-reader-settings"
-import { useMeta } from "@/hooks/use-meta"
 import {
     Select,
     SelectContent,
@@ -49,7 +49,6 @@ import {
 } from "@/components/ui/select"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
-import type { ReaderConfig } from "@/lib/store/slices/meta"
 import { toast } from "sonner"
 
 interface Props {
@@ -119,12 +118,12 @@ export function ReaderConfig({ className, sourceId }: Props) {
     const [newPresetName, setNewPresetName] = React.useState("")
 
     const selectedPreset =
-        readerData.presets.find((p) => p.name === selectedPresetName) ||
+        readerData.presets.find((p: any) => p.name === selectedPresetName) ||
         readerData.presets[0]
 
     const saveCurrentToPreset = () => {
         if (!selectedPreset) return
-        const updatedPresets = readerData.presets.map((p) =>
+        const updatedPresets = readerData.presets.map((p: any) =>
             p.name === selectedPresetName
                 ? {
                       ...p,
@@ -172,7 +171,7 @@ export function ReaderConfig({ className, sourceId }: Props) {
 
     const deletePreset = (name: string) => {
         if (readerData.presets.length <= 1) return
-        const updatedPresets = readerData.presets.filter((p) => p.name !== name)
+        const updatedPresets = readerData.presets.filter((p: any) => p.name !== name)
         setReaderData({ ...readerData, presets: updatedPresets })
         if (selectedPresetName === name) {
             setSelectedPreset(updatedPresets[0].name)
@@ -199,7 +198,7 @@ export function ReaderConfig({ className, sourceId }: Props) {
                                 if (!val) return
                                 setSelectedPreset(val)
                                 const preset = readerData.presets.find(
-                                    (p) => p.name === val
+                                    (p: any) => p.name === val
                                 )
                                 if (preset)
                                     updateSettings(preset.settings as any)
@@ -217,7 +216,7 @@ export function ReaderConfig({ className, sourceId }: Props) {
                                 <SelectValue placeholder="Select preset..." />
                             </SelectTrigger>
                             <SelectContent>
-                                {readerData.presets.map((preset) => (
+                                {readerData.presets.map((preset: any) => (
                                     <SelectItem
                                         key={preset.name}
                                         value={preset.name}

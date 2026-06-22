@@ -6,7 +6,6 @@ import { toast } from "sonner"
 import { useSearchParams } from "react-router-dom"
 import { Folder, ArrowLeft } from "lucide-react"
 
-import { type LibraryManga, useAppStore, type Category } from "@/lib/store"
 import {
     applyMangaFilter,
     defaultMangaFilter,
@@ -19,10 +18,15 @@ import {
     markMangasAsReadAction,
 } from "@/lib/manga-actions"
 
-import type { MangaMetaType } from "@/lib/store/slices/meta"
-
 import { DisplayList } from "./_components/DisplayList"
 import { SelectedBulkActionsBar } from "./_components/SelectedBulkActionsBar"
+import {
+    useAppStore,
+    type LibraryManga,
+    type Category,
+    type MangaMetaType,
+} from "@/hooks/use-app-store"
+import { MangaImage } from "@/components/MangaImage"
 
 interface LibraryClientProps {}
 
@@ -179,14 +183,16 @@ export default function LibraryClient({}: LibraryClientProps) {
                                           },
                                       },
                                   },
-                              },
+                                  meta: { key: true },
+                              } as any,
                           }
                         : {
                               deleteMangaMeta: {
                                   __args: {
                                       input: { key: type, mangaId },
                                   },
-                              },
+                                  clientMutationId: true,
+                              } as any,
                           }
                 )
             })
@@ -207,9 +213,9 @@ export default function LibraryClient({}: LibraryClientProps) {
             updateLibrary: {
                 __args: {
                     input: {
-                        categories: categoriesSlice.data?.map((i) => i.id) || [
-                            0,
-                        ],
+                        categories: categoriesSlice.data?.map(
+                            (i: any) => i.id
+                        ) || [0],
                     },
                 },
             },
@@ -240,28 +246,36 @@ export default function LibraryClient({}: LibraryClientProps) {
     )
 
     return (
-        <PageLayout title={pathCategory || "Library"} actions={actions}>
+        <PageLayout
+            title={pathCategory || "Library"}
+            description={pathFilter ? "Filter: " + pathFilter : undefined}
+            actions={actions}
+        >
             {pathView === "categories" &&
             (categoriesSlice.data?.length || 0 > 1) ? (
                 <div className="grid grid-cols-2 gap-x-4 gap-y-8 pb-20 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-                    {categoriesSlice.data?.slice(1).map((category, i) => {
-                        const preview = getCategoryPreviewData(category.name)
-                        return (
-                            <CategoryFolder
-                                key={category.id ?? i}
-                                category={category}
-                                count={preview.count}
-                                previewCovers={preview.covers}
-                                onSelect={() =>
-                                    setSearchParams((prev) => {
-                                        prev.set("category", category.name)
-                                        prev.delete("view")
-                                        return prev
-                                    })
-                                }
-                            />
-                        )
-                    })}
+                    {categoriesSlice.data
+                        ?.slice(1)
+                        .map((category: any, i: number) => {
+                            const preview = getCategoryPreviewData(
+                                category.name
+                            )
+                            return (
+                                <CategoryFolder
+                                    key={category.id ?? i}
+                                    category={category}
+                                    count={preview.count}
+                                    previewCovers={preview.covers}
+                                    onSelect={() =>
+                                        setSearchParams((prev) => {
+                                            prev.set("category", category.name)
+                                            prev.delete("view")
+                                            return prev
+                                        })
+                                    }
+                                />
+                            )
+                        })}
                 </div>
             ) : (
                 <DisplayList
@@ -305,32 +319,32 @@ export function CategoryFolder({
             className="group flex h-72 w-full flex-col justify-between rounded-2xl border bg-card p-3 text-left shadow-sm transition-colors hover:bg-accent/30 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
             <div className="relative flex h-48 w-full items-center gap-1.5 overflow-hidden rounded-xl bg-muted/20 p-1">
-                {previewCovers.length > 0 ? (
+                {previewCovers.length > 0 && false ? (
                     <>
                         {previewCovers[0] && (
                             <div className="h-full flex-1 overflow-hidden rounded-lg border bg-background shadow-sm">
-                                <img
-                                    src={previewCovers[0]}
+                                <MangaImage
+                                    thumbnailUrl={previewCovers[0]}
                                     alt={category.name}
-                                    className="h-full w-full object-cover"
+                                    className="size-full object-cover"
                                 />
                             </div>
                         )}
                         {previewCovers[1] && (
                             <div className="h-[85%] flex-1 overflow-hidden rounded-lg border bg-background shadow-sm">
-                                <img
-                                    src={previewCovers[1]}
-                                    alt=""
-                                    className="h-full w-full object-cover"
+                                <MangaImage
+                                    thumbnailUrl={previewCovers[1]}
+                                    alt={category.name}
+                                    className="size-full object-cover"
                                 />
                             </div>
                         )}
                         {previewCovers[2] && (
                             <div className="h-[70%] flex-1 overflow-hidden rounded-lg border bg-background shadow-sm">
-                                <img
-                                    src={previewCovers[2]}
-                                    alt=""
-                                    className="h-full w-full object-cover"
+                                <MangaImage
+                                    thumbnailUrl={previewCovers[3]}
+                                    alt={category.name}
+                                    className="size-full object-cover"
                                 />
                             </div>
                         )}

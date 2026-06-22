@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { Search, Loader2, RefreshCw, WifiOff } from "lucide-react"
 import { CategorySelectionDialog } from "@/components/category-selection-dialog"
-import { useAppStore, type LibraryManga } from "@/lib/store"
 import { SourceFilter } from "@/components/source-filter"
 import {
     type Filter,
@@ -20,6 +19,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { Randomizer } from "@/components/Randomizer"
 import { MangaCard } from "@/components/MangaCard"
 import { updateMangaCategory } from "@/lib/library"
+import { type LibraryManga, useAppStore } from "@/hooks/use-app-store"
 
 type SourceManga = {
     id: number
@@ -281,6 +281,13 @@ function SourceBrowseContent() {
         }
     }
 
+    const favorites = React.useMemo(() => {
+        return library.data?.filter((m: any) => {
+            const isFav = m.meta?.some((meta: any) => meta.key === "next:is-favorite")
+            return isFav
+        }) || []
+    }, [library.data])
+
     return (
         <PageLayout
             title={sourceName}
@@ -325,7 +332,7 @@ function SourceBrowseContent() {
                     />
                     <Randomizer
                         items={sourceMangaItems}
-                        onSelect={(item) => {
+                        onSelect={(item: any) => {
                             navigate("/manga/" + item.id)
                         }}
                     />
@@ -462,7 +469,7 @@ function SourceBrowseContent() {
                 title="Update Category"
                 open={isCategoryDialogOpen}
                 onOpenChange={setIsCategoryDialogOpen}
-                onSelect={(categoryIds) => {
+                onSelect={(categoryIds: number[]) => {
                     if (pendingMangaId !== null) {
                         addToLibrary({
                             mangaId: pendingMangaId,

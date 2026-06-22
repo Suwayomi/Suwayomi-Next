@@ -12,7 +12,6 @@ import {
     Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { useAppStore } from "@/hooks/use-app-store"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -22,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
 import { Loader2, RefreshCw } from "lucide-react"
+import { useAppStore } from "@/hooks/use-app-store"
 
 interface ChapterRowProps {
     chapter: any

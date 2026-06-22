@@ -1,4 +1,4 @@
-import type { LibraryManga } from "./store"
+import type { LibraryManga } from "@/hooks/use-app-store"
 
 const getTimeValue = (value: string): number => {
     const time = new Date(value).getTime()

@@ -38,8 +38,8 @@ import { Input } from "../ui/input"
 import { Button } from "../ui/button"
 import { ScrollArea } from "../ui/scroll-area"
 import { toast } from "sonner"
-import { useMeta } from "@/hooks/use-meta"
 import { Switch } from "../ui/switch"
+import { useMeta } from "@/hooks/use-app-store"
 
 type BrowseSettingsCategory = Partial<
     Record<(typeof CATEGORY_MAPPING)["Browse"][number], any>

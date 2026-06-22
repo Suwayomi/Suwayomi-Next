@@ -2,7 +2,7 @@ import * as React from "react"
 import { Check } from "lucide-react"
 import { applyTheme, cn } from "@/lib/utils"
 import { Switch } from "../ui/switch"
-import { useMeta } from "@/hooks/use-meta"
+import { useMeta } from "@/hooks/use-app-store"
 
 export const ACCENTS = [
     { name: "Default Blue", value: "oklch(0.53 0.23 250)" },

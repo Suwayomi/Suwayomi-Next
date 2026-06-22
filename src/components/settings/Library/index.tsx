@@ -2,7 +2,7 @@ import { SettingsSection } from "@/components/SettingsSection"
 import { CategoryConfig } from "./CategoryConfig"
 import { TagConfig } from "./TagConfig"
 import { Switch } from "@/components/ui/switch"
-import { useMeta } from "@/hooks/use-meta"
+import { useMeta } from "@/hooks/use-app-store"
 
 interface LibraryCategory {
     id: number

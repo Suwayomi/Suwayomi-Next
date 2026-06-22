@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 import { toast } from "sonner"
-import { useAppStore, type Extension, type Source } from "@/hooks/use-app-store"
 import {
     Search,
     Globe,
@@ -36,8 +35,9 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { useNavigate, useSearchParams } from "react-router-dom"
-import { setGlobalMeta } from "@/lib/store"
 import { MangaImage } from "@/components/MangaImage"
+import { useAppStore, type Extension, type Source } from "@/hooks/use-app-store"
+import { setGlobalMeta } from "@/hooks/use-global-meta"
 
 const INITIAL_VISIBLE_COUNT = 30
 const FETCH_LIMIT = 1000
@@ -68,7 +68,7 @@ export default function BrowseClientPage() {
 
         try {
             await setGlobalMeta("next-pinned-sources", newPinned)
-            await meta.refresh()
+            meta.refresh()
             toast.success(isPinned ? "Source unpinned" : "Source pinned")
         } catch (error) {
             toast.error("Failed to update pinned sources")
@@ -251,10 +251,10 @@ export default function BrowseClientPage() {
 
         // Sort: Extensions with pinned sources first
         return list.sort((a, b) => {
-            const aPinned = sourcesByPkg[a.pkgName]?.some((s) =>
+            const aPinned = sourcesByPkg[a.pkgName]?.some((s: Source) =>
                 pinnedSources.includes(s.id)
             )
-            const bPinned = sourcesByPkg[b.pkgName]?.some((s) =>
+            const bPinned = sourcesByPkg[b.pkgName]?.some((s: Source) =>
                 pinnedSources.includes(s.id)
             )
             if (aPinned && !bPinned) return -1
@@ -286,7 +286,7 @@ export default function BrowseClientPage() {
                     .toLowerCase()
                     .includes(catalogSearchQuery.toLowerCase())
             const isNotInstalled = !installedExtensions.some(
-                (i) => i.name === ext.name
+                (i: Extension) => i.name === ext.name
             )
             return matchesNsfw && matchesLang && matchesSearch && isNotInstalled
         })
@@ -348,7 +348,8 @@ export default function BrowseClientPage() {
     }
 
     const { mutate: updateExtensionMutation } = useSuwayomiMutation({
-        onSuccess: async (_, variables) => {
+        onSuccess: async (data, variables) => {
+            console.log("Extension update success:", { data, variables })
             // Refresh the local list and the global stores
             await Promise.all([
                 extensionsStore.refresh(),
@@ -359,7 +360,8 @@ export default function BrowseClientPage() {
             )[0]
             toast.success(`Successfully ${action}ed`)
         },
-        onError: (_, variables) => {
+        onError: (error, variables) => {
+            console.error("Extension update error:", { error, variables })
             const action = Object.keys(
                 (variables as any).updateExtension.__args.input.patch
             )[0]
@@ -380,8 +382,12 @@ export default function BrowseClientPage() {
                     },
                 },
                 clientMutationId: true,
+                extension: {
+                    pkgName: true,
+                    isInstalled: true,
+                },
             },
-        })
+        } as any)
     }
 
     const filteredSources = sourceNodes.filter((s: Source) =>
@@ -503,7 +509,7 @@ export default function BrowseClientPage() {
                                                     ext={ext}
                                                     sources={
                                                         sourcesByPkg[
-                                                            ext.pkgName
+                                                        ext.pkgName
                                                         ] || []
                                                     }
                                                     onAction={
@@ -886,7 +892,7 @@ function ExtensionCard({
                 "group relative flex flex-col gap-4 rounded-2xl border border-card bg-muted/20 p-4",
                 ext.isInstalled ? "cursor-pointer" : "",
                 hasPinnedSource &&
-                    "border-primary/30 bg-primary/30 shadow-[0_0_30px_-12px_rgba(var(--primary),0.2)]"
+                "border-primary/30 bg-primary/30 shadow-[0_0_30px_-12px_rgba(var(--primary),0.2)]"
             )}
             onClick={handleCardClick}
         >
@@ -916,7 +922,9 @@ function ExtensionCard({
                         <DropdownMenu>
                             <DropdownMenuTrigger
                                 render={
-                                    <MoreVertical className="size-5 outline-none" />
+                                    <button>
+                                        <MoreVertical className="size-5 outline-none" />
+                                    </button>
                                 }
                             />
                             <DropdownMenuContent

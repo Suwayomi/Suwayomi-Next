@@ -1,5 +1,6 @@
 import * as React from "react"
 import { FolderIcon } from "lucide-react"
+import { useAppStore } from "@/hooks/use-app-store"
 import { useSuwayomiMutation } from "@/lib/client"
 import { toast } from "sonner"
 import { ManagementDialog } from "./ManagementDialog"
@@ -16,11 +17,12 @@ import {
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { useAppStore } from "@/lib/store"
 
-interface CategoryConfigProps {}
+interface CategoryConfigProps {
+    initialCategories?: any[]
+}
 
-export function CategoryConfig({}: CategoryConfigProps) {
+export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
     const { categories } = useAppStore()
 
     const [isAddDialogOpen, setIsAddDialogOpen] = React.useState(false)

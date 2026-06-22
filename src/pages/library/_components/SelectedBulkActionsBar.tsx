@@ -18,8 +18,8 @@ import {
     StarOff,
     ClipboardClock,
 } from "lucide-react"
+import type { MangaMetaType } from "@/hooks/use-app-store"
 
-import type { MangaMetaType } from "@/lib/store/slices/meta"
 
 export function SelectedBulkActionsBar({
     selectedIds,

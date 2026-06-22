@@ -14,9 +14,9 @@ import {
     CheckCircle2,
     XCircle,
 } from "lucide-react"
-import { useAppStore } from "@/hooks/use-app-store"
 import { Progress } from "@/components/ui/progress"
 import * as React from "react"
+import { useAppStore } from "@/hooks/use-app-store"
 
 export default function DownloadsClientPage() {
     const { downloads } = useAppStore()
@@ -194,7 +194,7 @@ export default function DownloadsClientPage() {
                         </div>
                     ) : queue.length > 0 ? (
                         <div className="flex flex-col gap-4 pb-20">
-                            {queue.map((item, idx) => (
+                            {queue.map((item: any, idx: number) => (
                                 <div
                                     key={`${item.manga.title}-${item.chapter.name}-${idx}`}
                                     className="group flex items-center gap-6 rounded-2xl border border-border/40 bg-muted/5 p-4 transition-all hover:bg-muted/10"

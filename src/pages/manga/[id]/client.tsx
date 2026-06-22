@@ -1,6 +1,5 @@
 import * as React from "react"
 import { PageLayout } from "@/components/page-layout"
-import { ChapterRow } from "./_components/ChapterRow"
 import { ChaptersSection } from "./_components/ChaptersSection"
 import { useSuwayomiQuery, useSuwayomiMutation, client } from "@/lib/client"
 import { getImageUrl, cn } from "@/lib/utils"
@@ -9,26 +8,25 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
-import { useAppStore } from "@/hooks/use-app-store"
 import {
     Play,
     Library,
-    ChevronDown,
-    ChevronUp,
     ExternalLink,
     BookOpen,
-    Info,
-    Clock,
     Download,
     X,
     Trash2,
-    Layers,
-    RefreshCw,
 } from "lucide-react"
 import { type QueryResult } from "@/generated"
 import { CategorySelectionDialog } from "@/components/category-selection-dialog"
 import { MangaStatsBar } from "@/components/manga/manga-stats-bar"
+import { MangaRatingDialog } from "@/components/manga-rating-dialog"
+import { MangaNoteDialog } from "@/components/manga-note-dialog"
+import { MangaActions } from "@/components/manga/manga-actions"
+import { MangaSidebar } from "./_components/MangaSidebar"
 import { Link, useNavigate } from "react-router-dom"
+import { mangaUtils } from "@/lib/manga"
+import { useAppStore } from "@/hooks/use-app-store"
 
 export type MangaDetail = QueryResult<{
     manga: {
@@ -147,14 +145,12 @@ export default function MangaDetailClient({
             },
         },
         {
-            initialData: initialData as any,
+            initialData: initialData ? (initialData as any) : undefined,
             enabled: !!id,
         }
     )
 
     const mangaData = qData as MangaDetail | null
-    const [isDescriptionExpanded, setIsDescriptionExpanded] =
-        React.useState(false)
     const [chaptersSort, setChaptersSort] = React.useState<"asc" | "desc">(
         "desc"
     )
@@ -163,6 +159,8 @@ export default function MangaDetailClient({
     >(new Set())
     const [isCategoryDialogOpen, setIsCategoryDialogOpen] =
         React.useState(false)
+    const [isRatingDialogOpen, setIsRatingDialogOpen] = React.useState(false)
+    const [isNoteDialogOpen, setIsNoteDialogOpen] = React.useState(false)
     const [isChaptersRefreshing, setIsChaptersRefreshing] =
         React.useState(false)
 
@@ -428,15 +426,14 @@ export default function MangaDetailClient({
         <PageLayout
             title="Details"
             actions={
-                <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={refreshManga}
-                    className="h-9 gap-2 rounded-full border border-border/40 px-4 font-bold"
-                >
-                    <RefreshCw className="size-3.5" />
-                    Refresh
-                </Button>
+                <MangaActions
+                    onRefresh={refreshManga}
+                    onOpenNote={() => setIsNoteDialogOpen(true)}
+                    isRefreshing={isChaptersRefreshing}
+                    hasNote={
+                        !!manga.meta?.some((m: any) => m.key === "next:note")
+                    }
+                />
             }
         >
             <div className="flex flex-1 flex-col gap-10 overflow-hidden overflow-y-auto scroll-smooth pb-24">
@@ -488,8 +485,8 @@ export default function MangaDetailClient({
                                     className={cn(
                                         "cursor-pointer leading-tight font-black tracking-tight text-foreground hover:text-primary hover:underline",
                                         manga.title.length > 30
-                                            ? "text-2xl md:text-3xl lg:text-4xl"
-                                            : "text-4xl md:text-5xl lg:text-6xl"
+                                            ? "text-xl md:text-2xl lg:text-3xl"
+                                            : "text-2xl md:text-3xl lg:text-4xl"
                                     )}
                                     to={
                                         "/browse?search=" +
@@ -552,55 +549,21 @@ export default function MangaDetailClient({
                         </div>
                     </div>
 
-                    <div className="flex w-full max-w-4xl flex-col gap-4 md:absolute md:top-0 md:right-0 md:bottom-0 md:w-[calc(33.333333%-1.333333rem)]">
-                        <div className="flex shrink-0 items-center gap-2 font-bold text-foreground">
-                            <Info className="size-4 text-primary" />
-                            <h2 className="text-xs tracking-widest uppercase">
-                                Synopsis
-                            </h2>
-                        </div>
-
-                        {/* Scrollable area adjusts automatically */}
-                        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-                            <div
-                                className={cn(
-                                    "text-sm leading-relaxed whitespace-pre-wrap text-muted-foreground transition-all md:text-base",
-                                    !isDescriptionExpanded && "line-clamp-4"
-                                )}
-                            >
-                                {manga.description ||
-                                    "No description available."}
-                            </div>
-                        </div>
-
-                        {manga.description &&
-                            manga.description.length > 200 && (
-                                <div className="shrink-0 bg-background pt-1">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() =>
-                                            setIsDescriptionExpanded(
-                                                !isDescriptionExpanded
-                                            )
-                                        }
-                                        className="-ml-2 w-fit gap-1 text-primary hover:bg-primary/10 hover:text-primary"
-                                    >
-                                        {isDescriptionExpanded ? (
-                                            <>
-                                                Show Less{" "}
-                                                <ChevronUp className="size-4" />
-                                            </>
-                                        ) : (
-                                            <>
-                                                Read More{" "}
-                                                <ChevronDown className="size-4" />
-                                            </>
-                                        )}
-                                    </Button>
-                                </div>
-                            )}
-                    </div>
+                    <MangaSidebar
+                        description={manga.description}
+                        rating={(() => {
+                            const ratingMeta = manga.meta?.find(
+                                (m: any) => m.key === "next:rating"
+                            )
+                            if (!ratingMeta) return undefined
+                            try {
+                                return JSON.parse(ratingMeta.value)
+                            } catch {
+                                return undefined
+                            }
+                        })()}
+                        onEditRating={() => setIsRatingDialogOpen(true)}
+                    />
                 </div>
                 <Separator className="bg-border/30" />
 
@@ -695,6 +658,58 @@ export default function MangaDetailClient({
                 open={isCategoryDialogOpen}
                 onOpenChange={setIsCategoryDialogOpen}
                 onSelect={(categoryId) => addToLibrary(categoryId)}
+            />
+
+            <MangaRatingDialog
+                open={isRatingDialogOpen}
+                onOpenChange={setIsRatingDialogOpen}
+                initialRating={(() => {
+                    const ratingMeta = manga.meta?.find(
+                        (m: any) => m.key === "next:rating"
+                    )
+                    if (!ratingMeta) return 0
+                    try {
+                        return JSON.parse(ratingMeta.value).score
+                    } catch {
+                        return 0
+                    }
+                })()}
+                initialComment={(() => {
+                    const ratingMeta = manga.meta?.find(
+                        (m: any) => m.key === "next:rating"
+                    )
+                    if (!ratingMeta) return ""
+                    try {
+                        return JSON.parse(ratingMeta.value).comment
+                    } catch {
+                        return ""
+                    }
+                })()}
+                onSave={(score, comment) => {
+                    mangaUtils.toggleMeta(
+                        "next:rating" as any,
+                        id,
+                        library,
+                        JSON.stringify({ score, comment })
+                    )
+                }}
+            />
+
+            <MangaNoteDialog
+                open={isNoteDialogOpen}
+                onOpenChange={setIsNoteDialogOpen}
+                initialNote={
+                    manga.meta?.find((m: any) => m.key === "next:note")
+                        ?.value || ""
+                }
+                onSave={(note) => {
+                    mangaUtils.toggleMeta(
+                        "next:note" as any,
+                        id,
+                        library,
+                        note || undefined
+                    )
+                }}
             />
         </PageLayout>
     )

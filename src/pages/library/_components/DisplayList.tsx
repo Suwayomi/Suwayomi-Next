@@ -3,10 +3,10 @@ import { VirtuosoGrid } from "react-virtuoso"
 import { Library } from "lucide-react"
 
 import { MangaCard } from "@/components/MangaCard"
-import { useAppStore } from "@/lib/store"
 import { updateMangaCategory } from "@/lib/library"
 import { CategorySelectionDialog } from "@/components/category-selection-dialog"
 import { mangaUtils } from "@/lib/manga"
+import { useAppStore } from "@/hooks/use-app-store"
 
 interface DisplayListProps {
     items: any[]

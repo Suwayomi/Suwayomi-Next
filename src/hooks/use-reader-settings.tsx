@@ -1,5 +1,5 @@
 import * as React from "react"
-import type { ReaderConfig } from "@/lib/store/slices/meta"
+import type { ReaderConfig } from "./use-app-store"
 
 export type ReadingMode =
     | "single-page"
@@ -79,7 +79,7 @@ export function ReaderSettingsProvider({
     )
     const useSourcePreset = (config: ReaderConfig, sourceId: string) => {
         const name = config.sourceMapping[sourceId]
-        const targetPreset = config.presets.find((i) => i.name === name)
+        const targetPreset = config.presets.find((i: any) => i.name === name)
         if (name && targetPreset) {
             updateSettings(targetPreset.settings as ReaderSettings)
             setSelectedPreset(name)

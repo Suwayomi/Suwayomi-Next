@@ -1,6 +1,6 @@
 import * as React from "react"
 import { TagIcon } from "lucide-react"
-import { useMeta } from "@/hooks/use-meta"
+import { useMeta } from "@/hooks/use-app-store"
 import { toast } from "sonner"
 import { ManagementDialog } from "./ManagementDialog"
 import { LibraryManagementRow } from "./LibraryManagementRow"
@@ -26,7 +26,7 @@ export function TagConfig() {
         if (!newTagName.trim()) return
 
         const name = newTagName.trim().toLowerCase()
-        if (tags.some((t) => t.name === name)) {
+        if (tags.some((t: any) => t.name === name)) {
             toast.error("Tag already exists")
             return
         }
@@ -51,7 +51,7 @@ export function TagConfig() {
         (id: number, newName: string) => {
             try {
                 setTags(
-                    tags.map((i) =>
+                    tags.map((i: any) =>
                         i.id === id ? { ...i, name: newName.toLowerCase() } : i
                     )
                 )
@@ -66,7 +66,7 @@ export function TagConfig() {
     const handleDeleteTag = React.useCallback(
         (id: number) => {
             try {
-                setTags(tags.filter((i) => i.id !== id))
+                setTags(tags.filter((i: any) => i.id !== id))
                 toast.success("Tag deleted")
             } catch (error) {
                 toast.error("Failed to delete tag")
