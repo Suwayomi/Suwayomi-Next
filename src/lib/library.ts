@@ -1,53 +1,56 @@
 import { toast } from "sonner"
 import { client } from "./client"
 
-export const updateMangaCategory = async ({
-    mangaId,
+export const updateMangasCategory = async ({
+    mangaIds,
     categoryIds = [],
     onSuccess,
     message,
 }: {
-    mangaId: number
+    mangaIds: number[]
     categoryIds?: number[]
     onSuccess?: () => void
     message?: string
 }) => {
-    const promise = client.mutation({
-        updateMangaCategories: {
-            __args: {
-                input: {
-                    id: mangaId,
-                    patch: {
-                        clearCategories: true,
-                        ...(categoryIds.length > 0
-                            ? { addToCategories: categoryIds }
-                            : { addToCategories: [0] }),
+    const promise = Promise.all(
+        mangaIds.map((mangaId) =>
+            client.mutation({
+                updateMangaCategories: {
+                    __args: {
+                        input: {
+                            id: mangaId,
+                            patch: {
+                                clearCategories: true,
+                                ...(categoryIds.length > 0
+                                    ? { addToCategories: categoryIds }
+                                    : { addToCategories: [0] }),
+                            },
+                        },
+                    },
+                    clientMutationId: true,
+                    manga: {
+                        id: true,
                     },
                 },
-            },
-            clientMutationId: true,
-            manga: {
-                id: true,
-            },
-        },
-        updateMangas: {
-            __args: {
-                input: { ids: [mangaId], patch: { inLibrary: true } },
-            },
-            mangas: { id: true },
-        },
-    })
+                updateMangas: {
+                    __args: {
+                        input: { ids: [mangaId], patch: { inLibrary: true } },
+                    },
+                    mangas: { id: true },
+                },
+            })
+        )
+    )
 
     toast.promise(promise, {
         loading: "Updating categories...",
         success: (data) => {
-            console.log("Category update success:", data)
             onSuccess && onSuccess()
             return message || "Categories updated"
         },
         error: (err) => {
             console.error("Category update error:", err)
-            return "Failed"
+            return "Failed to update categories"
         },
     })
 }

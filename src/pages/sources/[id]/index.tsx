@@ -18,7 +18,6 @@ import { TrendingUp, Clock3 } from "lucide-react"
 import { useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { Randomizer } from "@/components/Randomizer"
 import { MangaCard } from "@/components/MangaCard"
-import { updateMangaCategory } from "@/lib/library"
 import { type LibraryManga, useAppStore } from "@/hooks/use-app-store"
 
 type SourceManga = {
@@ -55,7 +54,7 @@ function SourceBrowseContent() {
     const { library, meta, categories } = useAppStore()
     const navigate = useNavigate()
     const params = useParams()
-    const [searchParams, _] = useSearchParams()
+    const [searchParams, setSearchParams] = useSearchParams()
     const sourceId = params.id as string
     const initialSearch = searchParams.get("search") || ""
 
@@ -247,45 +246,25 @@ function SourceBrowseContent() {
         fetchManga(1, searchQuery, browseType, changes)
     }
 
-    const addToLibrary = async ({
-        mangaId,
-        categoryIds = [],
-    }: {
-        mangaId: number
-        categoryIds?: number[]
-    }) => {
-        await updateMangaCategory({
-            mangaId,
-            categoryIds,
-            onSuccess: () => {
-                setSourceMangaItems((prev) =>
-                    prev.map((m) =>
-                        m.id === mangaId ? { ...m, inLibrary: true } : m
-                    )
-                )
-                library.refresh()
-            },
-            message: "Manga added to library.",
-        })
-    }
-
     const onAddClick = (mangaId: number) => {
         if ((categories.data?.length || 1) > 1) {
             setPendingMangaId(mangaId)
             setIsCategoryDialogOpen(true)
         } else {
-            addToLibrary({
-                mangaId: mangaId,
-                categoryIds: [0],
-            })
+            setPendingMangaId(mangaId)
+            setIsCategoryDialogOpen(true)
         }
     }
 
     const favorites = React.useMemo(() => {
-        return library.data?.filter((m: any) => {
-            const isFav = m.meta?.some((meta: any) => meta.key === "next:is-favorite")
-            return isFav
-        }) || []
+        return (
+            library.data?.filter((m: any) => {
+                const isFav = m.meta?.some(
+                    (meta: any) => meta.key === "next:is-favorite"
+                )
+                return isFav
+            }) || []
+        )
     }, [library.data])
 
     return (
@@ -346,7 +325,16 @@ function SourceBrowseContent() {
                             placeholder={`Search within ${sourceName}...`}
                             className="h-12 rounded-2xl border-none bg-muted/20 pl-12 shadow-inner transition-all focus:bg-background"
                             value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onChange={(e) => {
+                                setSearchQuery(e.target.value)
+                                const value = e.target.value
+                                if (value) {
+                                    setSearchParams({ search: value })
+                                } else {
+                                    searchParams.delete("search")
+                                    setSearchParams(searchParams)
+                                }
+                            }}
                             disabled={!!error && sourceMangaItems.length === 0}
                         />
                     </form>
@@ -469,12 +457,16 @@ function SourceBrowseContent() {
                 title="Update Category"
                 open={isCategoryDialogOpen}
                 onOpenChange={setIsCategoryDialogOpen}
-                onSelect={(categoryIds: number[]) => {
+                mangaIds={pendingMangaId !== null ? [pendingMangaId] : []}
+                onSelect={() => {
                     if (pendingMangaId !== null) {
-                        addToLibrary({
-                            mangaId: pendingMangaId,
-                            categoryIds: categoryIds,
-                        })
+                        setSourceMangaItems((prev) =>
+                            prev.map((m) =>
+                                m.id === pendingMangaId
+                                    ? { ...m, inLibrary: true }
+                                    : m
+                            )
+                        )
                     }
                 }}
             />

@@ -27,6 +27,7 @@ import {
     type MangaMetaType,
 } from "@/hooks/use-app-store"
 import { MangaImage } from "@/components/MangaImage"
+import { mangaUtils } from "@/lib/manga"
 
 interface LibraryClientProps {}
 
@@ -160,52 +161,8 @@ export default function LibraryClient({}: LibraryClientProps) {
 
     const bulkToggleMeta = async (type: MangaMetaType, forceValue: boolean) => {
         const ids = Array.from(selectedIds)
-
-        const promise = Promise.all(
-            ids.map((mangaId) => {
-                const manga = mangas.find((m) => m.id === mangaId)
-                const isActive = manga?.meta?.some(
-                    (m: any) => m.key === type && m.value === "true"
-                )
-
-                if (forceValue === isActive) return Promise.resolve()
-
-                return client.mutation(
-                    forceValue
-                        ? {
-                              setMangaMeta: {
-                                  __args: {
-                                      input: {
-                                          meta: {
-                                              key: type,
-                                              mangaId,
-                                              value: "true",
-                                          },
-                                      },
-                                  },
-                                  meta: { key: true },
-                              } as any,
-                          }
-                        : {
-                              deleteMangaMeta: {
-                                  __args: {
-                                      input: { key: type, mangaId },
-                                  },
-                                  clientMutationId: true,
-                              } as any,
-                          }
-                )
-            })
-        )
-
-        toast.promise(promise, {
-            loading: `Updating ${ids.length} manga(s)...`,
-            success: () => {
-                library.refresh()
-                return "Updated"
-            },
-            error: "Failed to update",
-        })
+        await mangaUtils.toggleMeta(type, ids, library, forceValue)
+        setSelectedIds(new Set())
     }
 
     const refreshLibrary = async () => {

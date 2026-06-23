@@ -65,22 +65,26 @@ export function useAppStore(): AppStore {
         extensions: {
             data: extensionsQuery.data as Extension[] | undefined,
             loading: extensionsQuery.isLoading,
-            refresh: () => queryClient.invalidateQueries({ queryKey: ["gql", "query", "extensions"] }),
+            refresh: () =>
+                queryClient.invalidateQueries({ queryKey: ["gql", "query"] }),
         },
         sources: {
             data: sourcesQuery.data as Source[] | undefined,
             loading: sourcesQuery.isLoading,
-            refresh: () => queryClient.invalidateQueries({ queryKey: ["gql", "query", "sources"] }),
+            refresh: () =>
+                queryClient.invalidateQueries({ queryKey: ["gql", "query"] }),
         },
         categories: {
             data: categoriesQuery.data as Category[] | undefined,
             loading: categoriesQuery.isLoading,
-            refresh: () => queryClient.invalidateQueries({ queryKey: ["gql", "query", "categories"] }),
+            refresh: () =>
+                queryClient.invalidateQueries({ queryKey: ["gql", "query"] }),
         },
         downloads: {
             data: downloadsQuery.data as DownloadStatus | undefined,
             loading: downloadsQuery.isLoading,
-            refresh: () => queryClient.invalidateQueries({ queryKey: ["gql", "query", "downloadStatus"] }),
+            refresh: () =>
+                queryClient.invalidateQueries({ queryKey: ["gql"] }),
         },
         history: {
             data: historyQuery.data as HistoryGroup[] | undefined,

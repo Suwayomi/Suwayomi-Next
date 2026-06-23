@@ -3,7 +3,6 @@ import { VirtuosoGrid } from "react-virtuoso"
 import { Library } from "lucide-react"
 
 import { MangaCard } from "@/components/MangaCard"
-import { updateMangaCategory } from "@/lib/library"
 import { CategorySelectionDialog } from "@/components/category-selection-dialog"
 import { mangaUtils } from "@/lib/manga"
 import { useAppStore } from "@/hooks/use-app-store"
@@ -30,21 +29,6 @@ export function DisplayList({
         manga: any
     } | null>(null)
 
-    const onChangeCategory = async ({
-        mangaId,
-        categoryIds = [],
-    }: {
-        mangaId: number
-        categoryIds?: number[]
-    }) => {
-        await updateMangaCategory({
-            mangaId,
-            categoryIds,
-            onSuccess: () => {
-                library.refresh()
-            },
-        })
-    }
     return (
         <div className="flex h-full min-h-0 flex-col gap-4">
             <div className="min-h-0 flex-1 pr-4">
@@ -133,15 +117,8 @@ export function DisplayList({
             <CategorySelectionDialog
                 open={targetManga !== null && targetManga.action === "category"}
                 onOpenChange={(p) => !p && setTargetManga(null)}
-                onSelect={(categoryIds) => {
-                    if (targetManga?.manga.id !== null) {
-                        onChangeCategory({
-                            mangaId: targetManga?.manga.id,
-                            categoryIds: categoryIds,
-                        })
-                    }
-                }}
-                previousIds={targetManga?.manga.categories.nodes.map(
+                mangaIds={targetManga?.manga?.id ? [targetManga.manga.id] : []}
+                previousIds={targetManga?.manga?.categories?.nodes?.map(
                     (i: any) => i.id
                 )}
                 title="Change Category"

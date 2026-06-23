@@ -332,10 +332,10 @@ export function MangaCard({
                           )
                         : /* Hover Add Button (Only renders if the onAddLibrary callback is supplied) */
                           onAddLibrary && (
-                              <div className="absolute inset-0 z-20 flex items-end bg-gradient-to-t from-black/80 via-transparent to-transparent p-5 opacity-100 transition-opacity group-hover:opacity-100 md:opacity-0">
+                              <div className="pointer-events-none absolute inset-0 z-20 flex items-end bg-linear-to-t from-black/80 via-transparent to-transparent p-5 opacity-100 transition-opacity group-hover:opacity-100 md:opacity-0">
                                   <Button
                                       size="sm"
-                                      className="h-10 w-full gap-2 rounded-xl font-bold shadow-lg shadow-primary/20"
+                                      className="pointer-events-auto h-10 w-full gap-2 rounded-xl font-bold shadow-lg shadow-primary/20"
                                       onClick={(e) => {
                                           e.stopPropagation()
                                           onAddLibrary(String(manga.id))

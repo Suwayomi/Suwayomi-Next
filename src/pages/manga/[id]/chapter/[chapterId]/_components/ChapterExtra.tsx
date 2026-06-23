@@ -52,12 +52,17 @@ export function ChapterDivider({ chapter, className }: ChapterDividerProps) {
 }
 export function PreviousChapter({
     currentChapter,
+    onClick,
 }: {
     currentChapter: number
+    onClick?: () => void
 }) {
     return (
-        <Skeleton label={"Load Chapter " + (currentChapter - 1)}>
-            <Button>Load</Button>
+        <Skeleton label={"Chapter " + (currentChapter - 1)}>
+            <Button onClick={(e) => {
+                e.stopPropagation()
+                onClick?.()
+            }} className="h-12 px-8 rounded-xl font-bold bg-primary hover:bg-primary/90 transition-all active:scale-95 pointer-events-auto relative z-10">Load Previous Chapter</Button>
         </Skeleton>
     )
 }

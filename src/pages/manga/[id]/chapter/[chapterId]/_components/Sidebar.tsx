@@ -7,6 +7,7 @@ import {
     Download,
     RefreshCw,
     Loader2,
+    NotebookPen,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -29,6 +30,8 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useAppStore } from "@/hooks/use-app-store"
+import { MangaNoteDialog } from "@/components/manga-note-dialog"
+import { mangaUtils } from "@/lib/manga"
 
 interface ReaderSidebarProps {
     showControls: boolean
@@ -38,6 +41,7 @@ interface ReaderSidebarProps {
     chapters: any[]
     prevChapter: any
     nextChapter: any
+    onOpenNote: () => void
 }
 
 function ActionButton({
@@ -99,6 +103,7 @@ export function ReaderSidebar({
     chapters,
     prevChapter,
     nextChapter,
+    onOpenNote,
 }: ReaderSidebarProps) {
     const { id: mangaId } = useParams()
     const { pathname } = useLocation()
@@ -238,28 +243,30 @@ export function ReaderSidebar({
                             >
                                 <ChevronFirst className="size-4" />
                             </Button>
-                            <Select
-                                modal={false}
-                                value={chapter?.chapterNumber}
-                                onValueChange={(val) =>
-                                    onNavigateToChapter(Number(val))
-                                }
-                            >
-                                <SelectTrigger className="h-8 w-16 border-none bg-white/5 text-[10px] font-black hover:bg-white/10 focus:ring-0">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="max-h-[300px] border-white/10 bg-zinc-900 text-white shadow-2xl backdrop-blur-xl">
-                                    {chapters.map((ch) => (
-                                        <SelectItem
-                                            key={ch.id}
-                                            value={ch.chapterNumber}
-                                            className="text-[10px] font-bold"
-                                        >
-                                            {ch.chapterNumber}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            {chapter && (
+                                <Select
+                                    modal={false}
+                                    value={chapter?.chapterNumber}
+                                    onValueChange={(val) =>
+                                        onNavigateToChapter(Number(val))
+                                    }
+                                >
+                                    <SelectTrigger className="h-8 w-16 border-none bg-white/5 text-[10px] font-black hover:bg-white/10 focus:ring-0">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent className="max-h-[300px] border-white/10 bg-zinc-900 text-white shadow-2xl backdrop-blur-xl">
+                                        {chapters.map((ch) => (
+                                            <SelectItem
+                                                key={ch.id}
+                                                value={ch.chapterNumber}
+                                                className="text-[10px] font-bold"
+                                            >
+                                                {ch.chapterNumber}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            )}
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -285,6 +292,13 @@ export function ReaderSidebar({
                     )}
                 >
                     <div className={cn("flex flex-row gap-2")}>
+                        <ActionButton
+                            onClick={onOpenNote}
+                            isVerticalHud={isVerticalHud}
+                            tooltip="View Note"
+                            icon={NotebookPen}
+                        />
+
                         {downloadItem ? (
                             <div
                                 className={cn(

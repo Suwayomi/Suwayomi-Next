@@ -18,6 +18,8 @@ A modern, responsive web client for [Suwayomi-Server](https://github.com/Suwayom
 - My Genre/Tags: custom defined tags in which are highlighted when visible on certain works.
 - Better history and updates page.
 - pinned sources.
+- rating
+- note
 
 ## ⚙️ Getting Started
 

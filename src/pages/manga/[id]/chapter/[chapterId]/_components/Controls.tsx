@@ -28,7 +28,7 @@ export function ReaderControls({
     return (
         <div
             className={cn(
-                "z-[120] transform transition-all duration-300",
+                "z-120 transform transition-all duration-300",
                 isVerticalHud
                     ? "fixed inset-x-0 bottom-0"
                     : "fixed inset-y-0 right-0 flex w-fit items-center justify-center overflow-hidden",

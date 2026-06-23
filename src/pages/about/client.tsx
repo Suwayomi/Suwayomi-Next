@@ -38,7 +38,9 @@ export default function AboutClientPage({
             },
         },
         {
-            initialData: initialData ? ({ aboutServer: initialData.Server } as any) : undefined,
+            initialData: initialData
+                ? ({ aboutServer: initialData.Server } as any)
+                : undefined,
             select: (result: any) => {
                 const { github, discord, ...rest } = {
                     ...result.aboutServer,
@@ -54,12 +56,13 @@ export default function AboutClientPage({
         }
     )
 
+    const [checkingUpdate, setCheckingUpdate] = React.useState(false)
+
     if (isLoading && !initialData) {
         return <AboutSkeleton />
     }
 
     const data = (serverInfoData as any) || initialData
-    const [checkingUpdate, setCheckingUpdate] = React.useState(false)
 
     const handleCheckUpdate = async () => {
         setCheckingUpdate(true)
@@ -112,7 +115,7 @@ export default function AboutClientPage({
 
     return (
         <PageLayout title="About">
-            <div className="max-w-3xl space-y-8">
+            <div className="max-w-full space-y-8">
                 {Object.entries(data as Record<string, [string, any][]>).map(
                     ([sectionTitle, items], id) => (
                         <Card
@@ -214,7 +217,10 @@ function AboutSkeleton() {
         <PageLayout title="About">
             <div className="max-w-3xl space-y-8">
                 {[1, 2].map((i) => (
-                    <Card key={i} className="overflow-hidden border-border/50 shadow-sm">
+                    <Card
+                        key={i}
+                        className="overflow-hidden border-border/50 shadow-sm"
+                    >
                         <CardHeader className="bg-muted/30 py-4">
                             <div className="flex items-center justify-between">
                                 <div className="space-y-2">
@@ -227,7 +233,10 @@ function AboutSkeleton() {
                         <CardContent className="p-0">
                             <div className="divide-y divide-border/40">
                                 {[1, 2, 3, 4].map((j) => (
-                                    <div key={j} className="flex flex-col justify-between p-4 sm:flex-row sm:items-center">
+                                    <div
+                                        key={j}
+                                        className="flex flex-col justify-between p-4 sm:flex-row sm:items-center"
+                                    >
                                         <Skeleton className="h-4 w-32" />
                                         <Skeleton className="h-6 w-48 rounded" />
                                     </div>

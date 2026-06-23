@@ -77,14 +77,17 @@ export function ReaderSettingsProvider({
         },
         []
     )
-    const useSourcePreset = (config: ReaderConfig, sourceId: string) => {
-        const name = config.sourceMapping[sourceId]
-        const targetPreset = config.presets.find((i: any) => i.name === name)
-        if (name && targetPreset) {
-            updateSettings(targetPreset.settings as ReaderSettings)
-            setSelectedPreset(name)
-        }
-    }
+    const useSourcePreset = React.useCallback(
+        (config: ReaderConfig, sourceId: string) => {
+            const name = config.sourceMapping[sourceId]
+            const targetPreset = config.presets.find((i: any) => i.name === name)
+            if (name && targetPreset) {
+                updateSettings(targetPreset.settings as ReaderSettings)
+                setSelectedPreset(name)
+            }
+        },
+        [updateSettings]
+    )
 
     const value = React.useMemo(
         () => ({

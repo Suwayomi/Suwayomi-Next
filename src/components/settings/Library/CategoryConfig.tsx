@@ -106,7 +106,7 @@ export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
             <ManagementDialog
                 title="Categories"
                 description="Organize your library with custom categories."
-                items={categories.data as any[]}
+                items={(categories.data as any[]).slice(1)}
                 searchKey="name"
                 addLabel="New Category"
                 isLoading={categories.loading}
@@ -114,7 +114,7 @@ export function CategoryConfig({ initialCategories }: CategoryConfigProps) {
                 trigger={
                     <LibraryManagementRow
                         label="Categories"
-                        count={(categories.data as any[]).length}
+                        count={(categories.data as any[]).length - 1}
                         icon={<FolderIcon className="size-5" />}
                     />
                 }

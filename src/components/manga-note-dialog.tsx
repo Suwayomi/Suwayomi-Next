@@ -39,7 +39,7 @@ export function MangaNoteDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="border-zinc-800 bg-zinc-950 text-zinc-100 shadow-2xl sm:max-w-md">
+            <DialogContent className="z-200 border-zinc-800 bg-zinc-950 text-zinc-100 shadow-2xl sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2 text-xl font-bold">
                         <NotebookPen className="size-5 text-primary" />

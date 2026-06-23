@@ -1,5 +1,10 @@
 import * as React from "react"
-import { useSuwayomiQuery, useSuwayomiMutation, useSuwayomiMutationQuery, client } from "@/lib/client"
+import {
+    useSuwayomiQuery,
+    useSuwayomiMutation,
+    useSuwayomiMutationQuery,
+    client,
+} from "@/lib/client"
 import { Skeleton } from "@/components/ui/skeleton"
 import { mangaUtils } from "@/lib/manga"
 import { cn } from "@/lib/utils"
@@ -12,6 +17,7 @@ import { ReaderOverlay } from "./_components/ReaderOverlay"
 import { useLocation, useNavigate } from "react-router-dom"
 import type { VirtuosoHandle } from "react-virtuoso"
 import { useAppStore } from "@/hooks/use-app-store"
+import { MangaNoteDialog } from "@/components/manga-note-dialog"
 
 interface ReaderClientProps {
     mangaId: number
@@ -25,18 +31,6 @@ export default function ReaderClient({
     const { library, meta } = useAppStore()
     const { pathname } = useLocation()
     const navigate = useNavigate()
-
-    const hasUpdatedMetadata = React.useRef(false)
-    if (!isNaN(mangaId) && !hasUpdatedMetadata.current) {
-        hasUpdatedMetadata.current = true
-        const currentISOString = new Date().toISOString()
-        mangaUtils.toggleMeta(
-            "next:read-later",
-            mangaId,
-            library,
-            currentISOString
-        )
-    }
 
     const { data: mangaResult, isLoading: mangaLoading } = useSuwayomiQuery(
         {
@@ -53,6 +47,10 @@ export default function ReaderClient({
                 },
                 id: true,
                 sourceId: true,
+                meta: {
+                    key: true,
+                    value: true,
+                },
             },
         },
         {
@@ -68,8 +66,10 @@ export default function ReaderClient({
 
     const targetChapter = React.useMemo(() => {
         const nodes = (mangaResult as any)?.manga?.chapters?.nodes || []
-        return nodes.find((c: any) => c.chapterNumber === chapterNumber) ||
+        return (
+            nodes.find((c: any) => c.chapterNumber === chapterNumber) ||
             nodes[chapterNumber - 1]
+        )
     }, [mangaResult, chapterNumber])
 
     const chapterId = targetChapter?.id
@@ -125,16 +125,21 @@ export default function ReaderClient({
         readingMode === "webtoon" ||
         readingMode === "continuous-horizontal"
     const [isNavigating, setIsNavigating] = React.useState(false)
+    const [isNoteDialogOpen, setIsNoteDialogOpen] = React.useState(false)
     const [showControls, setShowControls] = React.useState(true)
 
     React.useEffect(() => {
-        if (mangaResult) {
+        if (mangaResult && (mangaResult as any).manga) {
             setMangaData(mangaResult)
             const next_reader = meta.data?.["next-reader"]
-            next_reader &&
-                useSourcePreset(next_reader, (mangaResult as any).manga.sourceId)
+            if (next_reader) {
+                useSourcePreset(
+                    next_reader,
+                    (mangaResult as any).manga.sourceId
+                )
+            }
         }
-    }, [mangaResult, meta.data, useSourcePreset])
+    }, [(mangaResult as any)?.manga?.id, meta.data, useSourcePreset])
 
     React.useEffect(() => {
         if (pagesResult && chapterId) {
@@ -154,10 +159,10 @@ export default function ReaderClient({
         }
     }, [hudType])
 
-
     const allItems = React.useMemo(() => {
         const items: any[] = []
         loadedChapters.forEach((ch, chIdx) => {
+            // TODO
             // if (chIdx === 0 && ch.chapter.chapterNumber > 1) {
             //     items.push({
             //         type: "top-loader",
@@ -215,6 +220,48 @@ export default function ReaderClient({
 
     const fetchChapterMutation = useSuwayomiMutation()
     const markAsReadMutation = useSuwayomiMutation()
+
+    const loadPrev = async () => {
+        if (fetchChapterMutation.isPending) return
+        const firstLoaded = loadedChapters[0]
+        const currentIndex = chapters.findIndex(
+            (c: any) => c.id === firstLoaded.id
+        )
+        const prev =
+            currentIndex < chapters.length - 1
+                ? chapters[currentIndex + 1]
+                : null
+
+        if (prev && !loadedChapters.find((c) => c.id === prev.id)) {
+            const data = await fetchChapterMutation.mutateAsync({
+                fetchChapterPages: {
+                    __args: { input: { chapterId: prev.id } },
+                    chapter: {
+                        id: true,
+                        name: true,
+                        pageCount: true,
+                        chapterNumber: true,
+                        isRead: true,
+                    },
+                    pages: true,
+                },
+            })
+            if (data?.fetchChapterPages) {
+                setLoadedChapters((prevInState) => [
+                    {
+                        id: prev.id,
+                        pages: (data.fetchChapterPages as any)?.pages,
+                        chapter: (data.fetchChapterPages as any)?.chapter,
+                    },
+                    ...prevInState,
+                ])
+                // Adjust current page to account for new pages at the start
+                const newPagesCount =
+                    (data.fetchChapterPages as any).pages.length + 1 // +1 for the divider
+                setCurrentPage((prevPage) => prevPage + newPagesCount)
+            }
+        }
+    }
 
     const loadMore = async () => {
         if (fetchChapterMutation.isPending) return
@@ -306,6 +353,62 @@ export default function ReaderClient({
             ? chapters[currenChaptersIdx + 1]
             : null
 
+    const handleTap = (e: React.MouseEvent) => {
+        const x = e.clientX / window.innerWidth
+        const y = e.clientY / window.innerHeight
+
+        const isHorizontalInverted =
+            invertTapZone === "horizontal" || invertTapZone === "both"
+
+        const navigate = (direction: "next" | "prev") => {
+            let finalAction = direction
+            if (isHorizontalInverted) {
+                finalAction = direction === "next" ? "prev" : "next"
+            }
+
+            if (finalAction === "next")
+                readingDirection === "rtl" ? handlePrevPage() : handleNextPage()
+            else
+                readingDirection === "rtl" ? handleNextPage() : handlePrevPage()
+        }
+
+        const toggle = () => {
+            if (hudType !== "static") setShowControls(!showControls)
+        }
+
+        // Tap Zone Logic
+        if (tapZone === "disabled") {
+            if (x > 0.3 && x < 0.7 && y > 0.3 && y < 0.7) toggle()
+            return
+        }
+
+        if (tapZone === "kindle") {
+            if (x < 0.33) navigate("prev")
+            else if (x > 0.66) navigate("next")
+            else if (y < 0.33) navigate("next")
+            else if (y > 0.66) navigate("next")
+            else toggle()
+        } else if (tapZone === "l-shape") {
+            if (x > 0.66) navigate("next")
+            else if (y > 0.66) navigate("next")
+            else if (x < 0.33 && y < 0.33) navigate("prev")
+            else toggle()
+        } else if (tapZone === "right-left") {
+            if (x < 0.33) navigate("prev")
+            else if (x > 0.66) navigate("next")
+            else if (y < 0.33) navigate("prev")
+            else if (y > 0.66) navigate("next")
+            else toggle()
+        } else {
+            // Default edge pattern
+            if (x < 0.33) navigate("prev")
+            else if (x > 0.66) navigate("next")
+            else if (y < 0.33) navigate("prev")
+            else if (y > 0.66) navigate("next")
+            else toggle()
+        }
+    }
+
     React.useEffect(() => {
         if (
             activeItem?.type === "page" &&
@@ -326,7 +429,7 @@ export default function ReaderClient({
                 hudOrientation === "vertical" ? "flex-col" : "flex-row",
                 background === "black" ? "bg-black" : "bg-zinc-950"
             )}
-            onMouseMove={() => {}}
+            onMouseMove={() => { }}
         >
             <ReaderSidebar
                 showControls={showControls}
@@ -338,6 +441,7 @@ export default function ReaderClient({
                 chapters={chapters}
                 prevChapter={prevChapter}
                 nextChapter={nextChapter}
+                onOpenNote={() => setIsNoteDialogOpen(true)}
             />
 
             <PageList
@@ -345,10 +449,11 @@ export default function ReaderClient({
                 currentPage={currentPage}
                 containerRef={containerRef}
                 virtuosoRef={virtuosoRef}
-                onTap={() => {}}
+                onTap={handleTap}
                 nextChapter={nextChapter}
                 onMarkAsRead={() => markAsRead()}
                 onLoadMore={loadMore}
+                onLoadPrev={loadPrev}
                 onPageChange={(index) => {
                     if (!isNavigating) setCurrentPage(index)
                 }}
@@ -356,26 +461,26 @@ export default function ReaderClient({
                 padding={{
                     top:
                         hudType !== "floating" &&
-                        hudOrientation === "vertical" &&
-                        showControls
+                            hudOrientation === "vertical" &&
+                            showControls
                             ? 72
                             : 0,
                     left:
                         hudType !== "floating" &&
-                        hudOrientation !== "vertical" &&
-                        showControls
+                            hudOrientation !== "vertical" &&
+                            showControls
                             ? 48
                             : 0,
                     right:
                         hudType !== "floating" &&
-                        hudOrientation !== "vertical" &&
-                        showControls
+                            hudOrientation !== "vertical" &&
+                            showControls
                             ? 48
                             : 0,
                     bottom:
                         hudType !== "floating" &&
-                        hudOrientation === "vertical" &&
-                        showControls
+                            hudOrientation === "vertical" &&
+                            showControls
                             ? 80
                             : 0,
                 }}
@@ -414,15 +519,35 @@ export default function ReaderClient({
                     readingDirection === "rtl" ? handleNextPage : handlePrevPage
                 }
             />
+
+            {(mangaResult as any)?.manga && (
+                <MangaNoteDialog
+                    open={isNoteDialogOpen}
+                    onOpenChange={setIsNoteDialogOpen}
+                    initialNote={
+                        (mangaResult as any).manga.meta?.find(
+                            (m: any) => m.key === "next:note"
+                        )?.value || ""
+                    }
+                    onSave={(note) => {
+                        mangaUtils.toggleMeta(
+                            "next:note" as any,
+                            mangaId,
+                            library,
+                            note || undefined
+                        )
+                    }}
+                />
+            )}
         </div>
     )
 }
 
 function ReaderSkeleton() {
     return (
-        <div className="fixed inset-0 z-100 flex flex-col bg-black overflow-hidden animate-in fade-in duration-500">
+        <div className="fixed inset-0 z-100 flex animate-in flex-col overflow-hidden bg-black duration-500 fade-in">
             {/* Header Area */}
-            <div className="h-16 w-full border-b border-white/5 bg-zinc-950/50 flex items-center px-6 justify-between">
+            <div className="flex h-16 w-full items-center justify-between border-b border-white/5 bg-zinc-950/50 px-6">
                 <div className="flex items-center gap-4">
                     <Skeleton className="h-10 w-10 rounded-full bg-white/10" />
                     <div className="space-y-2">
@@ -436,9 +561,9 @@ function ReaderSkeleton() {
                 </div>
             </div>
 
-            <div className="flex-1 flex">
+            <div className="flex flex-1">
                 {/* Sidebar area */}
-                <div className="w-12 border-r border-white/5 bg-zinc-950/30 flex flex-col items-center py-6 gap-6">
+                <div className="flex w-12 flex-col items-center gap-6 border-r border-white/5 bg-zinc-950/30 py-6">
                     <Skeleton className="h-6 w-6 rounded-md bg-white/10" />
                     <Skeleton className="h-6 w-6 rounded-md bg-white/10" />
                     <Skeleton className="h-6 w-6 rounded-md bg-white/10" />
@@ -446,14 +571,14 @@ function ReaderSkeleton() {
                 </div>
 
                 {/* Main Content Area (Pages) */}
-                <div className="flex-1 flex flex-col items-center py-10 gap-10 overflow-hidden">
-                    <Skeleton className="w-[80%] max-w-2xl h-[90%] rounded-lg bg-white/5" />
+                <div className="flex flex-1 flex-col items-center gap-10 overflow-hidden py-10">
+                    <Skeleton className="h-[90%] w-[80%] max-w-2xl rounded-lg bg-white/5" />
                 </div>
             </div>
 
             {/* Footer Area */}
-            <div className="h-20 w-full border-t border-white/5 bg-zinc-950/50 flex items-center px-6 justify-center">
-                <div className="flex items-center gap-8 w-full max-w-3xl">
+            <div className="flex h-20 w-full items-center justify-center border-t border-white/5 bg-zinc-950/50 px-6">
+                <div className="flex w-full max-w-3xl items-center gap-8">
                     <Skeleton className="h-8 w-8 rounded-full bg-white/10" />
                     <Skeleton className="h-2 flex-1 rounded-full bg-white/10" />
                     <Skeleton className="h-8 w-8 rounded-full bg-white/10" />

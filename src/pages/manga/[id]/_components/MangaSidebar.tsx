@@ -38,9 +38,11 @@ export function MangaSidebar({
                     title={
                         <>
                             My Rating
-                            <div className="rounded bg-border px-0.5">
-                                {rating?.score}/10
-                            </div>
+                            {rating && (
+                                <div className="rounded bg-border px-0.5">
+                                    {rating?.score}/10
+                                </div>
+                            )}
                         </>
                     }
                     icon={Star}

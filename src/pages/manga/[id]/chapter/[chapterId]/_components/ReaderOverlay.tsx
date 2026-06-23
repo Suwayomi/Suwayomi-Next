@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils"
 import { useReaderSettings } from "@/hooks/use-reader-settings"
+import React from "react"
 
 interface ReaderOverlayProps {
     showControls: boolean
@@ -32,6 +33,47 @@ export function ReaderOverlay({
             </div>
         )
     }
+
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Don't trigger if user is typing in an input
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+                return
+            }
+
+            const isHorizontalInverted =
+                invertTapZone === "horizontal" || invertTapZone === "both"
+            
+            const navigate = (direction: "next" | "prev") => {
+                let finalAction = direction
+                if (isHorizontalInverted) {
+                    finalAction = direction === "next" ? "prev" : "next"
+                }
+
+                if (finalAction === "next") onNext()
+                else onPrev()
+            }
+
+            switch (e.key) {
+                case "ArrowLeft":
+                case "ArrowUp":
+                    navigate("prev")
+                    break
+                case "ArrowRight":
+                case "ArrowDown":
+                case " ":
+                    navigate("next")
+                    break
+                case "m":
+                case "M":
+                    onToggleControls()
+                    break
+            }
+        }
+
+        window.addEventListener("keydown", handleKeyDown)
+        return () => window.removeEventListener("keydown", handleKeyDown)
+    }, [onNext, onPrev, onToggleControls, invertTapZone])
 
     const renderZone = (
         action: "next" | "prev" | "toggle",
@@ -66,7 +108,7 @@ export function ReaderOverlay({
         return (
             <div
                 className={cn(
-                    "group pointer-events-auto relative flex items-center justify-center",
+                    "group pointer-events-none relative flex items-center justify-center",
                     cursor,
                     className
                 )}

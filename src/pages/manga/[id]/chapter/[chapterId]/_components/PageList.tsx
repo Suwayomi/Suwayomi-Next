@@ -24,6 +24,7 @@ interface ReaderPageProps {
         left: number
         right: number
     }
+    onLoadPrev?: () => void
 }
 
 interface MangaPageProps {
@@ -64,8 +65,9 @@ function MangaPage({
                 <Button
                     variant="outline"
                     size="sm"
-                    className="relative z-[70] mt-2"
-                    onClick={() => {
+                    className="relative z-10 pointer-events-auto mt-2"
+                    onClick={(e) => {
+                        e.stopPropagation()
                         setHasFailed(false)
                     }}
                 >
@@ -82,7 +84,8 @@ function MangaPage({
                 if (el) pageRefs.current[index] = el
             }}
             className={cn(
-                "relative flex flex-col items-center justify-center overflow-hidden",
+                "relative flex flex-col items-center",
+                scaleType === "original" ? "overflow-visible" : "justify-center overflow-hidden",
                 readingMode === "continuous-horizontal"
                     ? "h-full w-auto"
                     : "w-full",
@@ -123,6 +126,7 @@ function MangaPage({
                 decoding="async"
                 className={cn(
                     "ease-in-out",
+                    scaleType === "original" && "m-auto",
                     isLoaded
                         ? "scale-100 opacity-100"
                         : "h-0 w-0 scale-95 opacity-0",
@@ -133,7 +137,8 @@ function MangaPage({
                     scaleType === "fit-height" && "h-screen w-auto max-w-none",
                     scaleType === "fit-screen" &&
                         "h-auto max-h-screen w-auto max-w-full object-contain",
-                    scaleType === "original" && "h-auto w-auto max-w-none",
+                    scaleType === "original" &&
+                        "h-fit max-h-none w-fit max-w-none",
                     !isScrollMode && "rounded-sm object-contain shadow-2xl"
                 )}
             />
@@ -153,10 +158,66 @@ export function PageList({
     onPageChange,
     onPageLoaded,
     padding,
+    onLoadPrev,
 }: ReaderPageProps) {
     const pageRefs = React.useRef<(HTMLDivElement | null)[]>([])
-    const { readingMode, readingDirection, scaleType, pageGap } =
+    const { readingMode, readingDirection, scaleType, pageGap, tapZone, invertTapZone } =
         useReaderSettings()
+
+    const getCursor = (x: number, y: number) => {
+        const isHorizontalInverted =
+            invertTapZone === "horizontal" || invertTapZone === "both"
+
+        const getDirection = (direction: "next" | "prev") => {
+            let finalAction = direction
+            if (isHorizontalInverted) {
+                finalAction = direction === "next" ? "prev" : "next"
+            }
+            return finalAction
+        }
+
+        let action: "next" | "prev" | "toggle" = "toggle"
+
+        if (tapZone === "disabled") {
+            if (x > 0.3 && x < 0.7 && y > 0.3 && y < 0.7) action = "toggle"
+            else return "cursor-default"
+        } else if (tapZone === "kindle") {
+            if (x < 0.33) action = "prev"
+            else if (x > 0.66) action = "next"
+            else if (y < 0.33) action = "next"
+            else if (y > 0.66) action = "next"
+            else action = "toggle"
+        } else if (tapZone === "l-shape") {
+            if (x > 0.66) action = "next"
+            else if (y > 0.66) action = "next"
+            else if (x < 0.33 && y < 0.33) action = "prev"
+            else action = "toggle"
+        } else if (tapZone === "right-left") {
+            if (x < 0.33) action = "prev"
+            else if (x > 0.66) action = "next"
+            else if (y < 0.33) action = "prev"
+            else if (y > 0.66) action = "next"
+            else action = "toggle"
+        } else {
+            if (x < 0.33) action = "prev"
+            else if (x > 0.66) action = "next"
+            else if (y < 0.33) action = "prev"
+            else if (y > 0.66) action = "next"
+            else action = "toggle"
+        }
+
+        if (action === "toggle") return "cursor-pointer"
+        const dir = getDirection(action)
+        return dir === "next" ? "cursor-e-resize" : "cursor-w-resize"
+    }
+
+    const [cursor, setCursor] = React.useState("cursor-default")
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        const x = e.clientX / window.innerWidth
+        const y = e.clientY / window.innerHeight
+        setCursor(getCursor(x, y))
+    }
 
     const isScrollMode =
         readingMode === "continuous-vertical" ||
@@ -166,18 +227,18 @@ export function PageList({
     const renderItem = (index: number) => {
         const item = items[index]
         if (!item) return null
-        //
-        // if (item.type === "top-loader") {
-        //     return (
-        //         <PreviousChapter currentChapter={item.chapter.chapterNumber} />
-        //     )
-        // }
+        if (item.type === "top-loader") {
+            return (
+                <PreviousChapter currentChapter={item.chapter.chapterNumber} onClick={onLoadPrev} />
+            )
+        }
         if (item.type === "divider") {
             return <ChapterDivider chapter={item.chapter} />
         }
 
         return (
             <MangaPage
+                key={item.url}
                 index={index}
                 item={item}
                 readingMode={readingMode}
@@ -192,7 +253,7 @@ export function PageList({
 
     if (isScrollMode) {
         return (
-            <div className="h-full w-full flex-1" onClick={onTap}>
+            <div className={cn("h-full w-full flex-1", cursor)} onClick={onTap} onMouseMove={handleMouseMove}>
                 <Virtuoso
                     ref={virtuosoRef}
                     data={items}
@@ -247,7 +308,7 @@ export function PageList({
     return (
         <div
             ref={containerRef}
-            className="scrollbar-hide flex h-full w-full flex-1 items-center justify-center overflow-auto p-4"
+            className={cn("scrollbar-hide flex h-full w-full flex-1 overflow-auto p-4", cursor)}
             style={{
                 paddingTop: padding?.top || 0,
                 paddingBottom: padding?.bottom || 0,
@@ -255,10 +316,11 @@ export function PageList({
                 paddingRight: padding?.right || 0,
             }}
             onClick={onTap}
+            onMouseMove={handleMouseMove}
         >
             <div
                 className={cn(
-                    "flex min-h-full w-full items-center justify-center gap-4",
+                    "flex min-h-full m-auto items-center justify-center gap-4",
                     readingDirection === "rtl" ? "flex-row-reverse" : "flex-row"
                 )}
             >

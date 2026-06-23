@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Star, MessageSquare } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Slider } from "./ui/slider"
+import { Label } from "./ui/label"
 
 interface MangaRatingDialogProps {
     open: boolean
@@ -57,43 +59,35 @@ export function MangaRatingDialog({
                 </DialogHeader>
 
                 <div className="space-y-6 py-4">
-                    <div className="space-y-3">
-                        <label className="text-xs font-black tracking-widest text-zinc-500 uppercase">
-                            Rating: {rating}/10
-                        </label>
-                        <div className="flex flex-wrap gap-1.5">
-                            {[...Array(11)].map((_, i) => (
-                                <button
-                                    key={i}
-                                    type="button"
-                                    onClick={() => setRating(i)}
-                                    className={cn(
-                                        "flex size-9 items-center justify-center rounded-lg border-2 text-sm font-black transition-all",
-                                        rating === i
-                                            ? "border-amber-400/50 bg-amber-400/10 text-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.1)]"
-                                            : "border-zinc-800 bg-zinc-900/50 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
-                                    )}
-                                >
-                                    {i}
-                                </button>
-                            ))}
+                    <div className="grid w-full gap-3">
+                        <div className="flex items-center justify-between gap-2">
+                            <Label htmlFor="rating">Rating</Label>
+                            <span className="text-sm text-muted-foreground">
+                                {rating}/10
+                            </span>
                         </div>
+                        <Slider
+                            min={0}
+                            max={10}
+                            value={rating}
+                            step={1}
+                            onValueChange={(n) => setRating(n as number)}
+                            style={
+                                {
+                                    "--primary": "var(--color-amber-500)",
+                                } as React.CSSProperties
+                            }
+                        />
                     </div>
 
                     <div className="space-y-3">
-                        <label
-                            htmlFor="comment"
-                            className="flex items-center gap-2 text-xs font-black tracking-widest text-zinc-500 uppercase"
-                        >
-                            <MessageSquare className="size-3" />
-                            Comment
-                        </label>
+                        <label htmlFor="comment">Comment</label>
                         <Textarea
                             id="comment"
                             placeholder="Write your thoughts here..."
                             value={comment}
                             onChange={(e) => setComment(e.target.value)}
-                            className="min-h-[100px] border-zinc-800 bg-zinc-900/50 text-zinc-200 placeholder:text-zinc-600 focus:border-amber-400/50 focus:ring-amber-400/20"
+                            className="min-h-25 border-zinc-800 bg-zinc-900/50 text-zinc-200 placeholder:text-zinc-600 focus:border-amber-400/50 focus:ring-amber-400/20"
                         />
                     </div>
                 </div>

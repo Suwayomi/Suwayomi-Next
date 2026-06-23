@@ -42,6 +42,11 @@ export type MangaDetail = QueryResult<{
         inLibrary: true
         initialized: true
         unreadCount: true
+        categories: {
+            nodes: {
+                id: true
+            }
+        }
         chapters: {
             totalCount: true
             nodes: {
@@ -109,6 +114,11 @@ export default function MangaDetailClient({
                 inLibrary: true,
                 initialized: true,
                 unreadCount: true,
+                categories: {
+                    nodes: {
+                        id: true,
+                    },
+                },
                 chapters: {
                     totalCount: true,
                     nodes: {
@@ -292,25 +302,6 @@ export default function MangaDetailClient({
         onError: () => toast.error("Failed to update library status"),
     })
 
-    const addToLibrary = async (categoryId?: number[]) => {
-        libraryMutation.mutate({
-            updateMangaCategories: {
-                __args: {
-                    input: {
-                        id: id,
-                        patch: { addToCategories: categoryId || [0] },
-                    },
-                },
-                clientMutationId: true,
-            },
-            updateMangas: {
-                __args: {
-                    input: { ids: [id], patch: { inLibrary: true } },
-                },
-                mangas: { id: true },
-            },
-        })
-    }
 
     const removeFromLibrary = async () => {
         libraryMutation.mutate({
@@ -657,7 +648,8 @@ export default function MangaDetailClient({
             <CategorySelectionDialog
                 open={isCategoryDialogOpen}
                 onOpenChange={setIsCategoryDialogOpen}
-                onSelect={(categoryId) => addToLibrary(categoryId)}
+                mangaIds={[id]}
+                previousIds={manga.categories?.nodes?.map((i: any) => i.id)}
             />
 
             <MangaRatingDialog
@@ -737,29 +729,34 @@ function MangaGenreList({ genre }: { genre: string[] }) {
     const visibleItems = showMore ? list : list.slice(0, 10)
 
     return (
-        <div className="flex flex-wrap gap-2">
-            {visibleItems.map((g) => (
-                <Badge
-                    key={g}
-                    variant={
-                        tags.has(g.toLowerCase()) ? "default" : "secondary"
-                    }
-                    className="border-none px-3 py-1 text-xs"
-                >
-                    {g}
-                </Badge>
-            ))}
+        visibleItems.length > 0 &&
+        visibleItems[0] !== "" && (
+            <div className="flex flex-wrap gap-2">
+                {visibleItems.map((g) => (
+                    <Badge
+                        key={g}
+                        variant={
+                            tags.has(g.toLowerCase()) ? "default" : "secondary"
+                        }
+                        className="border-none px-3 py-1 text-xs"
+                    >
+                        {g}
+                    </Badge>
+                ))}
 
-            {list.length > 10 && (
-                <Badge
-                    variant="outline"
-                    className="cursor-pointer"
-                    onClick={() => setShowMore((p) => !p)}
-                >
-                    {showMore ? "Show Less" : `Show ${list.length - 10} More`}
-                </Badge>
-            )}
-        </div>
+                {list.length > 10 && (
+                    <Badge
+                        variant="outline"
+                        className="cursor-pointer"
+                        onClick={() => setShowMore((p) => !p)}
+                    >
+                        {showMore
+                            ? "Show Less"
+                            : `Show ${list.length - 10} More`}
+                    </Badge>
+                )}
+            </div>
+        )
     )
 }
 

@@ -351,10 +351,13 @@ export default function BrowseClientPage() {
         onSuccess: async (data, variables) => {
             console.log("Extension update success:", { data, variables })
             // Refresh the local list and the global stores
+            // Refresh the local list and the global stores
             await Promise.all([
                 extensionsStore.refresh(),
                 sourcesStore.refresh(),
             ])
+            // Also refresh the local catalog query if it's not covered by the above
+            // (The fixed refresh() now covers all 'gql/query' keys which includes the catalog)
             const action = Object.keys(
                 (variables as any).updateExtension.__args.input.patch
             )[0]

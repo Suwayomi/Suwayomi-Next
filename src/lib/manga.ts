@@ -2,63 +2,80 @@ import { toast } from "sonner"
 import { client } from "./client"
 import type { MangaMetaType } from "@/hooks/use-global-meta"
 
-const toggleCustomMeta = async (
-    type: MangaMetaType,
-    mangaId: number,
-    library: any,
-    value?: any
-) => {
-    const mangas = library.data
-    if (!mangas) return
-    const manga = mangas.find((m: any) => m.id === mangaId)
-    if (!manga) return
+export const mangaUtils = {
+    toggleMeta: async (
+        type: MangaMetaType,
+        mangaIds: number | number[],
+        library: any,
+        value?: any,
+        options?: { silent?: boolean }
+    ) => {
+        const ids = Array.isArray(mangaIds) ? mangaIds : [mangaIds]
+        const mangas = library.data
 
-    const existingMeta = manga.meta?.find((m: any) => m.key === type)
+        const promise = Promise.all(
+            ids.map(async (mangaId) => {
+                if (!mangas) return
+                const manga = mangas.find((m: any) => m.id === mangaId)
 
-    const shouldDelete = !!existingMeta && value === undefined
+                const existingMeta = manga?.meta?.find((m: any) => m.key === type)
+                let shouldDelete = false
+                let targetValue = value !== undefined ? value : "true"
 
-    try {
-        if (shouldDelete) {
-            await client.mutation({
-                deleteMangaMeta: {
-                    __args: {
-                        input: {
-                            key: type,
-                            mangaId: mangaId,
-                        },
-                    },
-                    clientMutationId: true,
-                },
-            })
-            toast.success("Removed from list")
-        } else {
-            await client.mutation({
-                setMangaMeta: {
-                    __args: {
-                        input: {
-                            meta: {
-                                key: type,
-                                mangaId: mangaId,
-                                value: value !== undefined ? value : "true",
+                if (typeof value === "boolean") {
+                    shouldDelete = !value
+                    targetValue = "true"
+                } else if (value === undefined) {
+                    shouldDelete = !!existingMeta
+                } else {
+                    shouldDelete = false
+                }
+
+                if (shouldDelete) {
+                    return client.mutation({
+                        deleteMangaMeta: {
+                            __args: {
+                                input: {
+                                    key: type,
+                                    mangaId: mangaId,
+                                },
                             },
+                            clientMutationId: true,
                         },
-                    },
-                    meta: { key: true },
-                },
+                    })
+                } else {
+                    return client.mutation({
+                        setMangaMeta: {
+                            __args: {
+                                input: {
+                                    meta: {
+                                        key: type,
+                                        mangaId: mangaId,
+                                        value: targetValue,
+                                    },
+                                },
+                            },
+                            meta: { key: true },
+                        },
+                    })
+                }
             })
+        )
 
-            if (value === undefined) {
-                toast.success("Manga added to the list")
-            }
+        if (options?.silent) {
+            promise.then(() => library.refresh())
+            return
         }
 
-        library.refresh()
-    } catch (error) {
-        console.error("Failed to update Meta status:", error)
-        toast.error("Failed to update Meta status")
-    }
-}
+        const isBulk = ids.length > 1
 
-export const mangaUtils = {
-    toggleMeta: toggleCustomMeta,
+        toast.promise(promise, {
+            loading: isBulk ? `Updating ${ids.length} mangas...` : "Updating status...",
+            success: () => {
+                library.refresh()
+                return isBulk ? "Updated items" : "Updated successfully"
+            },
+            error: "Failed to update",
+        })
+    },
 }

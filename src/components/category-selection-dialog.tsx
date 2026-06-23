@@ -14,11 +14,23 @@ import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useNavigate } from "react-router-dom"
 import { useAppStore } from "@/hooks/use-app-store"
+import { Field } from "./ui/field"
+import { Label } from "./ui/label"
+import { updateMangasCategory } from "@/lib/library"
+import { mangaUtils } from "@/lib/manga"
+
+export interface ExtraCategorySelectionConfigs {
+    readlater?: boolean
+}
 
 interface CategorySelectionDialogProps {
     open: boolean
     onOpenChange: (open: boolean) => void
-    onSelect: (categoryIds: number[]) => void
+    mangaIds: number[]
+    onSelect?: (
+        categoryIds: number[],
+        extra?: ExtraCategorySelectionConfigs
+    ) => void
     title?: string
     previousIds?: number[]
 }
@@ -27,11 +39,13 @@ export function CategorySelectionDialog({
     open,
     onOpenChange,
     onSelect,
+    mangaIds,
     title = "Add to Library",
     previousIds = [0],
 }: CategorySelectionDialogProps) {
     const navigate = useNavigate()
-    const { categories } = useAppStore()
+    const { categories, library } = useAppStore()
+    const [extra, setExtra] = React.useState<ExtraCategorySelectionConfigs>({})
     const [selectedIds, setSelectedIds] = React.useState<number[]>(previousIds)
     React.useEffect(() => {
         setSelectedIds(previousIds)
@@ -46,10 +60,22 @@ export function CategorySelectionDialog({
         )
     }
 
-    const handleConfirm = () => {
+    const handleConfirm = async () => {
         // If nothing is selected, fall back to category ID 0
         const finalSelection = selectedIds.length > 0 ? selectedIds : [0]
-        onSelect(finalSelection)
+        
+        await updateMangasCategory({
+            mangaIds,
+            categoryIds: finalSelection,
+            onSuccess: () => {
+                if (extra.readlater) {
+                    mangaUtils.toggleMeta("next:read-later", mangaIds, library, true)
+                }
+                library.refresh()
+                onSelect?.(finalSelection, extra)
+            },
+        })
+
         onOpenChange(false)
     }
 
@@ -75,49 +101,46 @@ export function CategorySelectionDialog({
                     ) : categories.data.length > 1 ? (
                         <ScrollArea className="max-h-[300px] pr-4">
                             <div className="grid gap-2">
-                                {categories.data.slice(1).map((category: any) => {
-                                    const isChecked = selectedIds.includes(
-                                        category.id
-                                    )
-                                    return (
-                                        <label
-                                            key={category.id}
-                                            className={cn(
-                                                "group flex cursor-pointer items-center justify-between rounded-xl border-2 p-3 text-left transition-all select-none",
-                                                isChecked
-                                                    ? "border-primary bg-primary/10 shadow-[0_0_15px_rgba(var(--primary),0.1)]"
-                                                    : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900"
-                                            )}
-                                        >
-                                            <div className="flex flex-col">
-                                                <span
-                                                    className={cn(
-                                                        "font-bold transition-colors",
-                                                        isChecked
-                                                            ? "text-primary"
-                                                            : "text-zinc-200 group-hover:text-zinc-100"
-                                                    )}
-                                                >
-                                                    {category.name}
-                                                </span>
-                                                {category.default && (
-                                                    <span className="text-[10px] font-black tracking-widest text-zinc-500 uppercase">
-                                                        Default Category
-                                                    </span>
+                                {categories.data
+                                    .slice(1)
+                                    .map((category: any) => {
+                                        const isChecked = selectedIds.includes(
+                                            category.id
+                                        )
+                                        return (
+                                            <label
+                                                key={category.id}
+                                                className={cn(
+                                                    "group flex cursor-pointer items-center justify-between rounded-xl border-2 p-3 text-left transition-all select-none",
+                                                    isChecked
+                                                        ? "border-primary bg-primary/10 shadow-[0_0_15px_rgba(var(--primary),0.1)]"
+                                                        : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700 hover:bg-zinc-900"
                                                 )}
-                                            </div>
-                                            <Checkbox
-                                                checked={isChecked}
-                                                onCheckedChange={() =>
-                                                    handleToggleCategory(
-                                                        category.id
-                                                    )
-                                                }
-                                                className="border-zinc-700 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                                            />
-                                        </label>
-                                    )
-                                })}
+                                            >
+                                                <div className="flex flex-col">
+                                                    <span
+                                                        className={cn(
+                                                            "font-bold transition-colors",
+                                                            isChecked
+                                                                ? "text-primary"
+                                                                : "text-zinc-200 group-hover:text-zinc-100"
+                                                        )}
+                                                    >
+                                                        {category.name}
+                                                    </span>
+                                                </div>
+                                                <Checkbox
+                                                    checked={isChecked}
+                                                    onCheckedChange={() =>
+                                                        handleToggleCategory(
+                                                            category.id
+                                                        )
+                                                    }
+                                                    className="border-zinc-700 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
+                                                />
+                                            </label>
+                                        )
+                                    })}
                             </div>
                         </ScrollArea>
                     ) : (
@@ -134,6 +157,19 @@ export function CategorySelectionDialog({
                             </Button>
                         </div>
                     )}
+                </div>
+
+                <div className="mx-2">
+                    <Field orientation="horizontal">
+                        <Checkbox
+                            id="read-later"
+                            name="terms-checkbox"
+                            onCheckedChange={(v) =>
+                                setExtra((p) => ({ ...p, readlater: v }))
+                            }
+                        />
+                        <Label htmlFor="read-later">Add to read later.</Label>
+                    </Field>
                 </div>
 
                 <DialogFooter className="gap-2">
